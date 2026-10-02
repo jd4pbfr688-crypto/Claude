@@ -1,0 +1,59 @@
+<!doctype html><html><head><meta charset="utf-8"><style>
+body{margin:0;background:#222;}
+</style></head><body>
+<svg id="m" xmlns="http://www.w3.org/2000/svg" width="800" height="1000" viewBox="0 0 800 1000">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#cfd3d6"/><stop offset="1" stop-color="#aeb3b7"/></linearGradient>
+    <radialGradient id="skin" cx="0.45" cy="0.35" r="0.7"><stop offset="0" stop-color="#f3c9a4"/><stop offset="1" stop-color="#d9a27a"/></radialGradient>
+    <radialGradient id="shine" cx="0.5" cy="0.5" r="0.5"><stop offset="0" stop-color="#fff" stop-opacity=".95"/><stop offset="1" stop-color="#fff" stop-opacity="0"/></radialGradient>
+  </defs>
+  <rect width="800" height="1000" fill="url(#bg)"/>
+  <!-- height chart -->
+  <g font-family="Arial, Helvetica, sans-serif" font-weight="bold" fill="#333">
+    <line x1="0" y1="80" x2="800" y2="80" stroke="#444" stroke-width="3"/><text x="12" y="72" font-size="22">7'0"</text><text x="740" y="72" font-size="22">213</text>
+    <line x1="0" y1="200" x2="800" y2="200" stroke="#444" stroke-width="3"/><text x="12" y="192" font-size="22">6'6"</text><text x="740" y="192" font-size="22">198</text>
+    <line x1="0" y1="320" x2="800" y2="320" stroke="#444" stroke-width="3"/><text x="12" y="312" font-size="22">6'0"</text><text x="740" y="312" font-size="22">183</text>
+    <line x1="0" y1="440" x2="800" y2="440" stroke="#444" stroke-width="3"/><text x="12" y="432" font-size="22">5'6"</text><text x="740" y="432" font-size="22">168</text>
+    <line x1="0" y1="560" x2="800" y2="560" stroke="#444" stroke-width="3"/><text x="12" y="552" font-size="22">5'0"</text><text x="740" y="552" font-size="22">152</text>
+  </g>
+  <g stroke="#666" stroke-width="1.5">
+    <line x1="0" y1="140" x2="40" y2="140"/><line x1="760" y1="140" x2="800" y2="140"/>
+    <line x1="0" y1="260" x2="40" y2="260"/><line x1="760" y1="260" x2="800" y2="260"/>
+    <line x1="0" y1="380" x2="40" y2="380"/><line x1="760" y1="380" x2="800" y2="380"/>
+    <line x1="0" y1="500" x2="40" y2="500"/><line x1="760" y1="500" x2="800" y2="500"/>
+  </g>
+  <!-- body / orange jumpsuit -->
+  <path d="M170 1000 Q180 700 400 660 Q620 700 630 1000 Z" fill="#ff7a1a" stroke="#c4560a" stroke-width="4"/>
+  <path d="M340 668 L400 760 L460 668" fill="#e8640c" stroke="#c4560a" stroke-width="4"/>
+  <!-- neck -->
+  <rect x="355" y="560" width="90" height="120" rx="30" fill="url(#skin)"/>
+  <!-- ears -->
+  <ellipse cx="262" cy="430" rx="30" ry="45" fill="#e3ad85"/>
+  <ellipse cx="538" cy="430" rx="30" ry="45" fill="#e3ad85"/>
+  <!-- bald head -->
+  <ellipse cx="400" cy="400" rx="145" ry="190" fill="url(#skin)" stroke="#b9845d" stroke-width="3"/>
+  <ellipse cx="350" cy="275" rx="55" ry="30" fill="url(#shine)" transform="rotate(-20 350 275)"/>
+  <text x="300" y="250" font-size="40" fill="#fff">✦</text>
+  <!-- eyebrows (grumpy) -->
+  <path d="M315 375 L380 390" stroke="#5a3a22" stroke-width="10" stroke-linecap="round"/>
+  <path d="M485 375 L420 390" stroke="#5a3a22" stroke-width="10" stroke-linecap="round"/>
+  <!-- eyes -->
+  <ellipse cx="350" cy="420" rx="22" ry="14" fill="#fff"/><circle cx="352" cy="421" r="9" fill="#2b2b2b"/>
+  <ellipse cx="450" cy="420" rx="22" ry="14" fill="#fff"/><circle cx="448" cy="421" r="9" fill="#2b2b2b"/>
+  <!-- nose -->
+  <path d="M400 430 Q385 480 400 490 Q415 492 420 482" fill="none" stroke="#b9845d" stroke-width="4"/>
+  <!-- mouth -->
+  <path d="M360 530 Q400 520 440 530" fill="none" stroke="#7a3b2a" stroke-width="6" stroke-linecap="round"/>
+  <!-- stubble dots -->
+  <g fill="#8a6a55" opacity=".35"><circle cx="340" cy="555" r="2"/><circle cx="360" cy="565" r="2"/><circle cx="380" cy="570" r="2"/><circle cx="420" cy="570" r="2"/><circle cx="440" cy="565" r="2"/><circle cx="460" cy="555" r="2"/><circle cx="400" cy="572" r="2"/></g>
+  <!-- placard -->
+  <g>
+    <line x1="290" y1="700" x2="250" y2="770" stroke="#333" stroke-width="5"/>
+    <line x1="510" y1="700" x2="550" y2="770" stroke="#333" stroke-width="5"/>
+    <rect x="100" y="760" width="600" height="220" rx="6" fill="#111" stroke="#555" stroke-width="4"/>
+    <text x="400" y="812" text-anchor="middle" font-family="Courier New, monospace" font-size="22" fill="#bbb" letter-spacing="3">POLICE DEPARTMENT</text>
+    <text x="400" y="868" text-anchor="middle" font-family="Courier New, monospace" font-weight="bold" font-size="58" fill="#fff" letter-spacing="8">ENAK</text>
+    <text x="400" y="918" text-anchor="middle" font-family="Courier New, monospace" font-weight="bold" font-size="44" fill="#fff" letter-spacing="10">676767</text>
+    <text x="400" y="958" text-anchor="middle" font-family="Courier New, monospace" font-size="19" fill="#ffd34d">Il a dansé avec les Pilididous et il est chauve</text>
+  </g>
+</svg></body></html>
