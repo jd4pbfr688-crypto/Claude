@@ -1,7 +1,7 @@
 # Annales officielles (examens de décembre) : ce que pose le professeur
 
 Sources : corrections du tutorat (non officielles) des examens de **déc. 2020, déc. 2021, déc. 2022,
-déc. 2023, déc. 2024**. Chaque examen compte 20 QCM.
+déc. 2023, déc. 2024, déc. 2025**. Chaque examen compte 20 QCM.
 
 ## 1. Place de l'informatique médicale dans l'examen
 
@@ -12,6 +12,7 @@ déc. 2023, déc. 2024**. Chaque examen compte 20 QCM.
 | Déc. 2022 | Q17, Q18 | bus de données ; octet |
 | Déc. 2023 | Q19, Q20 | ROM ; binaire + Medline / MeSH |
 | Déc. 2024 | Q19, Q20 | RAM ; binaire (dont **addition**) + info immatérielle |
+| **Déc. 2025** | **Q19, Q20** | **deep learning ; entrepôts de données de santé** (IA, plus aucune architecture ni binaire) |
 
 → **0 à 2 QCM par an**, toujours en fin de sujet, juste après la recherche clinique. Soit environ 10 % de la note.
 
@@ -61,6 +62,25 @@ déc. 2023, déc. 2024**. Chaque examen compte 20 QCM.
   C) un octet est constitué de 8 bytes. **F**
   D) la notion d'information est une notion immatérielle. **V**
 
+### Déc. 2025 (le plus récent : **le nouveau programme IA est déjà tombé**)
+- Q17-Q18 = recherche clinique (programme de développement, avantages du in silico). La consigne passe à « exacte(s) » pour Q17-20.
+- Q19 « À propos du « deep learning » » :
+  A) méthode basée sur des réseaux de neurones artificiels. **V**
+  B) la notion de neurone artificiel est récente, moins de 10 ans. **F** (McCulloch-Pitts 1943)
+  C) fait partie des méthodes d'apprentissage automatique. **V**
+  D) fréquemment utilisé pour reconnaître des organes dans des images médicales. **V**
+  → réponse **ACD**
+- Q20 « Les entrepôts de données de santé : » :
+  A) sont des clones des systèmes d'information hospitaliers. **contesté**
+  B) constituent des bases de données massives permettant d'entraîner des réseaux de neurones. **contesté**
+  C) permettent la réalisation d'études cliniques sur des données de vie réelle. **V**
+  D) contiennent des données du soin courant. **V**
+  → le tutorat hésite entre **ACD** et **BCD**. Le tutorat cite une phrase du cours de l'an dernier : « les données des CHU sont
+  en train d'être **dupliquées** pour être organisées dans ces bases ». Mon avis : **BCD** est plus défendable.
+  Un entrepôt agrège bien plus que le SIH (labo, PACS, PMSI, radio, comptes rendus : diapositive « 2013 »), donc ce n'est pas un « clone »,
+  et HUGO / big data sert bien à entraîner les modèles.
+- Recyclage confirmé : en déc. 2025, Q14 (variable réduite), Q15 (sensibilité) et Q16 (graphe des centiles) sont **identiques mot pour mot** à déc. 2020.
+
 ## 3. Le style du professeur
 
 - **Consigne** : « Vous noircirez la (les) proposition(s) exacte(s) / correcte(s) ».
@@ -78,7 +98,7 @@ déc. 2023, déc. 2024**. Chaque examen compte 20 QCM.
 - **Pas de mise en situation clinique** en informatique (alors que la partie stats en a : patch-clamp,
   pédiatre, drépanocytose…).
 - **Grilles « tout vrai » fréquentes** (ABCD en 2023, deux fois). Le professeur n'hésite pas à mettre 4 items vrais.
-- **Calcul binaire chaque année depuis 2023**, en **binaire → décimal** sur un octet à petites valeurs
+- **Calcul binaire en 2023 et 2024, mais plus en 2025** (et le cours actuel annonce « pas de questions sur le codage binaire »). Avant 2025 :, en **binaire → décimal** sur un octet à petites valeurs
   (13, 99, 106, 170). Nouveauté 2024 : **une addition** (deux conversions, puis la somme en décimal).
 - **Recyclage massif** : des QCM entiers reviennent mot pour mot d'une année sur l'autre (en stats : Bayes,
   Poisson, tableau de contingence, variable réduite… ; en informatique : 00001101 = 13 deux ans de suite,
@@ -92,7 +112,7 @@ déc. 2023, déc. 2024**. Chaque examen compte 20 QCM.
 - Octet = **128 ou 256** valeurs distinctes.
 - **Addition binaire.**
 
-## 5. Thèmes du cours d'informatique jamais posés à l'examen (sur ces 5 ans)
+## 5. Thèmes du cours d'informatique jamais posés à l'examen (déc. 2020 à déc. 2024)
 D'après les colles (qui suivent le cours) : théorie de l'information / données (sauf l'item
 « immatérielle » de 2024), unité centrale, connexions entrée/sortie, 16 bits / 65 535, Ko = 1024 octets,
 parité, SIH / DPI / DMI, rôles de l'informatique en santé. **À vérifier avec le cours actuel.**
@@ -107,3 +127,11 @@ parité, SIH / DPI / DMI, rôles de l'informatique en santé. **À vérifier ave
   (précision ≠ justesse). C'est hors informatique, mais je le signale.
 - Déc. 2024 : apparition de QCM de **métrologie / unités SI** (MKSA, ampère, patch-clamp) → **le cours a
   évolué**. À croiser avec les versions du cours.
+
+## 7. Ce qui est déjà posé sur l'IA, à NE PAS reproduire dans des QCM « originaux »
+- Deep learning = réseaux de neurones artificiels ; deep learning ⊂ apprentissage automatique ; reconnaissance
+  d'organes dans les images médicales ; neurone artificiel « récent, moins de 10 ans » (piège de date, réponse 1943).
+- Entrepôts de données de santé : clones du SIH ? données massives pour entraîner des réseaux de neurones ;
+  études cliniques sur données de vie réelle ; données du soin courant.
+- La même forme reviendra probablement : énoncé « À propos du … » / « Les … : », 4 items courts, un piège par
+  adverbe ou par chiffre (« récente », « moins de 10 ans »).

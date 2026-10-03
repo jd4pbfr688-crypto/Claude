@@ -4,9 +4,9 @@ Source : support du tutorat (« Informatique médicale », basé sur le cours de
 main par l'étudiant pendant le cours de cette année (2026-2027), avec des photos des diapositives sur l'IA.
 PDF de 19 pages.
 
-> **Interprétation à confirmer avec l'étudiant** : les parties **barrées** à la main semblent
-> **retirées du cours cette année**. La **page 4** du support (RAM, ports E/S, bus de données) est
-> **absente** du PDF (le sommaire l'annonce). Elle a soit été retirée, soit perdue à la compression.
+> **Confirmé par l'étudiant** : les parties **barrées = retirées du cours cette année**. La **page 4** (RAM,
+> ports E/S, bus de données) est **retirée** aussi.
+> Cohérent avec l'examen de déc. 2025 : plus aucune question d'architecture ou de binaire, deux QCM sur l'IA.
 
 ---
 
@@ -41,7 +41,7 @@ PDF de 19 pages.
 
 ---
 
-## 2. Parties barrées (probablement retirées cette année)
+## 2. Parties barrées = RETIRÉES du programme (confirmé)
 - **II.A Unité centrale / microprocesseur** (circuit intégré, programme, reçoit des informations et émet des ordres, calculs).
 - **II.B ROM** (programme de gestion du système, non labile, non réinscriptible, flashage, mnémo « O »).
 - **Page 4 manquante** : II.C RAM, II.D Ports E/S, II.E Bus de données.
@@ -49,8 +49,8 @@ PDF de 19 pages.
   économique (carte Vitale), bases de données de santé des populations, systèmes documentaires, **Medline
   + MeSH + définition du thésaurus**, informatique au bloc opératoire (chirurgie assistée par ordinateur, capteurs).
 
-→ Si l'interprétation est juste, **l'architecture de l'ordinateur, Medline et le codage binaire calculatoire
-ne seraient plus au programme**. Or c'est exactement ce que le prof posait jusqu'ici (ROM 2023, RAM 2024, bus 2022, binaire 2020/2023/2024).
+→ **L'architecture de l'ordinateur (Uc, ROM, RAM, E/S, bus), les applications médicales (SIH, DPI/DMI, Medline/MeSH)
+et les multiples de l'octet ne sont plus au programme.** Or c'est exactement ce que le prof posait jusqu'ici (ROM 2023, RAM 2024, bus 2022, binaire 2020/2023/2024).
 
 ---
 
@@ -123,6 +123,8 @@ Exemples notés (en vert, rattachement à l'un ou l'autre non précisé) : **dia
 - **Prescriptive / Générative** : crée de **nouvelles données**, création d'images, rédaction de textes.
 
 ### 3.7 Données massives et entrepôts (diapositives)
+- Phrase du cours de l'an dernier citée par le tutorat (déc. 2025 Q20) : les données des CHU sont **dupliquées** pour être organisées dans les entrepôts ;
+  les entrepôts contiennent des données du **soin courant** et permettent des études sur **données de vie réelle**.
 - **« Histoire », 2013** : le **DPI** (comptes rendus, labo, PACS, DSI, PMSI, radio…) alimente un
   entrepôt de données : **requête structurée**, **requête plein texte**, **index**, **métadonnées**,
   **documents**, **ETL**, **EAI**.
@@ -152,10 +154,10 @@ Exemples soulignés à l'oral (notes) : **dépistage automatique des fractures a
 
 ## 4. Conséquences pour les QCM
 
-1. **Le chapitre IA est entièrement nouveau.** Aucune colle et aucune annale ne l'a jamais traité, ce qui rend la non-ressemblance facile.
-   C'est probablement le cœur de l'examen de cette année, et le prof aime faire tomber les **exemples** (note du support).
-2. Les colles passées portent presque entièrement sur des parties **barrées**. Des QCM sur la ROM, la RAM, le bus, Medline ou le SIH seraient
-   **hors programme** si l'interprétation des ratures est juste.
+1. **Le chapitre IA est le cœur du programme.** Aucune colle ne l'a traité, mais **l'examen de déc. 2025 a déjà posé deux QCM**
+   (deep learning, entrepôts de données de santé : voir `02`, §7). Il ne faut pas les reproduire. Le prof aime faire tomber les **exemples**.
+2. Les colles passées portent presque entièrement sur des parties retirées. Un QCM sur la ROM, la RAM, le bus, les E/S, l'unité centrale, Medline,
+   le SIH ou le DPI/DMI est **hors programme** (signalé comme tel au feedback).
 3. Le codage binaire : les définitions restent au cours (bit, octet, 0-255, 2ⁿ, bit ≠ byte), mais l'annotation dit
    « pas de questions au concours sur le codage binaire ». À **éviter ou limiter** aux définitions.
 4. Matière exploitable en dehors de l'IA : l'introduction (données, support, information, théorie de la décision vs
