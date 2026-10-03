@@ -35,6 +35,11 @@ Détails dans `01` (colles), `02` (annales), `03` (cours actuel annoté), `04` (
 méthode de conversion, SIH, interconnexion / 70 % de libéraux, DPI/DMI (au sens des applications médicales), carte Vitale,
 Medline / MeSH / thésaurus, bloc opératoire assisté par ordinateur.
 
+- **Exemples oraux (le prof aime les faire tomber)** : porte des toilettes (ouvert / fermé) ; **logo Apple croqué = « bite / byte »** ;
+  jeux des années 80 (Batman) = **256 couleurs** → **2²⁴** couleurs, l'œil ne fait plus la différence ; traces d'IA avant 1950 (Pascal, XIXe siècle) ;
+  viande/poisson : **4 fois/semaine poissonnier vs 2 fois boucher** ; « comment fait-on une **IA raciste** » (données biaisées) ;
+  non supervisé : des classes « autre chose » inutilisables pour les **décisions thérapeutiques** ; **fractures aux urgences** ; PMSI = codage des pathologies pour la **facturation**. (Détails dans `05`.)
+
 ## 2. Déjà posé : ne pas reproduire
 - **Examen déc. 2025 (IA)** : deep learning = réseaux de neurones artificiels ; deep learning ⊂ apprentissage
   automatique ; « neurone artificiel récent, < 10 ans » (F, 1943) ; reconnaissance d'organes en imagerie ;
