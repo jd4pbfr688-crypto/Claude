@@ -103,5 +103,6 @@ calcul inverse, raisonnement en plusieurs étapes, comparaison, intrus…), pas 
 ---
 
 ## 5. À compléter
-- [ ] Annales du professeur (5 dernières années) : style, formulations, pièges types.
+- [x] Annales du professeur (5 dernières années) : voir `02_annales_prof_inventaire.md`.
+  Valeurs binaires déjà utilisées à l'examen : 170, 106 (leurre 108), 13 (deux fois), 99, addition 13 + 17 = 30.
 - [ ] Cours d'informatique médicale (versions successives) : ce qui a été ajouté ou retiré.
