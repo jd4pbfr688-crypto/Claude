@@ -4,6 +4,7 @@ Base de connaissances pour relire et commenter des QCM d'informatique médicale,
 
 | Fichier | Contenu |
 |---|---|
+| `00_synthese.md` | **Condensé : à lire en premier** (programme, déjà posé, style, grille) |
 | `01_colles_tutorat_inventaire.md` | Items des colles du tutorat (2022 à 2026), pièges récurrents, erreurs de correction |
 | `02_annales_prof_inventaire.md` | Items des examens de décembre 2020 à 2024, style du prof |
 | `03_cours_actuel.md` | Cours actuel annoté : parties barrées (retirées ?), nouveau chapitre IA |
