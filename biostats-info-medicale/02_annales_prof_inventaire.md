@@ -98,7 +98,7 @@ déc. 2023, déc. 2024, déc. 2025**. Chaque examen compte 20 QCM.
 - **Pas de mise en situation clinique** en informatique (alors que la partie stats en a : patch-clamp,
   pédiatre, drépanocytose…).
 - **Grilles « tout vrai » fréquentes** (ABCD en 2023, deux fois). Le professeur n'hésite pas à mettre 4 items vrais.
-- **Calcul binaire en 2023 et 2024, mais plus en 2025** (et le cours actuel annonce « pas de questions sur le codage binaire »). Avant 2025 :, en **binaire → décimal** sur un octet à petites valeurs
+- **Calcul binaire en 2023 et 2024, mais plus en 2025** (et le cours actuel annonce « pas de questions sur le codage binaire »). Avant 2025, toujours en **binaire → décimal** sur un octet à petites valeurs
   (13, 99, 106, 170). Nouveauté 2024 : **une addition** (deux conversions, puis la somme en décimal).
 - **Recyclage massif** : des QCM entiers reviennent mot pour mot d'une année sur l'autre (en stats : Bayes,
   Poisson, tableau de contingence, variable réduite… ; en informatique : 00001101 = 13 deux ans de suite,
