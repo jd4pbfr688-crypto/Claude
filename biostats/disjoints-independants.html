@@ -1,702 +1,260 @@
 <title>Disjoints ou indépendants ?</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:ital,wght@0,400;0,500;0,600;1,400&family=STIX+Two+Text:ital,wght@0,400;0,600;1,400;1,600&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&family=STIX+Two+Text:ital,wght@0,400;0,600;1,400&display=swap">
 <style>
-/* Mise en page : une fiche de cours. Réglages + verdict en haut, deux vues liées (carré des probabilités, 100 patients), puis les chiffres et l'essentiel. */
+/* Mise en page : une fiche de cours courte. Deux questions, deux exemples côte à côte, une phrase à retenir. */
 :root{
   --bg:#f3f5f8;
   --surface:#ffffff;
-  --sunk:#f8f9fb;
+  --sunk:#f7f8fa;
   --ink:#141a22;
   --ink-2:#465061;
   --muted:#667080;
   --rule:#dbe1e8;
-  --paper:rgb(30 60 110 / .11);
-  --track:#d3d9e1;
-  --a:#2a78d6;
-  --a-tint:#dde9f9;
-  --a-ink:#1c5cab;
-  --b:#eb6834;
-  --b-ink:#b4441a;
-  --on-b:#141a22;
-  --nb:#c3cad4;
-  --tip-bg:#141a22;
-  --tip-fg:#ffffff;
-  --f-display:"STIX Two Text","Cambria Math",Cambria,Georgia,serif;
+  --info:#2a78d6;
+  --info-tint:#e3edfa;
+  --info-ink:#1c5cab;
+  --o:#eb6834;
+  --o-ink:#b4441a;
+  --gray:#c3cad4;
+  --f-display:"STIX Two Text",Cambria,Georgia,serif;
   --f-body:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
-  --f-mono:"IBM Plex Mono",ui-monospace,"SF Mono",Menlo,Consolas,monospace;
+  --f-mono:"IBM Plex Mono",ui-monospace,Menlo,Consolas,monospace;
 }
 @media (prefers-color-scheme: dark){
   :root:not([data-theme="light"]){
     --bg:#0f1318; --surface:#171c23; --sunk:#13181e;
     --ink:#edf1f6; --ink-2:#b3bcc9; --muted:#8c96a4; --rule:#2a313b;
-    --paper:rgb(200 220 255 / .09); --track:#343c48;
-    --a:#3987e5; --a-tint:#1a2a3f; --a-ink:#8db9f0;
-    --b:#d95926; --b-ink:#f0905f; --on-b:#141a22; --nb:#4a5361;
-    --tip-bg:#edf1f6; --tip-fg:#141a22;
+    --info:#3987e5; --info-tint:#1a2a3f; --info-ink:#8db9f0;
+    --o:#d95926; --o-ink:#f0905f; --gray:#4a5361;
     color-scheme:dark;
   }
 }
 :root[data-theme="dark"]{
   --bg:#0f1318; --surface:#171c23; --sunk:#13181e;
   --ink:#edf1f6; --ink-2:#b3bcc9; --muted:#8c96a4; --rule:#2a313b;
-  --paper:rgb(200 220 255 / .09); --track:#343c48;
-  --a:#3987e5; --a-tint:#1a2a3f; --a-ink:#8db9f0;
-  --b:#d95926; --b-ink:#f0905f; --on-b:#141a22; --nb:#4a5361;
-  --tip-bg:#edf1f6; --tip-fg:#141a22;
+  --info:#3987e5; --info-tint:#1a2a3f; --info-ink:#8db9f0;
+  --o:#d95926; --o-ink:#f0905f; --gray:#4a5361;
   color-scheme:dark;
 }
 
 *,*::before,*::after{box-sizing:border-box}
 body{background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:1rem;line-height:1.55;-webkit-font-smoothing:antialiased}
 p{margin:0}
-:focus-visible{outline:2px solid var(--a);outline-offset:2px}
-i.v{font-family:var(--f-display);font-style:italic}
+:focus-visible{outline:2px solid var(--info);outline-offset:2px}
 
-.page{max-width:1120px;margin:0 auto;padding-inline:clamp(16px,4vw,40px);padding-block:clamp(28px,5vw,56px) 56px;display:grid;gap:clamp(20px,3vw,32px)}
+.page{max-width:1040px;margin:0 auto;padding-inline:clamp(16px,4vw,40px);padding-block:clamp(28px,5vw,56px) 56px;display:grid;gap:clamp(24px,4vw,40px)}
 
-/* En-tête */
 .eyebrow{font-family:var(--f-mono);font-size:.75rem;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-bottom:.6rem}
-h1{font-family:var(--f-display);font-weight:600;font-size:clamp(2.1rem,5.4vw,3.5rem);line-height:1.04;letter-spacing:-.01em;margin:0;text-wrap:balance}
+h1{font-family:var(--f-display);font-weight:600;font-size:clamp(2.1rem,5.4vw,3.4rem);line-height:1.05;margin:0;text-wrap:balance}
 h1 em{font-weight:400;color:var(--muted)}
-.lede{max-width:64ch;color:var(--ink-2);font-size:1.0625rem;margin-top:.9rem}
+.lede{max-width:56ch;color:var(--ink-2);font-size:1.125rem;margin-top:.8rem}
+h2{font-family:var(--f-display);font-weight:600;font-size:1.5rem;line-height:1.2;margin:0;text-wrap:balance}
+.label{font-size:.75rem;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
 
-h2{font-family:var(--f-display);font-weight:600;font-size:1.45rem;line-height:1.2;margin:0;text-wrap:balance}
+/* Les deux questions */
+.questions{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:clamp(16px,2.5vw,24px)}
+.q{display:grid;gap:8px;align-content:start;padding:clamp(18px,2.5vw,24px);background:var(--surface);border:1px solid var(--rule);border-radius:12px}
+.q-word{font-family:var(--f-display);font-size:1.6rem;font-weight:600;line-height:1.1}
+.q-ask{font-size:1.125rem;color:var(--ink)}
+.q-then{font-size:.9375rem;color:var(--ink-2)}
+.q-then strong{color:var(--ink)}
 
-/* Panneau de réglages */
-.panel{display:grid;grid-template-columns:minmax(0,1.55fr) minmax(0,1fr);background:var(--surface);border:1px solid var(--rule);border-radius:12px;overflow:hidden}
-.panel-main{padding:clamp(16px,2.5vw,26px);display:grid;gap:22px;min-width:0}
-.field{display:grid;gap:10px;min-width:0}
-.field-lab{font-size:.75rem;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
-.chips{display:flex;flex-wrap:wrap;gap:8px}
-.chip{font:500 .875rem/1.2 var(--f-body);padding:.5rem .85rem;border-radius:999px;border:1px solid var(--rule);background:var(--surface);color:var(--ink);cursor:pointer}
-.chip:hover{border-color:var(--ink-2)}
-.chip[aria-pressed="true"]{background:var(--ink);color:var(--surface);border-color:var(--ink)}
-.legend{font-size:.9375rem;color:var(--ink);display:flex;flex-wrap:wrap;align-items:center;gap:6px 10px}
-.legend b{font-family:var(--f-display);font-style:italic;font-weight:600;font-size:1.05rem}
-.legend .sep{color:var(--muted)}
-.scn-desc{font-size:.9375rem;color:var(--ink-2);max-width:62ch}
-.sw{display:inline-block;width:.7rem;height:.7rem;border-radius:3px;vertical-align:-.05rem;margin-right:.3rem;flex:none}
-.sw.a{background:var(--a)} .sw.b{background:var(--b)} .sw.na,.sw.nb{background:var(--nb)}
+/* Exemples */
+.examples{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:clamp(16px,2.5vw,24px)}
+.ex{display:grid;gap:18px;align-content:start;padding:clamp(18px,2.5vw,24px);background:var(--surface);border:1px solid var(--rule);border-radius:12px;min-width:0}
+.ex-head{display:grid;gap:4px}
+.ex-intro{font-size:.9375rem;color:var(--ink-2)}
+.ex svg{width:100%;height:auto;display:block}
+svg text{font-family:var(--f-body);font-size:13px;font-weight:600}
+.t-info{fill:var(--info-ink)} .t-other{fill:var(--ink-2)}
+.f-o{fill:var(--o)} .f-gray{fill:var(--gray)} .f-hit{fill:transparent}
+.blk-info{fill:var(--info-tint);stroke:var(--info);stroke-width:1.5}
+.blk-other{fill:var(--surface);stroke:var(--rule);stroke-width:1}
+.blk{transition:opacity .25s ease}
+.ex.told .blk-o{opacity:.15}
+.keys{display:flex;flex-wrap:wrap;gap:4px 16px;font-size:.875rem;color:var(--ink-2)}
+.sw{display:inline-block;width:.7rem;height:.7rem;border-radius:3px;margin-right:.35rem;vertical-align:-.05rem}
+.sw.o{background:var(--o)} .sw.g{background:var(--gray)} .sw.i{background:var(--info)}
 
-.pair{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:20px}
-.mini{display:grid;gap:4px;min-width:0}
-.mini label{display:flex;align-items:baseline;gap:6px;font-size:.9375rem}
-.mini output{margin-left:auto;font-family:var(--f-mono);font-size:.9375rem;color:var(--ink)}
+.tell{justify-self:start;font:500 .9375rem/1.2 var(--f-body);padding:.6rem 1rem;border-radius:999px;border:1.5px solid var(--info);background:var(--surface);color:var(--info-ink);cursor:pointer}
+.tell:hover{background:var(--info-tint)}
+.tell[aria-pressed="true"]{background:var(--info);border-color:var(--info);color:var(--surface)}
 
-input[type=range]{-webkit-appearance:none;appearance:none;width:100%;height:28px;background:transparent;margin:0;display:block;position:relative;z-index:1;cursor:pointer}
-input[type=range]::-webkit-slider-runnable-track{height:6px;border-radius:3px;background:var(--track)}
-input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;box-sizing:border-box;width:22px;height:22px;border-radius:50%;background:var(--surface);border:2.5px solid var(--ink);margin-top:-8px}
-input[type=range]::-moz-range-track{height:6px;border-radius:3px;background:var(--track)}
-input[type=range]::-moz-range-thumb{box-sizing:border-box;width:22px;height:22px;border-radius:50%;background:var(--surface);border:2.5px solid var(--ink)}
-input[type=range]:focus-visible{outline-offset:4px;border-radius:6px}
-#pA::-webkit-slider-thumb{border-color:var(--a)} #pA::-moz-range-thumb{border-color:var(--a)}
-#pB::-webkit-slider-thumb{border-color:var(--b)} #pB::-moz-range-thumb{border-color:var(--b)}
+.chance{display:grid;gap:8px;padding:14px 16px;background:var(--sunk);border-radius:10px}
+.ch-row{display:grid;grid-template-columns:minmax(0,1fr) auto minmax(0,1fr);align-items:center;gap:10px}
+.ch{display:grid;gap:0;min-width:0;border-radius:8px;padding:6px 8px;transition:background .25s ease}
+.ch-lab{font-size:.8125rem;color:var(--ink-2)}
+.ch-val{font-family:var(--f-mono);font-size:2rem;font-weight:500;line-height:1.15;color:var(--o-ink)}
+.ch-sub{font-size:.8125rem;color:var(--muted)}
+.ch-arrow{font-size:1.4rem;color:var(--muted)}
+.ex.told .ch-after{background:var(--info-tint)}
+.ch-say{font-size:1rem;font-weight:500}
 
-.inter-head{display:flex;flex-wrap:wrap;align-items:baseline;gap:4px 12px}
-.inter-head label{font-size:1rem;font-weight:500}
-.inter-head output{font-family:var(--f-mono);font-size:1.25rem;font-weight:500}
-.inter-head .pab{font-family:var(--f-mono);font-size:.875rem;color:var(--muted)}
-.scale{position:relative;padding-top:24px}
-.mk{position:absolute;top:28px;left:calc(11px + (100% - 22px) * var(--p,.5));width:2px;height:20px;margin-left:-1px;background:var(--ink-2);border-radius:1px}
-.mk-lab{position:absolute;top:0;left:calc(11px + (100% - 22px) * var(--p,.5));transform:translateX(-50%);font-size:.8125rem;font-weight:500;color:var(--ink-2);white-space:nowrap}
-.mk-lab[data-edge="l"]{transform:translateX(-12px)}
-.mk-lab[data-edge="r"]{transform:translateX(calc(-100% + 12px))}
-.ends{display:flex;flex-wrap:wrap;justify-content:space-between;gap:2px 12px;font-size:.8125rem;color:var(--muted);margin-top:4px}
-.quick{display:flex;flex-wrap:wrap;gap:8px}
-.btn{font:500 .8125rem/1.2 var(--f-body);padding:.45rem .75rem;border-radius:6px;border:1px solid var(--rule);background:var(--sunk);color:var(--ink);cursor:pointer}
-.btn:hover:not(:disabled){border-color:var(--ink-2)}
-.btn:disabled{color:var(--muted);cursor:not-allowed;opacity:.7}
-
-/* Verdict */
-.verdict{padding:clamp(16px,2.5vw,26px);border-left:1px solid var(--rule);background:var(--sunk);display:grid;gap:14px;align-content:start;min-width:0}
-.v-eyebrow{font-size:.75rem;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
-.v-title{font-family:var(--f-display);font-weight:600;font-size:clamp(1.6rem,3vw,2.05rem);line-height:1.1;text-wrap:balance}
-.v-text{font-size:.9375rem;color:var(--ink-2)}
-.cmp{display:grid;gap:8px}
-.cmp-row{display:grid;grid-template-columns:6.2rem minmax(0,1fr) 3.6rem;align-items:center;gap:10px}
-.cmp-lab{font-size:.875rem;display:flex;align-items:center}
-.cmp-bar{position:relative;height:14px;background:var(--track);border-radius:4px}
-.cmp-bar i{position:absolute;left:0;top:0;bottom:0;background:var(--b);border-radius:4px;transition:width .2s ease}
-.cmp-bar b{position:absolute;top:-4px;bottom:-4px;width:0;border-left:2px dashed var(--ink);margin-left:-1px}
-.cmp-val{font-family:var(--f-mono);font-size:.875rem;text-align:right;font-variant-numeric:tabular-nums}
-.cmp-cap{font-size:.8125rem;color:var(--muted)}
-
-/* Vues */
-.views{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:clamp(16px,2.5vw,24px)}
-.card{background:var(--surface);border:1px solid var(--rule);border-radius:12px;padding:clamp(16px,2.5vw,24px);min-width:0}
-.view{margin:0;display:grid;gap:14px;align-content:start}
-.view svg{width:100%;height:auto;display:block;max-width:460px;margin-inline:auto;overflow:visible}
-.how{font-size:.9375rem;color:var(--ink-2);max-width:60ch}
-.keys{display:flex;flex-wrap:wrap;gap:6px 16px;font-size:.875rem;color:var(--ink-2)}
-.keys span{display:inline-flex;align-items:center}
-
-svg text{font-family:var(--f-body);font-size:12px;fill:var(--ink-2)}
-svg .t-mono{font-family:var(--f-mono)}
-svg .t-a{fill:var(--a-ink);font-weight:600}
-svg .t-na{fill:var(--ink-2);font-weight:600}
-svg .t-ink{fill:var(--ink)}
-svg .halo{paint-order:stroke;stroke:var(--surface);stroke-width:4px;stroke-linejoin:round}
-svg .t-on-b{fill:var(--on-b);font-family:var(--f-mono);font-size:11.5px;font-weight:500}
-svg .paper line{stroke:var(--paper);stroke-width:1}
-svg .pb-line{stroke:var(--ink);stroke-width:1.5;stroke-dasharray:5 4;fill:none}
-.f-b{fill:var(--b)} .f-at{fill:var(--a-tint)} .f-s{fill:var(--surface)} .f-nb{fill:var(--nb)} .f-a{fill:var(--a)} .f-none{fill:none} .f-hit{fill:transparent}
-.s-frame{stroke:var(--ink-2);stroke-width:1} .s-a{stroke:var(--a);stroke-width:1.5} .s-rule{stroke:var(--rule);stroke-width:1} .s-gap{stroke:var(--surface);stroke-width:3} .s-muted{stroke:var(--muted);stroke-width:1.5}
-
-/* Survol lié : une case du tableau éclaire la zone du carré et les patients correspondants */
-[data-cell]{transition:opacity .15s ease}
-.page[data-hl] [data-cell]{opacity:.22}
-.page[data-hl="a"] [data-cell="a"],.page[data-hl="b"] [data-cell="b"],.page[data-hl="c"] [data-cell="c"],.page[data-hl="d"] [data-cell="d"]{opacity:1}
-
-/* Chiffres */
-.numbers{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,1fr);gap:clamp(16px,2.5vw,24px)}
-.numbers .card{display:grid;gap:14px;align-content:start}
-.tbl-wrap{overflow-x:auto}
-.ct{width:100%;min-width:320px;border-collapse:collapse;font-variant-numeric:tabular-nums}
-.ct th,.ct td{padding:.55rem .6rem;text-align:center;border-bottom:1px solid var(--rule)}
-.ct thead th{font-family:var(--f-display);font-size:1.15rem;font-weight:600;font-style:italic;vertical-align:bottom}
-.ct tbody th{font-family:var(--f-display);font-size:1.15rem;font-weight:600;font-style:italic;text-align:left}
-.ct .lab{display:block;font-family:var(--f-body);font-style:normal;font-size:.75rem;font-weight:400;color:var(--muted)}
-.ct td[data-cell]{cursor:default}
-.ct td[data-cell]:hover,.ct td[data-cell]:focus-visible{background:var(--sunk)}
-.obs{display:block;font-family:var(--f-mono);font-size:1.4rem;font-weight:500;color:var(--ink);line-height:1.2}
-.exp{display:block;font-size:.75rem;color:var(--muted)}
-.ct .tot{font-family:var(--f-mono);color:var(--ink-2)}
-.ct tr:last-child th,.ct tr:last-child td{border-bottom:0}
-.hint{font-size:.8125rem;color:var(--muted)}
-.stats{display:grid;gap:10px;margin:0;padding-top:12px;border-top:1px solid var(--rule)}
-.stats div{display:grid;gap:2px}
-.stats dt{font-size:.75rem;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
-.stats dd{margin:0;font-size:.9375rem;color:var(--ink-2)}
-.stats .fx{color:var(--ink)}
-.fx{font-family:var(--f-display);font-size:1.05rem;font-variant-numeric:lining-nums tabular-nums}
-.fx i{font-style:italic}
-
-.test{display:grid;gap:4px;padding-block:12px;border-bottom:1px solid var(--rule)}
-.test:first-of-type{padding-top:0}
-.test-q{display:flex;justify-content:space-between;align-items:center;gap:12px;font-family:var(--f-display);font-size:1.2rem;font-weight:600}
-.ans{font:600 .8125rem/1 var(--f-body);padding:.35rem .7rem;border-radius:999px;border:1.5px solid var(--ink);white-space:nowrap}
-.ans.yes{background:var(--ink);color:var(--surface)}
-.ans.no{background:transparent;color:var(--ink)}
-.test-why{font-size:.875rem;color:var(--muted)}
-.both{font-size:.9375rem;color:var(--ink-2)}
-.both strong{color:var(--ink)}
+.answers{display:grid;gap:0;border-top:1px solid var(--rule)}
+.ans-row{display:grid;grid-template-columns:auto minmax(0,1fr);gap:4px 12px;align-items:baseline;padding-block:12px;border-bottom:1px solid var(--rule)}
+.ans-q{font-family:var(--f-display);font-size:1.2rem;font-weight:600}
+.pill{justify-self:end;grid-column:2;grid-row:1;font:600 .8125rem/1 var(--f-body);padding:.35rem .75rem;border-radius:999px;border:1.5px solid var(--ink)}
+.pill.yes{background:var(--ink);color:var(--surface)}
+.pill.no{color:var(--ink)}
+.ans-why{grid-column:1 / -1;font-size:.9375rem;color:var(--ink-2)}
+.formula{font-family:var(--f-display);font-size:1rem;color:var(--muted)}
+.formula i{font-style:italic}
 
 /* À retenir */
-.retenir{display:grid;gap:16px}
-.ret-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:clamp(16px,2.5vw,24px)}
-.ret{display:grid;gap:10px;align-content:start;padding-top:14px;border-top:2px solid var(--rule);min-width:0}
-.ret h3{font-family:var(--f-display);font-size:1.3rem;font-weight:600;margin:0}
-.ret h3 span{font-weight:400;color:var(--muted);font-size:1rem}
-.ret p{font-size:.9375rem;color:var(--ink-2)}
-.ret .fx{color:var(--ink);font-size:1.1rem}
-.ret .aside{font-size:.875rem;color:var(--muted)}
-.ret.trap{border-top-color:var(--ink)}
-.ret.trap h3{color:var(--b-ink)}
+.retenir{display:grid;gap:18px;padding:clamp(20px,3vw,32px);background:var(--surface);border:1.5px solid var(--ink);border-radius:12px}
+.big{font-family:var(--f-display);font-size:clamp(1.5rem,3.4vw,2.1rem);font-weight:600;line-height:1.2;text-wrap:balance;max-width:30ch}
+.big em{font-style:italic;color:var(--o-ink)}
+.retenir p{max-width:62ch;color:var(--ink-2)}
+.retenir .big{color:var(--ink)}
+.recap-wrap{overflow-x:auto}
+.recap{border-collapse:collapse;min-width:300px;font-size:.9375rem}
+.recap th,.recap td{padding:.55rem 1rem .55rem 0;text-align:left;border-bottom:1px solid var(--rule)}
+.recap thead th{font-size:.75rem;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+.recap tbody th{font-weight:500}
+.recap tr:last-child th,.recap tr:last-child td{border-bottom:0}
+.note{font-size:.8125rem;color:var(--muted)}
 
-/* Vrai ou faux */
-.quiz{display:grid;gap:12px}
-.quiz-list{display:grid;gap:0;border-top:1px solid var(--rule)}
-.quiz details{border-bottom:1px solid var(--rule)}
-.quiz summary{cursor:pointer;padding:.8rem 0;font-size:1rem;list-style:none;display:flex;gap:12px;align-items:baseline}
-.quiz summary::-webkit-details-marker{display:none}
-.quiz summary::before{content:"+";font-family:var(--f-mono);color:var(--muted);width:1rem;flex:none}
-.quiz details[open] summary::before{content:"−"}
-.quiz details p{padding:0 0 .9rem 1.75rem;font-size:.9375rem;color:var(--ink-2);max-width:70ch}
-.quiz details p strong{color:var(--ink)}
-
-footer{font-size:.8125rem;color:var(--muted);max-width:70ch}
-
-#tip{position:fixed;z-index:10;pointer-events:none;background:var(--tip-bg);color:var(--tip-fg);font-size:.8125rem;line-height:1.35;padding:.4rem .6rem;border-radius:6px;max-width:280px}
-
-@media (max-width:860px){
-  .panel{grid-template-columns:1fr}
-  .verdict{border-left:0;border-top:1px solid var(--rule)}
-  .views,.numbers{grid-template-columns:1fr}
-  .ret-grid{grid-template-columns:1fr}
-}
-@media (max-width:460px){
-  .pair{grid-template-columns:1fr;gap:12px}
-  .cmp-row{grid-template-columns:5.4rem minmax(0,1fr) 3.4rem}
-}
-@media (prefers-reduced-motion: reduce){
-  [data-cell],.cmp-bar i{transition:none}
-}
+@media (max-width:880px){.examples{grid-template-columns:1fr}}
+@media (max-width:640px){.questions{grid-template-columns:1fr}.ch-val{font-size:1.7rem}}
+@media (prefers-reduced-motion: reduce){.blk,.ch{transition:none}}
 </style>
 
 <main class="page">
   <header>
     <p class="eyebrow">Biostatistiques · Probabilités</p>
     <h1>Disjoints <em>ou</em> indépendants&nbsp;?</h1>
-    <p class="lede">Deux notions qu’on confond souvent, alors qu’elles sont presque opposées&nbsp;: deux événements disjoints sont, sauf cas trivial, <strong>dépendants</strong>. Choisissez un exemple, puis faites varier le nombre de patients qui sont à la fois A et B.</p>
+    <p class="lede">Ce sont deux questions différentes. On les pose sur deux exemples, avec 20 patients.</p>
   </header>
 
-  <section class="panel" aria-label="Réglages et verdict">
-    <div class="panel-main">
-      <div class="field">
-        <span class="field-lab" id="lab-ex">Exemples</span>
-        <div class="chips" role="group" aria-labelledby="lab-ex">
-          <button type="button" class="chip" data-scn="groupes" aria-pressed="false">Groupe A et groupe O</button>
-          <button type="button" class="chip" data-scn="sexe" aria-pressed="false">Sexe et groupe O</button>
-          <button type="button" class="chip" data-scn="tabac" aria-pressed="false">Tabac et toux</button>
-          <button type="button" class="chip" data-scn="dt1" aria-pressed="false">DT1 et diabète</button>
-        </div>
-        <p class="legend" id="legend"></p>
-        <p class="scn-desc" id="scnDesc"></p>
-      </div>
-
-      <div class="pair">
-        <div class="mini">
-          <label for="pA"><span class="sw a"></span><span><i class="v">P</i>(<i class="v">A</i>)</span><output id="oA" for="pA"></output></label>
-          <input type="range" id="pA" min="5" max="95" step="5" value="45">
-        </div>
-        <div class="mini">
-          <label for="pB"><span class="sw b"></span><span><i class="v">P</i>(<i class="v">B</i>)</span><output id="oB" for="pB"></output></label>
-          <input type="range" id="pB" min="5" max="95" step="5" value="40">
-        </div>
-      </div>
-
-      <div class="field">
-        <div class="inter-head">
-          <label for="nAB">Patients à la fois A et B&nbsp;:</label>
-          <output id="oAB" for="nAB"></output>
-          <span class="pab" id="oPAB"></span>
-        </div>
-        <div class="scale">
-          <span class="mk-lab" id="mkLab"></span>
-          <span class="mk" id="mk" aria-hidden="true"></span>
-          <input type="range" id="nAB" min="0" max="40" step="1" value="0">
-          <div class="ends"><span id="endL"></span><span id="endR"></span></div>
-        </div>
-        <div class="quick">
-          <button type="button" class="btn" id="goDis">Rendre disjoints</button>
-          <button type="button" class="btn" id="goInd">Rendre indépendants</button>
-        </div>
-      </div>
+  <section class="questions" aria-label="Les deux questions">
+    <div class="q">
+      <span class="label">Question 1</span>
+      <p class="q-word">Disjoints&nbsp;?</p>
+      <p class="q-ask">«&nbsp;Peuvent-ils arriver en même temps&nbsp;?&nbsp;»</p>
+      <p class="q-then">Si <strong>non</strong>&nbsp;: ils sont disjoints.</p>
     </div>
-
-    <aside class="verdict" aria-live="polite">
-      <p class="v-eyebrow">Avec ces chiffres, A et B sont</p>
-      <p class="v-title" id="vTitle"></p>
-      <div class="cmp" id="cmp"></div>
-      <p class="v-text" id="vText"></p>
-    </aside>
+    <div class="q">
+      <span class="label">Question 2</span>
+      <p class="q-word">Indépendants&nbsp;?</p>
+      <p class="q-ask">«&nbsp;Savoir l’un change-t-il la chance de l’autre&nbsp;?&nbsp;»</p>
+      <p class="q-then">Si <strong>non</strong>&nbsp;: ils sont indépendants.</p>
+    </div>
   </section>
 
-  <section class="views" aria-label="Représentations">
-    <figure class="card view">
-      <h2>Le carré des probabilités</h2>
-      <svg id="sq" viewBox="0 0 410 400" role="img" aria-label="Carré des probabilités"></svg>
-      <figcaption class="how">La largeur de chaque colonne vaut <i class="v">P</i>(<i class="v">A</i>) ou <i class="v">P</i>(<i class="v">Ā</i>). L’orange monte jusqu’à la part de B dans la colonne. <strong>Indépendants</strong>&nbsp;: l’orange forme une bande de même hauteur partout. <strong>Disjoints</strong>&nbsp;: aucun orange dans la colonne A.</figcaption>
-    </figure>
-    <figure class="card view">
-      <h2>Les 100 patients</h2>
-      <svg id="pp" viewBox="0 0 336 350" role="img" aria-label="100 patients"></svg>
-      <figcaption class="keys" id="ppKeys"></figcaption>
-    </figure>
-  </section>
+  <section class="examples" aria-label="Exemples">
+    <article class="ex" id="ex1">
+      <div class="ex-head">
+        <span class="label">Exemple 1</span>
+        <h2>Groupe A et groupe O</h2>
+        <p class="ex-intro">On tire un patient au hasard. Quelle est sa chance d’être du groupe O&nbsp;?</p>
+      </div>
+      <svg id="svg1" viewBox="0 0 380 92" role="img" aria-label="9 patients du groupe A, aucun du groupe O. 11 autres patients, dont 8 du groupe O."></svg>
+      <p class="keys"><span><span class="sw o"></span>Groupe O</span><span><span class="sw g"></span>Pas groupe O</span><span><span class="sw i"></span>Cadre bleu&nbsp;: groupe A</span></p>
+      <button type="button" class="tell" data-ex="ex1" aria-pressed="false">Je te dis&nbsp;: «&nbsp;il est du groupe A&nbsp;»</button>
+      <div class="chance">
+        <span class="label">Chance d’être du groupe O</span>
+        <div class="ch-row">
+          <div class="ch"><span class="ch-lab">Sans rien savoir</span><span class="ch-val">40&#8239;%</span><span class="ch-sub">8 patients sur 20</span></div>
+          <span class="ch-arrow" aria-hidden="true">→</span>
+          <div class="ch ch-after"><span class="ch-lab">S’il est du groupe A</span><span class="ch-val">0&#8239;%</span><span class="ch-sub">0 patient sur 9</span></div>
+        </div>
+        <p class="ch-say">La chance change&nbsp;: de 40&#8239;% à 0&#8239;%.</p>
+      </div>
+      <div class="answers">
+        <div class="ans-row"><span class="ans-q">Disjoints&nbsp;?</span><span class="pill yes">Oui</span><p class="ans-why">Aucun patient n’est à la fois du groupe A et du groupe O.</p></div>
+        <div class="ans-row"><span class="ans-q">Indépendants&nbsp;?</span><span class="pill no">Non</span><p class="ans-why">Savoir qu’il est du groupe A fait tomber la chance d’être du groupe O à 0&#8239;%.</p></div>
+      </div>
+      <p class="formula">En formule&nbsp;: <i>P</i>(O | A) = 0 ≠ <i>P</i>(O) = 0,4</p>
+    </article>
 
-  <section class="numbers" aria-label="Calculs">
-    <div class="card">
-      <h2>Tableau de contingence</h2>
-      <div class="tbl-wrap"><table class="ct" id="ct"></table></div>
-      <p class="hint">Survolez une case&nbsp;: la zone du carré et les patients correspondants s’éclairent. «&nbsp;Attendu&nbsp;» = effectif si A et B étaient indépendants.</p>
-      <dl class="stats" id="stats"></dl>
-    </div>
-    <div class="card">
-      <h2>Les deux définitions, testées</h2>
-      <div id="tests"></div>
-    </div>
+    <article class="ex" id="ex2">
+      <div class="ex-head">
+        <span class="label">Exemple 2</span>
+        <h2>Femme et groupe O</h2>
+        <p class="ex-intro">On tire un patient au hasard. Quelle est sa chance d’être du groupe O&nbsp;?</p>
+      </div>
+      <svg id="svg2" viewBox="0 0 380 92" role="img" aria-label="10 femmes, dont 4 du groupe O. 10 hommes, dont 4 du groupe O."></svg>
+      <p class="keys"><span><span class="sw o"></span>Groupe O</span><span><span class="sw g"></span>Pas groupe O</span><span><span class="sw i"></span>Cadre bleu&nbsp;: femmes</span></p>
+      <button type="button" class="tell" data-ex="ex2" aria-pressed="false">Je te dis&nbsp;: «&nbsp;c’est une femme&nbsp;»</button>
+      <div class="chance">
+        <span class="label">Chance d’être du groupe O</span>
+        <div class="ch-row">
+          <div class="ch"><span class="ch-lab">Sans rien savoir</span><span class="ch-val">40&#8239;%</span><span class="ch-sub">8 patients sur 20</span></div>
+          <span class="ch-arrow" aria-hidden="true">→</span>
+          <div class="ch ch-after"><span class="ch-lab">Si c’est une femme</span><span class="ch-val">40&#8239;%</span><span class="ch-sub">4 femmes sur 10</span></div>
+        </div>
+        <p class="ch-say">La chance ne change pas&nbsp;: 40&#8239;% dans les deux cas.</p>
+      </div>
+      <div class="answers">
+        <div class="ans-row"><span class="ans-q">Disjoints&nbsp;?</span><span class="pill no">Non</span><p class="ans-why">4 femmes sont du groupe O&nbsp;: les deux arrivent en même temps.</p></div>
+        <div class="ans-row"><span class="ans-q">Indépendants&nbsp;?</span><span class="pill yes">Oui</span><p class="ans-why">Savoir que c’est une femme ne change rien&nbsp;: 40&#8239;% avant, 40&#8239;% après.</p></div>
+      </div>
+      <p class="formula">En formule&nbsp;: <i>P</i>(O | femme) = 0,4 = <i>P</i>(O)</p>
+    </article>
   </section>
 
   <section class="retenir" aria-labelledby="h-ret">
-    <h2 id="h-ret">À retenir</h2>
-    <div class="ret-grid">
-      <article class="ret">
-        <h3>Disjoints <span>(incompatibles)</span></h3>
-        <p class="fx"><i>A</i> ∩ <i>B</i> = ∅ &nbsp;⇒&nbsp; <i>P</i>(<i>A</i> ∩ <i>B</i>) = 0</p>
-        <p>Une question d’<strong>ensembles</strong>&nbsp;: aucun patient n’est à la fois A et B. Ça se voit sur un diagramme de Venn&nbsp;: les deux cercles ne se touchent pas.</p>
-        <p class="aside">Conséquence&nbsp;: <span class="fx"><i>P</i>(<i>A</i> ∪ <i>B</i>) = <i>P</i>(<i>A</i>) + <i>P</i>(<i>B</i>)</span>.</p>
-      </article>
-      <article class="ret">
-        <h3>Indépendants</h3>
-        <p class="fx"><i>P</i>(<i>A</i> ∩ <i>B</i>) = <i>P</i>(<i>A</i>) × <i>P</i>(<i>B</i>)<br>⇔ &nbsp;<i>P</i>(<i>B</i> | <i>A</i>) = <i>P</i>(<i>B</i>)</p>
-        <p>Une question de <strong>proportions</strong>&nbsp;: B est aussi fréquent dans A que hors de A. Un diagramme de Venn ne le montre pas, il faut les effectifs.</p>
-        <p class="aside">En pratique&nbsp;: OR = 1, et c’est l’hypothèse nulle du test du χ² d’indépendance.</p>
-      </article>
-      <article class="ret trap">
-        <h3>Le piège</h3>
-        <p class="fx">Si <i>P</i>(<i>A</i>) &gt; 0 et <i>P</i>(<i>B</i>) &gt; 0&nbsp;:<br>disjoints ⇒ dépendants</p>
-        <p>Preuve&nbsp;: <span class="fx"><i>P</i>(<i>A</i> ∩ <i>B</i>) = 0</span> alors que <span class="fx"><i>P</i>(<i>A</i>) × <i>P</i>(<i>B</i>) &gt; 0</span>. L’égalité de l’indépendance est impossible.</p>
-        <p class="aside">Intuition&nbsp;: savoir que A est arrivé nous apprend quelque chose de sûr sur B. B n’arrivera pas.</p>
-      </article>
+    <span class="label" id="h-ret">À retenir</span>
+    <p class="big">Quand l’un empêche l’autre, savoir l’un change tout. Des événements disjoints sont donc <em>dépendants</em>.</p>
+    <p>Ne pas confondre «&nbsp;ils n’arrivent jamais ensemble&nbsp;» avec «&nbsp;ils n’ont rien à voir&nbsp;». Le premier, c’est disjoints. Le second, c’est indépendants.</p>
+    <div class="recap-wrap">
+      <table class="recap">
+        <thead><tr><th scope="col">Exemple</th><th scope="col">Disjoints&nbsp;?</th><th scope="col">Indépendants&nbsp;?</th></tr></thead>
+        <tbody>
+          <tr><th scope="row">Groupe A et groupe O</th><td>Oui</td><td>Non</td></tr>
+          <tr><th scope="row">Femme et groupe O</th><td>Non</td><td>Oui</td></tr>
+        </tbody>
+      </table>
     </div>
+    <p class="note">Jamais «&nbsp;oui&nbsp;» aux deux à la fois. Seule exception, sans intérêt en pratique&nbsp;: quand l’un des deux événements est impossible.</p>
   </section>
-
-  <section class="quiz" aria-labelledby="h-quiz">
-    <h2 id="h-quiz">Vrai ou faux&nbsp;?</h2>
-    <div class="quiz-list">
-      <details><summary>Deux événements incompatibles sont indépendants.</summary>
-        <p><strong>Faux.</strong> Dès que P(A) et P(B) sont non nulles, incompatibles implique dépendants. Exemple&nbsp;: être du groupe A et être du groupe O.</p></details>
-      <details><summary>On peut lire l’indépendance sur un diagramme de Venn.</summary>
-        <p><strong>Faux.</strong> Un Venn montre si les ensembles se recoupent, pas dans quelle proportion. Il faut comparer P(B | A) à P(B), donc connaître les effectifs.</p></details>
-      <details><summary>Si A et B sont indépendants, alors A et B̄ le sont aussi.</summary>
-        <p><strong>Vrai.</strong> P(A ∩ B̄) = P(A) − P(A ∩ B) = P(A) − P(A)·P(B) = P(A)·P(B̄).</p></details>
-      <details><summary>Pour deux événements indépendants, P(A ∪ B) = P(A) + P(B).</summary>
-        <p><strong>Faux.</strong> Cette formule vaut pour des événements disjoints. Pour des indépendants&nbsp;: P(A ∪ B) = P(A) + P(B) − P(A)·P(B).</p></details>
-      <details><summary>Dans un tableau 2×2, un odds ratio égal à 1 traduit l’indépendance.</summary>
-        <p><strong>Vrai.</strong> OR = 1 ⇔ a·d = b·c ⇔ a × 100 = (a+b)(a+c), c’est-à-dire P(A ∩ B) = P(A)·P(B).</p></details>
-    </div>
-  </section>
-
-  <footer>Effectifs illustratifs sur 100 patients. Les fréquences des groupes sanguins sont des ordres de grandeur pour la France&nbsp;; les exemples tabac et diabète sont fictifs.</footer>
 </main>
-<div id="tip" role="tooltip" hidden></div>
 
 <script>
 (() => {
-  const N = 100;
   const NS = 'http://www.w3.org/2000/svg';
-  const NNBSP = ' ';
-
-  const GENERIC = { generic: true, A: 'A', notA: 'Non-A', B: 'B', notB: 'Non-B',
-    Agrp: 'les A', notAgrp: 'les non-A', Bpred: 'sont B' };
-
-  const SCN = {
-    groupes: { nA: 45, nB: 40, a: 0,
-      A: 'Groupe A', notA: 'Autre que A', B: 'Groupe O', notB: 'Autre que O',
-      Agrp: 'les patients du groupe A', notAgrp: 'les autres', Bpred: 'sont du groupe O',
-      desc: 'Chaque patient a un seul groupe ABO : être du groupe A exclut d’être du groupe O. Les deux événements sont disjoints, et c’est justement pour ça qu’ils sont dépendants.' },
-    sexe: { nA: 50, nB: 40, a: 20,
-      A: 'Femme', notA: 'Homme', B: 'Groupe O', notB: 'Autre groupe',
-      Agrp: 'les femmes', notAgrp: 'les hommes', Bpred: 'sont du groupe O',
-      desc: 'Environ 4 personnes sur 10 sont du groupe O, chez les femmes comme chez les hommes. Connaître le sexe d’un patient n’apprend rien sur son groupe sanguin.' },
-    tabac: { nA: 30, nB: 20, a: 12,
-      A: 'Fumeur', notA: 'Non-fumeur', B: 'Toux chronique', notB: 'Pas de toux',
-      Agrp: 'les fumeurs', notAgrp: 'les non-fumeurs', Bpred: 'ont une toux chronique',
-      desc: 'Les deux se recoupent : des fumeurs toussent, des non-fumeurs aussi. Mais la toux est bien plus fréquente chez les fumeurs. Dépendants sans être disjoints.' },
-    dt1: { nA: 15, nB: 60, a: 15,
-      A: 'DT1', notA: 'Pas de DT1', B: 'Diabétique', notB: 'Non diabétique',
-      Agrp: 'les patients DT1', notAgrp: 'les autres', Bpred: 'sont diabétiques',
-      desc: 'Consultation d’endocrinologie : tout patient atteint de diabète de type 1 est diabétique, donc A est inclus dans B. C’est l’autre extrême, le lien positif le plus fort.' }
-  };
-
-  const state = { scn: 'groupes', nA: 45, nB: 40, a: 0 };
-  const $ = id => document.getElementById(id);
-  const page = document.querySelector('.page');
-
-  /* ---------- formats ---------- */
-  function dec(x) {
-    const r = Math.round(x * 10000) / 10000;
-    let s = r.toFixed(4).replace(/0+$/, '');
-    if (s.split('.')[1].length < 2) s = r.toFixed(2);
-    return (Math.abs(r - x) > 1e-9 ? '≈ ' : '') + s.replace('.', ',');
-  }
-  function pct(x) {
-    const v = Math.round(x * 1000) / 10;
-    return (Number.isInteger(v) ? v.toFixed(0) : v.toFixed(1)).replace('.', ',') + NNBSP + '%';
-  }
-  const eq = x => { const s = dec(x); return s.startsWith('≈') ? s : '= ' + s; };
-  function num(x) { return String(Math.round(x * 100) / 100).replace('.', ','); }
-  const fx = s => s.replace(/\b([ABP])\b/g, '<i>$1</i>');
-  const plural = (n, one, many) => n > 1 ? many : one;
-
-  /* ---------- modèle ---------- */
-  function derive() {
-    const { nA, nB, a } = state;
-    const b = nA - a, c = nB - a, d = N - nA - nB + a;
-    const nnA = N - nA, nnB = N - nB;
-    return { nA, nB, a, b, c, d, nnA, nnB,
-      exp: nA * nB / N,
-      lo: Math.max(0, nA + nB - N), hi: Math.min(nA, nB),
-      pA: nA / N, pB: nB / N, pAB: a / N, pBA: a / nA, pBnA: c / nnA };
-  }
-  function classify(D) {
-    if (D.a === 0) return 'disjoint';
-    if (D.a * N === D.nA * D.nB) return 'indep';
-    if (Math.abs(D.a - D.exp) <= 0.5) return 'quasi';
-    if (D.a === D.hi) return 'incl';
-    return D.a < D.exp ? 'neg' : 'pos';
-  }
-  function clampA() {
-    const lo = Math.max(0, state.nA + state.nB - N), hi = Math.min(state.nA, state.nB);
-    state.a = Math.min(hi, Math.max(lo, state.a));
-  }
-  function setA(v) {
-    const before = state.a;
-    state.a = v; clampA();
-    if (state.a !== before) state.scn = null;
-    render();
-  }
-
-  /* ---------- svg ---------- */
-  function el(tag, attrs, parent, text) {
+  const el = (tag, attrs, parent, text) => {
     const e = document.createElementNS(NS, tag);
     for (const k in attrs) e.setAttribute(k, attrs[k]);
     if (text != null) e.textContent = text;
-    if (parent) parent.appendChild(e);
+    parent.appendChild(e);
     return e;
-  }
-  const textW = (s, px) => s.length * px * 0.58;
-
-  function cellInfo(k, D, L) {
-    const m = {
-      a: ['A ∩ B', L.A, L.B, D.a], b: ['A ∩ B̄', L.A, L.notB, D.b],
-      c: ['Ā ∩ B', L.notA, L.B, D.c], d: ['Ā ∩ B̄', L.notA, L.notB, D.d]
-    }[k];
-    const who = L.generic ? '' : ` (${m[1]} · ${m[2]})`;
-    return `${m[0]}${who} : ${m[3]} ${plural(m[3], 'patient', 'patients')}`;
-  }
-
-  function drawSquare(D, L) {
-    const svg = $('sq'); svg.replaceChildren();
-    const X0 = 70, Y0 = 40, S = 320;
-    const xa = X0 + S * D.pA, xe = X0 + S;
-    const hA = S * D.pBA, hN = S * D.pBnA;
-
-    const reg = (k, x, y, w, h, cls) => el('rect', { x, y, width: Math.max(0, w), height: Math.max(0, h),
-      class: cls, 'data-cell': k, 'data-tip': cellInfo(k, D, L) }, svg);
-    reg('b', X0, Y0, xa - X0, S - hA, 'f-at');
-    reg('a', X0, Y0 + S - hA, xa - X0, hA, 'f-b');
-    reg('d', xa, Y0, xe - xa, S - hN, 'f-s');
-    reg('c', xa, Y0 + S - hN, xe - xa, hN, 'f-b');
-
-    const grid = el('g', { class: 'paper', 'aria-hidden': 'true', 'pointer-events': 'none' }, svg);
-    for (let i = 1; i < 10; i++) {
-      const t = X0 + S * i / 10, u = Y0 + S * i / 10;
-      el('line', { x1: t, y1: Y0, x2: t, y2: Y0 + S }, grid);
-      el('line', { x1: X0, y1: u, x2: xe, y2: u }, grid);
-    }
-    el('line', { x1: xa, y1: Y0, x2: xa, y2: Y0 + S, class: 's-gap', 'pointer-events': 'none' }, svg);
-    el('rect', { x: X0, y: Y0, width: S, height: S, class: 'f-none s-frame', 'pointer-events': 'none' }, svg);
-
-    // identité des colonnes
-    el('rect', { x: X0, y: Y0 - 9, width: Math.max(0, xa - X0 - 1.5), height: 5, rx: 1.5, class: 'f-a' }, svg);
-    el('rect', { x: xa + 1.5, y: Y0 - 9, width: Math.max(0, xe - xa - 1.5), height: 5, rx: 1.5, class: 'f-nb' }, svg);
-    const fit = (long, short, w) => (!L.generic && textW(long, 12) <= w - 6) ? long : short;
-    el('text', { x: (X0 + xa) / 2, y: Y0 - 16, 'text-anchor': 'middle', class: 't-a' }, svg, fit(`A · ${L.A}`, 'A', xa - X0));
-    el('text', { x: (xa + xe) / 2, y: Y0 - 16, 'text-anchor': 'middle', class: 't-na' }, svg, fit(`Ā · ${L.notA}`, 'Ā', xe - xa));
-
-    // aire A ∩ B
-    const wA = xa - X0;
-    if (hA >= 20 && wA >= 44) {
-      const lab = (wA >= 112 && hA >= 20) ? `A∩B = ${dec(D.pAB)}` : 'A∩B';
-      el('text', { x: X0 + wA / 2, y: Y0 + S - hA / 2 + 4, 'text-anchor': 'middle', class: 't-on-b', 'pointer-events': 'none' }, svg, lab);
-    }
-
-    // P(B) global
-    const yB = Y0 + S * (1 - D.pB);
-    el('line', { x1: X0 - 6, y1: yB, x2: xe, y2: yB, class: 'pb-line', 'pointer-events': 'none' }, svg);
-    el('text', { x: X0 - 10, y: yB - 3, 'text-anchor': 'end', class: 't-ink' }, svg, 'P(B)');
-    el('text', { x: X0 - 10, y: yB + 12, 'text-anchor': 'end', class: 't-mono t-ink' }, svg, dec(D.pB));
-
-    // conditionnelles
-    const cond = (x1, x2, h, name, v) => {
-      const w = x2 - x1; if (w < 30) return;
-      let txt = `${name} ${eq(v)}`;
-      if (textW(txt, 12) > w - 8) txt = dec(v);
-      const y = h > S - 24 ? Y0 + S - h + 17 : Y0 + S - h - 7;
-      el('text', { x: (x1 + x2) / 2, y, 'text-anchor': 'middle', class: 't-mono t-ink halo', 'pointer-events': 'none' }, svg, txt);
-    };
-    cond(X0, xa, hA, 'P(B|A)', D.pBA);
-    cond(xa, xe, hN, 'P(B|Ā)', D.pBnA);
-
-    // accolades du bas
-    const yb = Y0 + S + 10;
-    const brace = (x1, x2, name, v, scls, tcls) => {
-      el('path', { d: `M${x1} ${yb - 4} V${yb} H${x2} V${yb - 4}`, class: `f-none ${scls}` }, svg);
-      const long = `${name} ${eq(v)}`;
-      el('text', { x: (x1 + x2) / 2, y: yb + 16, 'text-anchor': 'middle', class: `t-mono ${tcls}` }, svg,
-        (x2 - x1) < 84 ? dec(v) : long);
-    };
-    brace(X0, xa - 2, 'P(A)', D.pA, 's-a', 't-a');
-    brace(xa + 2, xe, 'P(Ā)', 1 - D.pA, 's-muted', 't-na');
-
-    svg.setAttribute('aria-label', `Carré des probabilités : colonne A de largeur ${dec(D.pA)}, part de B ${dec(D.pBA)} dans A et ${dec(D.pBnA)} hors de A, P(B) = ${dec(D.pB)}.`);
-  }
-
-  function drawPeople(D, L) {
-    const svg = $('pp'); svg.replaceChildren();
-    const C = 26, GAP = 34, TOP = 40, VBW = 336;
-    const w1 = Math.ceil(D.nA / 10), w2 = Math.ceil(D.nnA / 10);
-    const x0 = (VBW - ((w1 + w2) * C + GAP)) / 2;
-    let id = 0;
-
-    const group = (gx, n, w, nB, kB, kN, isA) => {
-      const rows = Math.ceil(n / w), fy = TOP + (10 - rows) * C;
-      el('rect', { x: gx - 5, y: fy - 5, width: w * C + 10, height: rows * C + 10, rx: 7,
-        class: isA ? 'f-at s-a' : 'f-s s-rule' }, svg);
-      el('text', { x: gx + w * C / 2, y: fy - 13, 'text-anchor': 'middle', class: isA ? 't-a' : 't-na' }, svg,
-        `${isA ? 'A' : 'Ā'} (${n})`);
-      for (let k = 0; k < n; k++) {
-        const col = k % w, row = Math.floor(k / w);
-        const cx = gx + col * C + C / 2, cy = TOP + (9 - row) * C + C / 2;
-        const isB = k < nB, cell = isB ? kB : kN;
-        id++;
-        const g = el('g', { transform: `translate(${cx} ${cy})`, 'data-cell': cell,
-          'data-tip': `Patient n° ${id} · ${cellInfo(cell, D, L).split(' : ')[0]}` }, svg);
-        const cls = isB ? 'f-b' : 'f-nb';
-        el('rect', { x: -C / 2, y: -C / 2, width: C, height: C, class: 'f-hit' }, g);
-        el('circle', { cx: 0, cy: -5.6, r: 3.7, class: cls }, g);
-        el('path', { d: 'M-6.6 9.6 V6.2 A6.6 6.6 0 0 1 6.6 6.2 V9.6 Z', class: cls }, g);
-      }
-      const sx = gx + w * C / 2;
-      el('text', { x: sx, y: TOP + 10 * C + 22, 'text-anchor': 'middle', class: 't-mono t-ink' }, svg, `B : ${nB}/${n}`);
-      el('text', { x: sx, y: TOP + 10 * C + 38, 'text-anchor': 'middle', class: 't-mono' }, svg, pct(nB / n));
-    };
-    group(x0, D.nA, w1, D.a, 'a', 'b', true);
-    group(x0 + w1 * C + GAP, D.nnA, w2, D.c, 'c', 'd', false);
-
-    svg.setAttribute('aria-label', `100 patients : ${D.nA} dans A dont ${D.a} avec B, ${D.nnA} hors de A dont ${D.c} avec B.`);
-    $('ppKeys').innerHTML =
-      `<span><span class="sw b"></span>B${L.generic ? '' : ' · ' + L.B}</span>` +
-      `<span><span class="sw nb"></span>Non-B${L.generic ? '' : ' · ' + L.notB}</span>` +
-      `<span><span class="sw a"></span>Cadre bleu : A${L.generic ? '' : ' · ' + L.A}</span>`;
-  }
-
-  /* ---------- tableau, tests ---------- */
-  function renderTable(D, L) {
-    const cell = (k, o, e) => `<td data-cell="${k}" tabindex="0" data-tip="${cellInfo(k, D, L)}"><span class="obs">${o}</span><span class="exp">attendu ${num(e)}</span></td>`;
-    const lab = s => L.generic ? '' : `<span class="lab">${s}</span>`;
-    $('ct').innerHTML =
-      `<thead><tr><th scope="col"><span class="lab">${N} patients</span></th>` +
-      `<th scope="col"><span class="sw b"></span>B${lab(L.B)}</th>` +
-      `<th scope="col"><span class="sw nb"></span>B̄${lab(L.notB)}</th>` +
-      `<th scope="col">Total</th></tr></thead><tbody>` +
-      `<tr><th scope="row"><span class="sw a"></span>A${lab(L.A)}</th>${cell('a', D.a, D.nA * D.nB / N)}${cell('b', D.b, D.nA * D.nnB / N)}<td class="tot">${D.nA}</td></tr>` +
-      `<tr><th scope="row"><span class="sw na"></span>Ā${lab(L.notA)}</th>${cell('c', D.c, D.nnA * D.nB / N)}${cell('d', D.d, D.nnA * D.nnB / N)}<td class="tot">${D.nnA}</td></tr>` +
-      `<tr><th scope="row">Total</th><td class="tot">${D.nB}</td><td class="tot">${D.nnB}</td><td class="tot">${N}</td></tr></tbody>`;
-
-    const ad = D.a * D.d, bc = D.b * D.c;
-    const orTxt = bc === 0 ? (ad === 0 ? 'non défini (0/0)' : 'infini (division par 0)') : (ad / bc).toFixed(2).replace('.', ',');
-    const chi = N * (ad - bc) ** 2 / (D.nA * D.nnA * D.nB * D.nnB);
-    const minE = Math.min(D.nA * D.nB, D.nA * D.nnB, D.nnA * D.nB, D.nnA * D.nnB) / N;
-    const chiTxt = chi > 3.84
-      ? 'au-dessus du seuil 3,84 : on rejetterait l’indépendance au risque 5 %.'
-      : 'sous le seuil 3,84 : on ne rejetterait pas l’indépendance au risque 5 %.';
-    $('stats').innerHTML =
-      `<div><dt>Odds ratio</dt><dd><span class="fx">OR = (${D.a} × ${D.d}) / (${D.b} × ${D.c}) = ${orTxt}</span><br>OR = 1 si et seulement si A et B sont indépendants.</dd></div>` +
-      `<div><dt>Si ces patients étaient un échantillon</dt><dd><span class="fx">χ² = ${chi.toFixed(2).replace('.', ',')}</span> (1 ddl), ${chiTxt}` +
-      (minE < 5 ? ' Attention : un effectif attendu est inférieur à 5, le test n’est pas applicable tel quel.' : '') + `</dd></div>`;
-  }
-
-  function renderTests(D, cls) {
-    const prod = D.pA * D.pB;
-    const isDis = D.a === 0, isInd = D.a * N === D.nA * D.nB;
-    const ans = ok => `<span class="ans ${ok ? 'yes' : 'no'}">${ok ? 'Oui' : 'Non'}</span>`;
-    const eqC = isInd ? '=' : '≠';
-    let both;
-    if (isDis) both = '<strong>Les deux à la fois&nbsp;?</strong> Impossible ici&nbsp;: P(A) et P(B) ne sont pas nulles, donc P(A) × P(B) &gt; 0, alors que P(A ∩ B) = 0.';
-    else if (isInd) both = '<strong>Les deux à la fois&nbsp;?</strong> Non plus&nbsp;: des événements indépendants (de probabilités non nulles) se recoupent toujours.';
-    else both = '<strong>Ni l’un ni l’autre&nbsp;:</strong> A et B se recoupent, mais pas dans la proportion qu’aurait donnée le hasard.';
-    $('tests').innerHTML =
-      `<div class="test"><div class="test-q">Disjoints&nbsp;? ${ans(isDis)}</div>` +
-      `<p class="fx">${fx(`P(A ∩ B) = ${dec(D.pAB)}`)} ${isDis ? '' : '≠ 0'}</p>` +
-      `<p class="test-why">${isDis ? 'Aucun patient n’est à la fois A et B.' : `${D.a} ${plural(D.a, 'patient est', 'patients sont')} à la fois A et B.`}</p></div>` +
-      `<div class="test"><div class="test-q">Indépendants&nbsp;? ${ans(isInd)}</div>` +
-      `<p class="fx">${fx(`P(A) × P(B) = ${dec(D.pA)} × ${dec(D.pB)} = ${dec(prod)}`)}</p>` +
-      `<p class="fx">${fx(`P(A ∩ B) = ${dec(D.pAB)}`)} ${eqC} ${dec(prod)}</p>` +
-      `<p class="test-why">Même test avec les conditionnelles : <span class="fx">${fx(`P(B | A) ${eq(D.pBA)}`)} ${eqC} ${fx(`P(B) = ${dec(D.pB)}`)}</span></p></div>` +
-      `<p class="both" style="padding-top:12px">${both}</p>`;
-  }
-
-  /* ---------- verdict ---------- */
-  function renderVerdict(D, L, cls) {
-    const titles = {
-      disjoint: 'Disjoints, donc dépendants', indep: 'Indépendants', quasi: 'Presque indépendants',
-      neg: 'Dépendants (lien négatif)', pos: 'Dépendants (lien positif)',
-      incl: D.nA === D.nB ? 'Dépendants (A = B)' : D.a === D.nA ? 'Dépendants (A inclus dans B)' : 'Dépendants (B inclus dans A)'
-    };
-    const base = `Parmi ${L.Agrp}, ${pct(D.pBA)} ${L.Bpred} ; parmi ${L.notAgrp}, ${pct(D.pBnA)}`;
-    const end = {
-      disjoint: '. Savoir que A est arrivé exclut B : c’est un lien de dépendance, le plus fort possible dans le sens négatif.',
-      indep: ' aussi. Savoir que A est arrivé ne change rien à la probabilité de B.',
-      quasi: `. C’est le plus près de l’indépendance avec 100 patients : il en faudrait ${num(D.exp)} à la fois A et B.`,
-      neg: '. Savoir que A est arrivé rend B moins probable.',
-      pos: '. Savoir que A est arrivé rend B plus probable.',
-      incl: D.a === D.nA ? '. Tous les A sont B : savoir que A est arrivé garantit B.' : '. Tous les B sont A : hors de A, B n’arrive jamais.'
-    };
-    $('vTitle').textContent = titles[cls];
-    $('vText').textContent = base + end[cls];
-    $('cmp').innerHTML =
-      `<div class="cmp-row"><span class="cmp-lab"><span class="sw a"></span>Dans A</span><span class="cmp-bar"><i style="width:${D.pBA * 100}%"></i><b style="left:${D.pB * 100}%"></b></span><span class="cmp-val">${pct(D.pBA)}</span></div>` +
-      `<div class="cmp-row"><span class="cmp-lab"><span class="sw na"></span>Hors de A</span><span class="cmp-bar"><i style="width:${D.pBnA * 100}%"></i><b style="left:${D.pB * 100}%"></b></span><span class="cmp-val">${pct(D.pBnA)}</span></div>` +
-      `<p class="cmp-cap">Part de B dans chaque groupe. Pointillé&nbsp;: part de B chez l’ensemble des patients, ${pct(D.pB)}.</p>`;
-  }
-
-  /* ---------- rendu ---------- */
-  function render() {
-    const D = derive(), L = state.scn ? SCN[state.scn] : GENERIC, cls = classify(D);
-
-    document.querySelectorAll('.chip').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.scn === state.scn)));
-    $('legend').innerHTML = L.generic
-      ? 'Mode libre&nbsp;: <b>A</b> et <b>B</b> sont deux événements quelconques.'
-      : `<span><span class="sw a"></span><b>A</b> = ${L.A}</span><span class="sep">·</span><span><span class="sw b"></span><b>B</b> = ${L.B}</span>`;
-    $('scnDesc').textContent = L.generic ? 'Choisissez un exemple pour revenir à un cas concret.' : L.desc;
-
-    $('pA').value = D.nA; $('pB').value = D.nB;
-    $('oA').textContent = dec(D.pA); $('oB').textContent = dec(D.pB);
-    const r = $('nAB'); r.min = D.lo; r.max = D.hi; r.value = D.a;
-    $('oAB').textContent = `${D.a} sur ${N}`;
-    $('oPAB').textContent = `P(A ∩ B) = ${dec(D.pAB)}`;
-
-    const p = (D.exp - D.lo) / (D.hi - D.lo);
-    $('mk').style.setProperty('--p', p);
-    const ml = $('mkLab');
-    ml.style.setProperty('--p', p);
-    ml.textContent = `Indépendance : ${num(D.exp)}`;
-    ml.dataset.edge = p < 0.2 ? 'l' : p > 0.8 ? 'r' : '';
-    $('endL').textContent = D.lo === 0 ? '← Disjoints : 0' : `← Minimum : ${D.lo} (disjoints impossibles, P(A) + P(B) > 1)`;
-    $('endR').textContent = `${D.nA === D.nB ? 'A = B' : D.hi === D.nA ? 'A inclus dans B' : 'B inclus dans A'} : ${D.hi} →`;
-    $('goDis').disabled = D.lo > 0;
-    $('goDis').title = D.lo > 0 ? 'Impossible : P(A) + P(B) dépasse 1, A et B se recoupent forcément.' : '';
-
-    renderVerdict(D, L, cls);
-    drawSquare(D, L);
-    drawPeople(D, L);
-    renderTable(D, L);
-    renderTests(D, cls);
-  }
-
-  /* ---------- événements ---------- */
-  $('pA').addEventListener('input', e => { state.nA = +e.target.value; state.scn = null; clampA(); render(); });
-  $('pB').addEventListener('input', e => { state.nB = +e.target.value; state.scn = null; clampA(); render(); });
-  $('nAB').addEventListener('input', e => setA(+e.target.value));
-  $('goDis').addEventListener('click', () => setA(0));
-  $('goInd').addEventListener('click', () => setA(Math.round(state.nA * state.nB / N)));
-  document.querySelectorAll('.chip').forEach(b => b.addEventListener('click', () => {
-    const s = SCN[b.dataset.scn];
-    Object.assign(state, { scn: b.dataset.scn, nA: s.nA, nB: s.nB, a: s.a });
-    render();
-  }));
-
-  // survol lié + infobulle
-  const tip = $('tip');
-  const showTip = (t, x, y) => {
-    tip.textContent = t; tip.hidden = false;
-    const w = tip.offsetWidth, h = tip.offsetHeight;
-    tip.style.left = Math.max(8, Math.min(window.innerWidth - w - 8, x + 14)) + 'px';
-    tip.style.top = (y + h + 22 > window.innerHeight ? y - h - 12 : y + 16) + 'px';
   };
-  document.addEventListener('pointerover', e => {
-    const c = e.target.closest && e.target.closest('[data-cell]');
-    if (c) page.dataset.hl = c.dataset.cell;
-  });
-  document.addEventListener('pointermove', e => {
-    const t = e.target.closest && e.target.closest('[data-tip]');
-    if (t) showTip(t.dataset.tip, e.clientX, e.clientY); else tip.hidden = true;
-  });
-  document.addEventListener('pointerout', e => {
-    const c = e.target.closest && e.target.closest('[data-cell]');
-    if (c && !(e.relatedTarget && c.contains(e.relatedTarget))) { delete page.dataset.hl; tip.hidden = true; }
-  });
-  document.addEventListener('focusin', e => {
-    const c = e.target.closest('[data-cell]');
-    if (c) page.dataset.hl = c.dataset.cell;
-  });
-  document.addEventListener('focusout', () => { delete page.dataset.hl; });
 
-  render();
+  // Deux blocs de patients : à gauche le groupe qu'on «  apprend  », à droite les autres.
+  const EX = {
+    svg1: [{ label: 'Groupe A', n: 9, o: 0, cols: 5, info: true }, { label: 'Autres groupes', n: 11, o: 8, cols: 6 }],
+    svg2: [{ label: 'Femmes', n: 10, o: 4, cols: 5, info: true }, { label: 'Hommes', n: 10, o: 4, cols: 5 }]
+  };
+  const C = 30, GAP = 26, TOP = 24, VBW = 380;
+
+  for (const id in EX) {
+    const svg = document.getElementById(id);
+    const blocks = EX[id];
+    const total = blocks.reduce((s, b) => s + b.cols * C, 0) + GAP;
+    let x = (VBW - total) / 2;
+    for (const b of blocks) {
+      const g = el('g', { class: b.info ? 'blk' : 'blk blk-o' }, svg);
+      el('rect', { x: x - 4, y: TOP - 2, width: b.cols * C + 8, height: 2 * C + 6, rx: 8, class: b.info ? 'blk-info' : 'blk-other' }, g);
+      el('text', { x: x + b.cols * C / 2, y: TOP - 9, 'text-anchor': 'middle', class: b.info ? 't-info' : 't-other' }, g, `${b.label} · ${b.n}`);
+      for (let k = 0; k < b.n; k++) {
+        const cx = x + (k % b.cols) * C + C / 2, cy = TOP + 1 + Math.floor(k / b.cols) * C + C / 2;
+        const cls = k < b.o ? 'f-o' : 'f-gray';
+        const p = el('g', { transform: `translate(${cx} ${cy})` }, g);
+        el('circle', { cx: 0, cy: -6.4, r: 4.2, class: cls }, p);
+        el('path', { d: 'M-7.5 11 V7 A7.5 7.5 0 0 1 7.5 7 V11 Z', class: cls }, p);
+      }
+      x += b.cols * C + GAP;
+    }
+  }
+
+  document.querySelectorAll('.tell').forEach(btn => btn.addEventListener('click', () => {
+    const card = document.getElementById(btn.dataset.ex);
+    const on = btn.getAttribute('aria-pressed') !== 'true';
+    btn.setAttribute('aria-pressed', String(on));
+    card.classList.toggle('told', on);
+  }));
 })();
 </script>
