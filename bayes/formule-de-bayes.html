@@ -193,7 +193,7 @@ button.primary { background: var(--ink); color: var(--surface); border-color: va
   cen.c3 = { x: 0.5, y: -0.68 };
 
   // ---------- Étapes ----------
-  const base = { cx: 0, cy: 0, s: 1, om: 1, gC: 0, gF: 0, lens: 0, dimC: 0, dimF: 0, split: 0, sep: 0 };
+  const base = { cx: 0, cy: 0, s: 1, om: 1, gC: 0, gF: 0, lens: 0, dimC: 0, dimF: 0, split: 0, sep: 0, ex: 0 };
   const S = (o) => Object.assign({}, base, o);
   const sub = (s) => s.replace(/_(\w)/g, '<sub>$1</sub>');
   const fOut = P_F - joint[1];
@@ -240,6 +240,20 @@ button.primary { background: var(--ink); color: var(--surface); border-color: va
       c: `<span class="c-inter">P(C<sub>2</sub> | F)</span> = <span class="c-inter">${fr(joint[1])}</span> / (${fr(joint[0])} + <span class="c-inter">${fr(joint[1])}</span> + ${fr(joint[2])}) = ${fr(joint[1])} / ${fr(P_F)} ≈ <span class="c-inter">${fr(joint[1] / P_F, 3)}</span>`,
       hl: ['post', 'lik', 'prior', 'den'], g: [1, 2, 3],
       st: S({ gC: 1, gF: 1, lens: 1.6, sep: 1, cx: F0.x, cy: F0.y, s: 1 / rf, dimF: 1, om: 0.25 }) },
+    { t: "Exemple : cheveux et femmes",
+      p: `Un groupe inventé de 100 personnes. <b>Ω</b> = le groupe. <b>Les causes</b> = la couleur des cheveux : chacun en a une seule, et tout le monde en a une. Elles découpent donc bien Ω. <b><span class="m">F</span></b> = être une <b>f</b>emme. Ici, « cause » veut juste dire « catégorie » : les cheveux ne rendent personne femme, mais Bayes n'a besoin que d'un découpage de Ω sans chevauchement.`,
+      c: `<table><thead><tr><th>cheveux</th><th>personnes</th><th>dont femmes</th><th>P(F | C<sub>k</sub>)</th></tr></thead><tbody>
+          <tr><td>bruns (C<sub>1</sub>)</td><td class="c-cause">50</td><td>14</td><td class="c-fait">14/50 = 0,28</td></tr>
+          <tr class="hi"><td>blonds (C<sub>2</sub>)</td><td class="c-cause">30</td><td>15</td><td class="c-fait">15/30 = 0,50</td></tr>
+          <tr><td>roux (C<sub>3</sub>)</td><td class="c-cause">20</td><td>8</td><td class="c-fait">8/20 = 0,40</td></tr>
+        </tbody><tfoot><tr><td>total</td><td>100</td><td class="c-fait">37</td><td></td></tr></tfoot></table>`,
+      hl: ['den'], g: [],
+      st: S({ gC: 1, gF: 1, lens: 1.6, sep: 1, ex: 1 }) },
+    { t: "On tire une femme au hasard : est-elle blonde ?",
+      p: `On sait que la personne est une femme : les femmes deviennent l'univers. Parmi les 37 femmes, 15 sont blondes. La formule fait exactement ce comptage, mais avec des probabilités : le numérateur compte les blondes, le dénominateur compte toutes les femmes, couleur par couleur.`,
+      c: `<span class="c-inter">P(blond | femme)</span> = <span class="c-fait">0,50</span> × <span class="c-cause">0,30</span> / (0,28 × 0,50 + <span class="c-fait">0,50</span> × <span class="c-cause">0,30</span> + 0,40 × 0,20)<br>= <span class="c-inter">0,15</span> / (0,14 + <span class="c-inter">0,15</span> + 0,08) = 0,15 / 0,37 ≈ <span class="c-inter">0,405</span><br><span style="color:var(--muted)">En comptant : 15 blondes / 37 femmes ≈ 40,5 %</span>`,
+      hl: ['post', 'lik', 'prior', 'den'], g: [1, 2, 3],
+      st: S({ gC: 1, gF: 1, lens: 1.6, sep: 1, ex: 1, cx: F0.x, cy: F0.y, s: 1 / rf, dimF: 1, om: 0.25 }) },
   ];
 
   // ---------- Couleurs ----------
@@ -249,6 +263,7 @@ button.primary { background: var(--ink); color: var(--surface); border-color: va
     ['bg', 'surface', 'ink', 'muted', 'line', 'cause', 'fait', 'inter'].forEach(k => col[k] = cs.getPropertyValue('--' + k).trim());
     col.num = cs.getPropertyValue('--font-num').trim();
     col.math = cs.getPropertyValue('--font-math').trim();
+    col.body = cs.getPropertyValue('--font-body').trim();
   };
   const rgba = (hex, al) => {
     const h = hex.replace('#', '');
@@ -369,10 +384,14 @@ button.primary { background: var(--ink); color: var(--surface); border-color: va
     const fLab = { x: F0.x + rf * 0.42, y: F0.y + rf * 0.42 };
     const aCl = Math.min(1, st.gC * 1.5) * (1 - 0.7 * st.dimF);
     label('C', X(cLab.x), Y(cLab.y), col.cause, 26, col.math, true, aCl * (1 - st.sep));
-    label('C₂', X(cLab.x), Y(cLab.y), col.cause, 26, col.math, true, aCl * st.sep);
-    label('F', X(fLab.x), Y(fLab.y), col.fait, 26, col.math, true, Math.min(1, st.gF * 1.5) * (1 - 0.7 * st.dimC) * (1 - 0.5 * st.dimF * st.sep));
+    label('C₂', X(cLab.x), Y(cLab.y), col.cause, 26, col.math, true, aCl * st.sep * (1 - st.ex));
+    label('Blonds', X(cLab.x), Y(cLab.y), col.cause, 18, col.body, false, aCl * st.ex);
+    const aFl = Math.min(1, st.gF * 1.5) * (1 - 0.7 * st.dimC) * (1 - 0.5 * st.dimF * st.sep);
+    label('F', X(fLab.x), Y(fLab.y), col.fait, 26, col.math, true, aFl * (1 - st.ex));
+    label('Femmes', X(fLab.x), Y(fLab.y), col.fait, 18, col.body, false, aFl * st.ex);
+    label('37', X(fLab.x), Y(fLab.y) + px(20), col.fait, 12, col.num, false, aFl * st.ex);
     if (st.dimC > 0.05) label('C = nouvel univers', X(C0.x), Y(C0.y - rc) - px(16), col.cause, 14, col.num, false, st.dimC, true);
-    if (st.dimF > 0.05) label('F = nouvel univers', X(F0.x), Y(F0.y - rf) - px(16), col.fait, 14, col.num, false, st.dimF, true);
+    if (st.dimF > 0.05) label(st.ex > 0.5 ? 'Femmes = nouvel univers' : 'F = nouvel univers', X(F0.x), Y(F0.y - rf) - px(16), col.fait, 14, col.num, false, st.dimF, true);
     // Valeur dans la lentille
     const ux = (F0.x - C0.x) / d, uy = (F0.y - C0.y) / d, lm = (d - rf + rc) / 2;
     const lx = C0.x + ux * lm, ly = C0.y + uy * lm;
@@ -380,26 +399,32 @@ button.primary { background: var(--ink); color: var(--surface); border-color: va
       let txt = fr(joint[1]) + ' de Ω';
       if (st.dimC > 0.5) txt = '50 % de C';
       else if (st.dimF > 0.5 && st.sep < 0.5) txt = '≈ 41 % de F';
+      else if (st.ex > 0.5) txt = '15';
       else if (st.split > 0.5 || st.sep > 0.5) txt = fr(joint[1]);
       label(txt, X(lx), Y(ly), col.inter, 14, col.num, false, Math.min(1, st.lens), true);
     }
     // Morceaux de F hors de C
     label(fr(fOut), X(cen.fout.x), Y(cen.fout.y), col.fait, 14, col.num, false, st.split * (1 - st.sep), true);
-    label(fr(joint[0]), X(cen.f1.x), Y(cen.f1.y), col.ink, 14, col.num, false, st.sep, true);
-    label(fr(joint[2]), X(cen.f3.x), Y(cen.f3.y), col.ink, 14, col.num, false, st.sep, true);
+    label(st.ex > 0.5 ? '14' : fr(joint[0]), X(cen.f1.x), Y(cen.f1.y), col.ink, 14, col.num, false, st.sep, true);
+    label(st.ex > 0.5 ? '8' : fr(joint[2]), X(cen.f3.x), Y(cen.f3.y), col.ink, 14, col.num, false, st.sep, true);
     // Autres causes
-    const aOther = st.sep * (1 - 0.75 * st.dimF);
-    label('C₁', X(cen.c1.x), Y(cen.c1.y) - px(10), col.cause, 22, col.math, true, aOther);
-    label('P = ' + fr(P_C[0]), X(cen.c1.x), Y(cen.c1.y) + px(12), col.cause, 12, col.num, false, aOther);
-    label('C₃', X(cen.c3.x), Y(cen.c3.y) - px(10), col.cause, 22, col.math, true, aOther);
-    label('P = ' + fr(P_C[2]), X(cen.c3.x), Y(cen.c3.y) + px(12), col.cause, 12, col.num, false, aOther);
+    const aOther = st.sep * (1 - 0.95 * st.dimF);
+    const aM = aOther * (1 - st.ex), aE = aOther * st.ex;
+    label('C₁', X(cen.c1.x), Y(cen.c1.y) - px(10), col.cause, 22, col.math, true, aM);
+    label('P = ' + fr(P_C[0]), X(cen.c1.x), Y(cen.c1.y) + px(12), col.cause, 12, col.num, false, aM);
+    label('C₃', X(cen.c3.x), Y(cen.c3.y) - px(10), col.cause, 22, col.math, true, aM);
+    label('P = ' + fr(P_C[2]), X(cen.c3.x), Y(cen.c3.y) + px(12), col.cause, 12, col.num, false, aM);
+    label('Bruns', X(cen.c1.x), Y(cen.c1.y) - px(10), col.cause, 17, col.body, false, aE);
+    label('50 pers.', X(cen.c1.x), Y(cen.c1.y) + px(12), col.cause, 12, col.num, false, aE);
+    label('Roux', X(cen.c3.x), Y(cen.c3.y) - px(10), col.cause, 17, col.body, false, aE);
+    label('20 pers.', X(cen.c3.x), Y(cen.c3.y) + px(12), col.cause, 12, col.num, false, aE);
     // Petites étiquettes de probabilité
     const aSmall = (1 - st.dimC - st.dimF) * (1 - st.split) * (1 - st.sep);
     if (aSmall > 0.01) {
       label('P(C) = ' + fr(P_C[1]), X(cLab.x), Y(cLab.y) + px(26), col.cause, 13, col.num, false, st.gC * aSmall);
       label('P(F) = ' + fr(P_F), X(fLab.x), Y(fLab.y) + px(26), col.fait, 13, col.num, false, st.gF * aSmall);
     }
-    label('P = ' + fr(P_C[1]), X(cLab.x), Y(cLab.y) + px(26), col.cause, 12, col.num, false, st.sep * (1 - 0.75 * st.dimF));
+    label(st.ex > 0.5 ? '30 pers.' : 'P = ' + fr(P_C[1]), X(cLab.x), Y(cLab.y) + px(26), col.cause, 12, col.num, false, st.sep * (1 - 0.75 * st.dimF));
   }
 
   function frame(now) {
