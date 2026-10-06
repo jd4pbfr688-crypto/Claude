@@ -111,7 +111,7 @@ button.primary { background: var(--ink); color: var(--surface); border-color: va
 
   <div class="grid">
     <section class="stage" aria-label="Animation">
-      <div class="canvas-box"><canvas id="cv" role="img" aria-label="D'abord deux cercles, la cause C et le fait F dans l'univers Ω ; puis une pizza découpée en parts (les causes) avec le fait F au centre"></canvas></div>
+      <div class="canvas-box"><canvas id="cv" role="img" aria-label="D'abord deux cercles, la cause C et le fait F dans l'univers Ω ; puis une pizza découpée en parts (les causes), avec le cercle F posé dessus"></canvas></div>
       <div class="controls">
         <button id="prev" type="button">← Précédent</button>
         <button id="next" type="button" class="primary">Suivant →</button>
@@ -146,7 +146,7 @@ button.primary { background: var(--ink); color: var(--surface); border-color: va
     </section>
   </div>
 
-  <p class="note">Partie 1 (étapes 1 à 7) : une seule cause, dessinée en cercles. Partie 2 (étapes 8 à 14) : plusieurs causes, dessinées en pizza. Les chiffres sont un exemple : trois causes de probabilités 0,60 / 0,30 / 0,10, et le fait F se produit sous chacune avec 0,45 / 0,60 / 0,50. Les aires sont exactes dans les deux dessins. La cause C de la partie 1 devient C₂ à l'étape 9.</p>
+  <p class="note">Partie 1 (étapes 1 à 7) : une seule cause, dessinée en cercles. Partie 2 (étapes 8 à 14) : plusieurs causes, dessinées en pizza ; F reste un cercle parfait. Les chiffres sont un exemple : trois causes de probabilités 0,60 / 0,30 / 0,10, et le fait F se produit sous chacune avec 0,40 / 0,70 / 0,50. Les aires sont exactes dans les deux dessins. La cause C de la partie 1 devient C₂ à l'étape 9.</p>
 </div>
 
 <script>
@@ -154,12 +154,12 @@ button.primary { background: var(--ink); color: var(--surface); border-color: va
   // ---------- Données ----------
   // Trois causes (bruns, blonds, roux) et un fait F (être une femme). La cause C étudiée est C₂ (blonds).
   const P_C = [0.6, 0.3, 0.1];        // P(C_k)
-  const P_FgC = [0.45, 0.6, 0.5];     // P(F | C_k)
+  const P_FgC = [0.4, 0.7, 0.5];      // P(F | C_k)
   const joint = P_C.map((p, k) => p * P_FgC[k]);          // P(F ∩ C_k)
   const jointM = P_C.map((p, k) => p * (1 - P_FgC[k]));   // P(non F ∩ C_k)
   const P_F = joint.reduce((a, b) => a + b, 0);           // 0,50
   const P_M = 1 - P_F;
-  const fOut = joint[0] + joint[2];                       // F hors de C : 0,32
+  const fOut = joint[0] + joint[2];                       // F hors de C
   const fr = (x, n = 2) => (Math.round(x * 10 ** n) / 10 ** n).toFixed(n).replace('.', ',');
   const N = 100, cnt = (x) => Math.round(x * N);
   const NAMES = ['Bruns', 'Blonds', 'Roux'];
@@ -167,66 +167,81 @@ button.primary { background: var(--ink); color: var(--surface); border-color: va
   const D = Math.PI / 180, TAU = 2 * Math.PI;
   const pol = (a, r) => ({ x: Math.cos(a) * r, y: Math.sin(a) * r });
 
-  // ---------- Partie 2 : la pizza ----------
-  // Chaque cause est une part (angle ∝ P(C_k)). Dans chaque part, le centre (rayon √P(F|C_k)) est F
-  // et la croûte est « non F ». Aires exactes.
+  // ---------- Formes ----------
+  // Ω est le disque de rayon 1. Les causes sont des parts de pizza (angle ∝ P(C_k)).
+  // F est toujours un cercle parfait d'aire P(F). Toutes les aires sont exactes.
   const SL = [{ a0: 18 * D, a1: 234 * D }, { a0: -126 * D, a1: -18 * D }, { a0: -18 * D, a1: 18 * D }];
   const REST = { a0: -18 * D, a1: 234 * D };   // C₁ ∪ C₃, avant qu'on les distingue
-  const rF = P_FgC.map(Math.sqrt);
-  const rRest = Math.sqrt(fOut / (P_C[0] + P_C[2]));
-  const rInd = Math.sqrt(P_F);                 // rayon commun si F ne dépend pas de la cause
   const mid = (s) => (s.a0 + s.a1) / 2;
   const inArc = (phi, s) => { let x = (phi - s.a0) % TAU; if (x < 0) x += TAU; return x < s.a1 - s.a0; };
-
-  // ---------- Partie 1 : deux cercles ----------
-  // C (aire 0,30) du côté où sera sa part de pizza, F (aire 0,50) en face ; F ∩ C = 0,18. Aires exactes.
   const rc = Math.sqrt(P_C[1]), rf = Math.sqrt(P_F);
+  // Distance du centre de Ω au bord d'un cercle qui contient ce centre, dans la direction phi.
+  const rayToCircle = (c, r, phi) => { const p = Math.cos(phi) * c.x + Math.sin(phi) * c.y; return p + Math.sqrt(p * p - (c.x * c.x + c.y * c.y) + r * r); };
+
+  // Partie 2 : où placer le cercle F pour qu'il couvre exactement P(F ∩ C_k) de chaque part (méthode de Newton).
+  const inSlice = (c, s) => { const n = 1500; let A = 0; for (let i = 0; i < n; i++) A += rayToCircle(c, rf, s.a0 + (s.a1 - s.a0) * (i + .5) / n) ** 2; return A * (s.a1 - s.a0) / n / 2 / Math.PI; };
+  const Fp = (() => {
+    let c = { x: 0, y: -0.05 };
+    const f = (c) => [inSlice(c, SL[1]) - joint[1], inSlice(c, SL[2]) - joint[2]];
+    for (let it = 0; it < 10; it++) {
+      const F = f(c), h = 1e-5, Fx = f({ x: c.x + h, y: c.y }), Fy = f({ x: c.x, y: c.y + h });
+      const a = (Fx[0] - F[0]) / h, b = (Fy[0] - F[0]) / h, e = (Fx[1] - F[1]) / h, g = (Fy[1] - F[1]) / h, det = a * g - b * e;
+      c = { x: c.x - (g * F[0] - b * F[1]) / det, y: c.y - (a * F[1] - e * F[0]) / det };
+    }
+    return c;
+  })();
+  const O0 = { x: 0, y: 0 };
+
+  // Partie 1 : C (aire 0,30) du côté où sera sa part de pizza, F (aire 0,50) en face, F ∩ C exact.
   const lensArea = (d, a, b) => a*a*Math.acos((d*d+a*a-b*b)/(2*d*a)) + b*b*Math.acos((d*d+b*b-a*a)/(2*d*b))
     - 0.5*Math.sqrt((-d+a+b)*(d+a-b)*(d-a+b)*(d+a+b));
   let lo = Math.abs(rc - rf) + 1e-9, hi = rc + rf - 1e-9;
   for (let i = 0; i < 60; i++) { const m = (lo + hi) / 2; if (lensArea(m, rc, rf) > joint[1] * Math.PI) lo = m; else hi = m; }
   const d = lo;
-  const maxA = 1 - rc - 0.03, maxB = 1 - rf - 0.03;
-  const C0 = pol(mid(SL[1]), d * maxA / (maxA + maxB));
-  const F0 = pol(mid(SL[1]) + Math.PI, d * maxB / (maxA + maxB));
+  const aC0 = Math.min(d, 1 - rc - 0.03);
+  const C0 = pol(mid(SL[1]), aC0), F0 = pol(mid(SL[1]) + Math.PI, d - aC0);
   const uCF = { x: (F0.x - C0.x) / d, y: (F0.y - C0.y) / d };
 
-  // Chaque forme est décrite par sa distance au centre de Ω dans chaque direction
-  // (les deux cercles contiennent ce centre). Passer des cercles à la pizza, c'est interpoler ces distances.
-  const rayToCircle = (c, r, phi) => { const p = Math.cos(phi) * c.x + Math.sin(phi) * c.y; return p + Math.sqrt(p * p - (c.x * c.x + c.y * c.y) + r * r); };
+  // Le cercle C devient la part C₂ : on interpole, direction par direction, sa distance au centre de Ω.
   const ANG = (() => {
     const A = [];
     for (let i = 0; i < 720; i++) A.push(-Math.PI + i * TAU / 720);
-    [SL[1].a0, SL[1].a1, SL[2].a1].forEach(b => A.push(b - 1e-4, b + 1e-4));   // bords des parts nets
+    [SL[1].a0, SL[1].a1].forEach(b => A.push(b - 1e-4, b + 1e-4));   // bords de la part nets
     return A.map(x => ((x + Math.PI) % TAU + TAU) % TAU - Math.PI).sort((p, q) => p - q);
   })();
   const COS = ANG.map(Math.cos), SIN = ANG.map(Math.sin);
-  const RC0 = ANG.map(a => rayToCircle(C0, rc, a)), RF0 = ANG.map(a => rayToCircle(F0, rf, a));
-  const SLICE = ANG.map(a => inArc(a, SL[1]) ? 1 : inArc(a, SL[2]) ? 2 : 0);
+  const RC0 = ANG.map(a => rayToCircle(C0, rc, a));
+  const IN2 = ANG.map(a => inArc(a, SL[1]) ? 1 : 0);
 
-  // Centre du morceau « F hors de C » en partie 1, pour y placer son étiquette.
-  const fOutC = (() => {
-    let sx = 0, sy = 0, n = 0; const M = 200;
+  // Centres des zones, pour placer les étiquettes (échantillonnage sur une grille).
+  const centroid = (pred) => {
+    let sx = 0, sy = 0, n = 0; const M = 180;
     for (let i = 0; i < M; i++) for (let j = 0; j < M; j++) {
       const x = -1 + (i + .5) * 2 / M, y = -1 + (j + .5) * 2 / M;
-      if ((x - F0.x) ** 2 + (y - F0.y) ** 2 < rf * rf && (x - C0.x) ** 2 + (y - C0.y) ** 2 >= rc * rc) { sx += x; sy += y; n++; }
+      if (x * x + y * y < 1 && pred(x, y)) { sx += x; sy += y; n++; }
     }
-    return { x: sx / n, y: sy / n };
-  })();
-
-  // Cadrage du zoom sur le centre de la pizza.
-  const camF1 = (() => {
-    let x0 = 0, y0 = 0, x1 = 0, y1 = 0;
-    SL.forEach((s, i) => { for (let j = 0; j <= 64; j++) { const p = pol(s.a0 + (s.a1 - s.a0) * j / 64, rF[i]); x0 = Math.min(x0, p.x); y0 = Math.min(y0, p.y); x1 = Math.max(x1, p.x); y1 = Math.max(y1, p.y); } });
-    return { cx: (x0 + x1) / 2, cy: (y0 + y1) / 2, s: 0.95 / (Math.max(x1 - x0, y1 - y0) / 2) };
-  })();
+    return n ? { x: sx / n, y: sy / n } : { x: 0, y: 0 };
+  };
+  const inCirc = (c, r) => (x, y) => (x - c.x) ** 2 + (y - c.y) ** 2 < r * r;
+  const sliceOf = (x, y) => { const a = Math.atan2(y, x); return inArc(a, SL[1]) ? 1 : inArc(a, SL[2]) ? 2 : 0; };
+  const fOutC = centroid((x, y) => inCirc(F0, rf)(x, y) && !inCirc(C0, rc)(x, y));
+  // CEN[0] : F décalé (le vrai groupe) ; CEN[1] : F au centre (« pareil partout »).
+  const CEN = [Fp, O0].map(c => {
+    const inF = inCirc(c, rf);
+    return {
+      f: [0, 1, 2].map(k => centroid((x, y) => inF(x, y) && sliceOf(x, y) === k)),
+      m: [0, 1, 2].map(k => centroid((x, y) => !inF(x, y) && sliceOf(x, y) === k)),
+      rest: centroid((x, y) => inF(x, y) && sliceOf(x, y) !== 1),
+    };
+  });
 
   // ---------- Étapes ----------
   const base = { cx: 0, cy: 0, s: 1, om: 1, gC: 0, gF: 0, lens: 0, dimC: 0, dimF: 0, split: 0, pz: 0, sep: 0, ex: 0, men: 0, ind: 0 };
   const S = (o) => Object.assign({}, base, o);
   const m = (t) => `<span class="m">${t}</span>`;
   const PARTS = { 1: 'Partie 1 : une cause', 2: 'Partie 2 : plusieurs causes' };
-  const zoomF1 = { cx: camF1.cx, cy: camF1.cy, s: camF1.s, dimF: 1, om: 0.25 };
+  const zoomF2 = { cx: Fp.x, cy: Fp.y, s: 1 / rf, dimF: 1, om: 0.25 };
+  const blondF = cnt(joint[1]), blondFind = cnt(P_C[1] * P_F);
 
   const steps = [
     // ----- Partie 1 : une cause, en cercles -----
@@ -235,19 +250,19 @@ button.primary { background: var(--ink); color: var(--surface); border-color: va
       c: `P(Ω) = 1`, hl: [], g: [],
       st: S({}) },
     { part: 1, t: "La cause C : un cercle dans Ω",
-      p: `${m('C')} occupe 0,30 de l'aire de Ω. C'est la probabilité « a priori » de la cause, avant de savoir quoi que ce soit sur le fait.`,
+      p: `${m('C')} occupe ${fr(P_C[1])} de l'aire de Ω. C'est la probabilité « a priori » de la cause, avant de savoir quoi que ce soit sur le fait.`,
       c: `<span class="c-cause">P(C) = ${fr(P_C[1])}</span>`, hl: ['prior'], g: [],
       st: S({ gC: 1 }) },
     { part: 1, t: "Le fait F chevauche C",
-      p: `${m('F')} occupe 0,50 de Ω. La zone violette, ${m('F ∩ C')}, contient les cas où la cause <b>et</b> le fait se produisent : 0,18 de Ω.`,
+      p: `${m('F')} occupe ${fr(P_F)} de Ω. La zone violette, ${m('F ∩ C')}, contient les cas où la cause <b>et</b> le fait se produisent : ${fr(joint[1])} de Ω.`,
       c: `<span class="c-fait">P(F) = ${fr(P_F)}</span> · <span class="c-inter">P(F ∩ C) = ${fr(joint[1])}</span>`, hl: [], g: [],
       st: S({ gC: 1, gF: 1, lens: 1 }) },
     { part: 1, t: "Sachant C : C devient l'univers",
-      p: `« Sachant ${m('C')} », on oublie tout ce qui est hors de ${m('C')}. On agrandit ${m('C')} à la taille de Ω et on mesure ${m('F')} à l'intérieur : il en occupe 0,60.`,
+      p: `« Sachant ${m('C')} », on oublie tout ce qui est hors de ${m('C')}. On agrandit ${m('C')} à la taille de Ω et on mesure ${m('F')} à l'intérieur : il en occupe ${fr(P_FgC[1])}.`,
       c: `<span class="c-fait">P(F | C)</span> = P(F ∩ C) / P(C) = ${fr(joint[1])} / ${fr(P_C[1])} = <span class="c-fait">${fr(P_FgC[1])}</span>`, hl: ['lik'], g: [1],
       st: S({ gC: 1, gF: 1, lens: 1, cx: C0.x, cy: C0.y, s: 1 / rc, dimC: 1, om: 0.25 }) },
     { part: 1, t: "× P(C) : retour à l'échelle de Ω",
-      p: `« 0,60 de ${m('C')} », c'est beaucoup ou peu ? Ça dépend de la taille de ${m('C')}. Multiplier par P(C) dé-zoome : la mesure faite dans ${m('C')} redevient une part de Ω.`,
+      p: `« ${fr(P_FgC[1])} de ${m('C')} », c'est beaucoup ou peu ? Ça dépend de la taille de ${m('C')}. Multiplier par P(C) dé-zoome : la mesure faite dans ${m('C')} redevient une part de Ω.`,
       c: `<span class="c-inter">P(F ∩ C)</span> = <span class="c-fait">P(F | C)</span> × <span class="c-cause">P(C)</span> = ${fr(P_FgC[1])} × ${fr(P_C[1])} = <span class="c-inter">${fr(joint[1])}</span>`, hl: ['lik', 'prior'], g: [1, 2],
       st: S({ gC: 1, gF: 1, lens: 1.6 }) },
     { part: 1, t: "÷ P(F) : F devient l'univers",
@@ -262,12 +277,12 @@ button.primary { background: var(--ink); color: var(--surface); border-color: va
 
     // ----- Partie 2 : plusieurs causes, en pizza -----
     { part: 2, t: "On redessine en pizza",
-      p: `Même situation, autre dessin : le cercle ${m('C')} devient une part de pizza, le cercle ${m('F')} devient le centre, et tout ce qui n'est pas ${m('F')} (la croûte) est « non ${m('F')} ». Les aires ne changent pas. Pourquoi une pizza ? Parce qu'on peut la couper en autant de parts qu'on veut, sans trou ni chevauchement : c'est exactement ce qu'il faut pour avoir plusieurs causes.`,
+      p: `Même situation, autre dessin : le cercle ${m('C')} devient une part de pizza. ${m('F')} reste un cercle, il glisse juste un peu pour garder les bonnes aires. Tout ce qui est hors du cercle ${m('F')}, c'est « non ${m('F')} ». Pourquoi une pizza ? Parce qu'on peut la couper en autant de parts qu'on veut, sans trou ni chevauchement : c'est exactement ce qu'il faut pour avoir plusieurs causes.`,
       c: `<span class="c-cause">P(C) = ${fr(P_C[1])}</span> · <span class="c-fait">P(F) = ${fr(P_F)}</span> · <span class="c-inter">P(F ∩ C) = ${fr(joint[1])}</span><br>hors de C : ${fr(P_C[0] + P_C[2])} de Ω, dont <span class="c-fait">${fr(fOut)}</span> de F`,
       hl: [], g: [],
       st: S({ gC: 1, gF: 1, lens: 1.6, split: 1, pz: 1 }) },
     { part: 2, t: "Hors de C, il y a les autres causes",
-      p: `Si ${m('F')} s'est produit, il a bien fallu une cause. Le reste de la pizza, ce sont les <b>autres causes</b> possibles : on le coupe en deux parts, C<sub>1</sub> et C<sub>3</sub>, et ${m('C')} devient C<sub>2</sub>. Les parts ne se chevauchent pas et font toute la pizza (un « système complet d'événements »). Chaque morceau de ${m('F')} se calcule comme à l'étape 5 : P(F | C<sub>k</sub>) × P(C<sub>k</sub>). On additionne les morceaux, et ça donne le ∑ du dénominateur.`,
+      p: `Si ${m('F')} s'est produit, il a bien fallu une cause. Le reste de la pizza, ce sont les <b>autres causes</b> : on le coupe en deux parts, C<sub>1</sub> et C<sub>3</sub>, et ${m('C')} devient C<sub>2</sub>. Les parts ne se chevauchent pas et font toute la pizza (un « système complet d'événements »). Chaque morceau de ${m('F')} se calcule comme à l'étape 5 : P(F | C<sub>k</sub>) × P(C<sub>k</sub>). On additionne les morceaux : ça donne le ∑ du dénominateur.<br>Le point orange est le centre du cercle ${m('F')}. Il n'est pas au centre de la pizza : ${m('F')} penche vers C<sub>2</sub>, parce qu'il couvre ${fr(P_FgC[1])} de la part C<sub>2</sub> contre ${fr(P_FgC[0])} de C<sub>1</sub> et ${fr(P_FgC[2])} de C<sub>3</sub>.`,
       c: `<table><thead><tr><th>cause</th><th>P(C<sub>k</sub>)</th><th>P(F | C<sub>k</sub>)</th><th>morceau de F</th></tr></thead><tbody>${
           P_C.map((p, k) => `<tr${k === 1 ? ' class="hi"' : ''}><td>C<sub>${k + 1}</sub></td><td class="c-cause">${fr(p)}</td><td class="c-fait">${fr(P_FgC[k])}</td><td>${fr(joint[k])}</td></tr>`).join('')
         }</tbody><tfoot><tr><td colspan="3">∑ = P(F)</td><td class="c-fait">${fr(P_F)}</td></tr></tfoot></table>`,
@@ -277,27 +292,27 @@ button.primary { background: var(--ink); color: var(--surface); border-color: va
       p: `On revient dans ${m('F')}, le nouvel univers. La probabilité de la cause C<sub>2</sub> sachant ${m('F')}, c'est son morceau de ${m('F')} divisé par tous les morceaux de ${m('F')}. On retrouve le résultat de l'étape 6, mais sans avoir eu besoin de connaître P(F) au départ.`,
       c: `<span class="c-inter">P(C<sub>2</sub> | F)</span> = <span class="c-inter">${fr(joint[1])}</span> / (${fr(joint[0])} + <span class="c-inter">${fr(joint[1])}</span> + ${fr(joint[2])}) = ${fr(joint[1])} / ${fr(P_F)} = <span class="c-inter">${fr(joint[1] / P_F)}</span>`,
       hl: ['post', 'lik', 'prior', 'den'], g: [1, 2, 3],
-      st: S({ gC: 1, gF: 1, lens: 1.6, pz: 1, sep: 1, ...zoomF1 }) },
+      st: S({ gC: 1, gF: 1, lens: 1.6, pz: 1, sep: 1, ...zoomF2 }) },
     { part: 2, t: "Exemple : cheveux, femmes et hommes",
-      p: `Un groupe inventé de 100 personnes. <b>Ω</b> = le groupe. <b>Les causes</b> = la couleur des cheveux : chacun en a une seule, et tout le monde en a une. Elles découpent donc bien la pizza. ${m('F')} = être une <b>f</b>emme (le centre), « non ${m('F')} » = être un homme (la croûte). Ici, « cause » veut juste dire « catégorie » : Bayes n'a besoin que d'un découpage de Ω sans chevauchement.`,
+      p: `Un groupe inventé de 100 personnes. <b>Ω</b> = le groupe. <b>Les causes</b> = la couleur des cheveux : chacun en a une seule, et tout le monde en a une. Elles découpent donc bien la pizza. ${m('F')} = être une <b>f</b>emme (le cercle orange), « non ${m('F')} » = être un homme (hors du cercle). Ici, « cause » veut juste dire « catégorie » : Bayes n'a besoin que d'un découpage de Ω sans chevauchement.`,
       c: `<table><thead><tr><th>cheveux</th><th>personnes</th><th>femmes</th><th>hommes</th><th>P(F | C<sub>k</sub>)</th></tr></thead><tbody>${
           P_C.map((p, k) => `<tr${k === 1 ? ' class="hi"' : ''}><td>${NAMES[k].toLowerCase()} (C<sub>${k + 1}</sub>)</td><td class="c-cause">${cnt(p)}</td><td class="c-fait">${cnt(joint[k])}</td><td>${cnt(jointM[k])}</td><td class="c-fait">${cnt(joint[k])}/${cnt(p)} = ${fr(P_FgC[k])}</td></tr>`).join('')
         }</tbody><tfoot><tr><td>total</td><td>${N}</td><td class="c-fait">${cnt(P_F)}</td><td>${cnt(P_M)}</td><td></td></tr></tfoot></table>`,
       hl: ['den'], g: [],
       st: S({ gC: 1, gF: 1, lens: 1.6, pz: 1, sep: 1, ex: 1 }) },
     { part: 2, t: "On tire une femme au hasard : est-elle blonde ?",
-      p: `On sait que la personne est une femme : les femmes (le centre) deviennent l'univers. Parmi les ${cnt(P_F)} femmes, ${cnt(joint[1])} sont blondes. La formule fait exactement ce comptage, avec des probabilités : le numérateur compte les blondes, le dénominateur compte toutes les femmes, couleur par couleur.`,
-      c: `<span class="c-inter">P(blond | femme)</span> = <span class="c-fait">${fr(P_FgC[1])}</span> × <span class="c-cause">${fr(P_C[1])}</span> / (${fr(P_FgC[0])} × ${fr(P_C[0])} + <span class="c-fait">${fr(P_FgC[1])}</span> × <span class="c-cause">${fr(P_C[1])}</span> + ${fr(P_FgC[2])} × ${fr(P_C[2])})<br>= <span class="c-inter">${fr(joint[1])}</span> / (${fr(joint[0])} + <span class="c-inter">${fr(joint[1])}</span> + ${fr(joint[2])}) = ${fr(joint[1])} / ${fr(P_F)} = <span class="c-inter">${fr(joint[1] / P_F)}</span><br><span style="color:var(--muted)">En comptant : ${cnt(joint[1])} blondes / ${cnt(P_F)} femmes = ${fr(joint[1] / P_F)}</span>`,
+      p: `On sait que la personne est une femme : le cercle des femmes devient l'univers. Parmi les ${cnt(P_F)} femmes, ${blondF} sont blondes. La formule fait exactement ce comptage, avec des probabilités : le numérateur compte les blondes, le dénominateur compte toutes les femmes, couleur par couleur.`,
+      c: `<span class="c-inter">P(blond | femme)</span> = <span class="c-fait">${fr(P_FgC[1])}</span> × <span class="c-cause">${fr(P_C[1])}</span> / (${fr(P_FgC[0])} × ${fr(P_C[0])} + <span class="c-fait">${fr(P_FgC[1])}</span> × <span class="c-cause">${fr(P_C[1])}</span> + ${fr(P_FgC[2])} × ${fr(P_C[2])})<br>= <span class="c-inter">${fr(joint[1])}</span> / (${fr(joint[0])} + <span class="c-inter">${fr(joint[1])}</span> + ${fr(joint[2])}) = ${fr(joint[1])} / ${fr(P_F)} = <span class="c-inter">${fr(joint[1] / P_F)}</span><br><span style="color:var(--muted)">En comptant : ${blondF} blondes / ${cnt(P_F)} femmes = ${fr(joint[1] / P_F)}</span>`,
       hl: ['post', 'lik', 'prior', 'den'], g: [1, 2, 3],
-      st: S({ gC: 1, gF: 1, lens: 1.6, pz: 1, sep: 1, ex: 1, ...zoomF1 }) },
+      st: S({ gC: 1, gF: 1, lens: 1.6, pz: 1, sep: 1, ex: 1, ...zoomF2 }) },
     { part: 2, t: "Et pour un homme ?",
-      p: `Même formule, on remplace ${m('F')} par « non ${m('F')} » : ce sont les croûtes qui deviennent l'univers. Dans chaque part, la croûte vaut 1 − P(F | C<sub>k</sub>). Parmi les ${cnt(P_M)} hommes, ${cnt(jointM[1])} sont blonds.`,
+      p: `Même formule, on remplace ${m('F')} par « non ${m('F')} » : c'est tout ce qui est hors du cercle qui devient l'univers. Dans chaque part, la zone hors du cercle vaut 1 − P(F | C<sub>k</sub>) de la part. Parmi les ${cnt(P_M)} hommes, ${cnt(jointM[1])} sont blonds.`,
       c: `<span class="c-inter">P(blond | homme)</span> = ${fr(1 - P_FgC[1])} × ${fr(P_C[1])} / (${fr(1 - P_FgC[0])} × ${fr(P_C[0])} + ${fr(1 - P_FgC[1])} × ${fr(P_C[1])} + ${fr(1 - P_FgC[2])} × ${fr(P_C[2])})<br>= <span class="c-inter">${fr(jointM[1])}</span> / (${fr(jointM[0])} + <span class="c-inter">${fr(jointM[1])}</span> + ${fr(jointM[2])}) = ${fr(jointM[1])} / ${fr(P_M)} = <span class="c-inter">${fr(jointM[1] / P_M)}</span><br><span style="color:var(--muted)">En comptant : ${cnt(jointM[1])} blonds / ${cnt(P_M)} hommes = ${fr(jointM[1] / P_M)}</span>`,
       hl: ['post', 'lik', 'prior', 'den'], g: [1, 2, 3],
       st: S({ gC: 1, gF: 1, pz: 1, sep: 1, ex: 1, men: 1 }) },
     { part: 2, t: "Et si c'était pareil partout ?",
-      p: `Imagine que chaque couleur de cheveux compte autant de femmes que d'hommes : P(F | C<sub>k</sub>) = 0,50 dans toutes les parts. Le centre devient un cercle parfait. Savoir que c'est une femme ne dit alors plus rien sur les cheveux : P(blond | femme) = P(blond). On dit que ${m('C')} et ${m('F')} sont <b>indépendants</b>. Dans le vrai exemple, c'est la bosse du centre dans la part des blonds qui faisait passer de 0,30 à 0,36.`,
-      c: `<span class="c-inter">P(blond | femme)</span> = ${fr(P_F)} × ${fr(P_C[1])} / (${fr(P_F)} × ${fr(P_C[0])} + ${fr(P_F)} × ${fr(P_C[1])} + ${fr(P_F)} × ${fr(P_C[2])})<br>= ${fr(P_F * P_C[1])} / ${fr(P_F)} = <span class="c-inter">${fr(P_C[1])}</span> = <span class="c-cause">P(blond)</span><br><span style="color:var(--muted)">En comptant : ${cnt(P_F * P_C[1])} blondes / ${cnt(P_F)} femmes = ${fr(P_C[1])}</span>`,
+      p: `Imagine un autre groupe, où chaque couleur de cheveux compte autant de femmes que d'hommes : P(F | C<sub>k</sub>) = ${fr(P_F)} dans toutes les parts. Le cercle ${m('F')} se place alors pile au centre de la pizza, et il couvre la moitié de chaque part. Parmi les ${cnt(P_F)} femmes, ${blondFind} sont blondes : ${blondFind}/${cnt(P_F)} = ${fr(P_C[1])}, exactement la proportion de blonds dans tout le groupe (${cnt(P_C[1])}/${N}). Savoir que c'est une femme ne change rien sur les cheveux : on dit que ${m('C')} et ${m('F')} sont <b>indépendants</b>.<br>Dans le vrai groupe (cercle en pointillés), ${m('F')} penche vers les blonds. C'est ce décalage qui fait passer de P(blond) = ${fr(P_C[1])} à P(blond | femme) = ${fr(joint[1] / P_F)}.`,
+      c: `<span class="c-inter">P(blond | femme)</span> = ${fr(P_F)} × ${fr(P_C[1])} / (${fr(P_F)} × ${fr(P_C[0])} + ${fr(P_F)} × ${fr(P_C[1])} + ${fr(P_F)} × ${fr(P_C[2])})<br>= ${fr(P_F * P_C[1])} / ${fr(P_F)} = <span class="c-inter">${fr(P_C[1])}</span> = <span class="c-cause">P(blond)</span><br><span style="color:var(--muted)">Vrai groupe : ${blondF} blondes / ${cnt(P_F)} femmes = ${fr(joint[1] / P_F)} · groupe « pareil partout » : ${blondFind} / ${cnt(P_F)} = ${fr(P_C[1])}</span>`,
       hl: ['post', 'prior'], g: [],
       st: S({ gC: 1, gF: 1, lens: 1.6, pz: 1, sep: 1, ex: 1, ind: 1 }) },
   ];
@@ -349,6 +364,7 @@ button.primary { background: var(--ink); color: var(--surface); border-color: va
     const px = (n) => n * dpr;
     const O = { x: X(0), y: Y(0) };
     const clamp01 = (v) => Math.max(0, Math.min(1, v));
+    const pre = W / dpr < 420 ? '' : 'P = ';   // sur petit écran, la valeur seule
 
     ctx.clearRect(0, 0, W, H);
     ctx.fillStyle = col.surface; ctx.fillRect(0, 0, W, H);
@@ -371,18 +387,17 @@ button.primary { background: var(--ink); color: var(--surface); border-color: va
       ctx.fillStyle = color; ctx.fillText(txt, x, y); ctx.restore();
     };
 
-    // Rayons de F dans chaque part. Avant l'étape 9, C₁ et C₃ forment un seul « reste » au même rayon.
-    const rk = [lerp(rRest, rF[0], st.sep), rF[1], lerp(rRest, rF[2], st.sep)].map(r => lerp(r, rInd, st.ind));
-    // Contours de C et de F en pixels : cercle (pz = 0) ou forme de pizza (pz = 1).
-    const shapeC = [], shapeF = [];
+    // C : cercle (pz = 0) ou part de pizza (pz = 1). Il grandit depuis son centre à l'apparition.
+    const shapeC = [];
     for (let i = 0; i < ANG.length; i++) {
-      const r1 = lerp(RC0[i], SLICE[i] === 1 ? 1 : 0, pz);
-      const r2 = lerp(RF0[i], rk[SLICE[i]], pz);
-      // Apparition : chaque forme grandit depuis son centre.
-      shapeC.push(X(C0.x + (COS[i] * r1 - C0.x) * st.gC), Y(C0.y + (SIN[i] * r1 - C0.y) * st.gC));
-      shapeF.push(X(F0.x + (COS[i] * r2 - F0.x) * st.gF), Y(F0.y + (SIN[i] * r2 - F0.y) * st.gF));
+      const r = lerp(RC0[i], IN2[i], pz);
+      shapeC.push(X(C0.x + (COS[i] * r - C0.x) * st.gC), Y(C0.y + (SIN[i] * r - C0.y) * st.gC));
     }
-    const poly = (a) => { ctx.moveTo(a[0], a[1]); for (let i = 2; i < a.length; i += 2) ctx.lineTo(a[i], a[i + 1]); ctx.closePath(); };
+    // F : toujours un cercle. Il glisse de sa place en partie 1 à sa place dans la pizza, puis au centre (« pareil partout »).
+    const Fc = { x: lerp(lerp(F0.x, Fp.x, pz), 0, st.ind), y: lerp(lerp(F0.y, Fp.y, pz), 0, st.ind) };
+    const fR = Math.max(0, rf * st.gF * k);
+    const polyC = () => { ctx.moveTo(shapeC[0], shapeC[1]); for (let i = 2; i < shapeC.length; i += 2) ctx.lineTo(shapeC[i], shapeC[i + 1]); ctx.closePath(); };
+    const circF = () => { ctx.moveTo(X(Fc.x) + fR, Y(Fc.y)); ctx.arc(X(Fc.x), Y(Fc.y), fR, 0, TAU); ctx.closePath(); };
     const omega = () => { ctx.moveTo(O.x + k, O.y); ctx.arc(O.x, O.y, k, 0, TAU); ctx.closePath(); };
     const sector = (a0, a1, r) => { ctx.moveTo(O.x, O.y); ctx.arc(O.x, O.y, Math.max(0, r * k), a0, a1); ctx.closePath(); };
     const aGC = Math.min(1, st.gC * 2), aGF = Math.min(1, st.gF * 2);
@@ -396,23 +411,23 @@ button.primary { background: var(--ink); color: var(--surface); border-color: va
       ctx.beginPath(); sector(SL[2].a0, SL[2].a1, 1); ctx.fillStyle = rgba(col.cause, 0.11 * st.sep); ctx.fill();
     }
     // C, puis F et ses morceaux
-    if (st.gC > 0.001) { ctx.beginPath(); poly(shapeC); ctx.fillStyle = rgba(col.cause, 0.17 * aGC); ctx.fill(); }
+    if (st.gC > 0.001) { ctx.beginPath(); polyC(); ctx.fillStyle = rgba(col.cause, 0.17 * aGC); ctx.fill(); }
     if (st.gF > 0.001) {
-      ctx.beginPath(); poly(shapeF); ctx.fillStyle = rgba(col.fait, 0.18 * aGF); ctx.fill();
+      ctx.beginPath(); circF(); ctx.fillStyle = rgba(col.fait, 0.18 * aGF); ctx.fill();
       const outF = Math.min(1, st.split + 0.6 * st.sep);
       if (outF > 0.01) {
-        ctx.save(); ctx.beginPath(); omega(); poly(shapeC); ctx.clip('evenodd');
-        ctx.beginPath(); poly(shapeF); ctx.fillStyle = rgba(col.fait, 0.3 * outF); ctx.fill(); ctx.restore();
+        ctx.save(); ctx.beginPath(); omega(); polyC(); ctx.clip('evenodd');
+        ctx.beginPath(); circF(); ctx.fillStyle = rgba(col.fait, 0.3 * outF); ctx.fill(); ctx.restore();
       }
       if (st.lens > 0.01 && st.gC > 0.001) {
-        ctx.save(); ctx.beginPath(); poly(shapeC); ctx.clip();
-        ctx.beginPath(); poly(shapeF); ctx.fillStyle = rgba(col.inter, 0.32 * st.lens); ctx.fill(); ctx.restore();
+        ctx.save(); ctx.beginPath(); polyC(); ctx.clip();
+        ctx.beginPath(); circF(); ctx.fillStyle = rgba(col.inter, 0.32 * st.lens); ctx.fill(); ctx.restore();
       }
     }
-    // Croûte des blonds, mise en évidence pour la question « homme »
+    // Blonds hors du cercle F, mis en évidence pour la question « homme »
     if (st.men > 0.01) {
-      ctx.save(); ctx.beginPath(); poly(shapeC); ctx.clip();
-      ctx.beginPath(); omega(); poly(shapeF); ctx.fillStyle = rgba(col.inter, 0.4 * st.men); ctx.fill('evenodd'); ctx.restore();
+      ctx.save(); ctx.beginPath(); polyC(); ctx.clip();
+      ctx.beginPath(); omega(); circF(); ctx.fillStyle = rgba(col.inter, 0.4 * st.men); ctx.fill('evenodd'); ctx.restore();
     }
 
     // Assombrir ce qui n'est plus dans l'univers
@@ -421,9 +436,9 @@ button.primary { background: var(--ink); color: var(--surface); border-color: va
       ctx.save(); ctx.beginPath(); ctx.rect(0, 0, W, H); pathFn();
       ctx.fillStyle = rgba(col.surface, 0.86 * amt); ctx.fill('evenodd'); ctx.restore();
     };
-    dimOut(() => poly(shapeC), st.dimC);
-    dimOut(() => poly(shapeF), st.dimF);
-    if (st.men > 0.01) { ctx.beginPath(); poly(shapeF); ctx.fillStyle = rgba(col.surface, 0.86 * st.men); ctx.fill(); }
+    dimOut(polyC, st.dimC);
+    dimOut(circF, st.dimF);
+    if (st.men > 0.01) { ctx.beginPath(); circF(); ctx.fillStyle = rgba(col.surface, 0.86 * st.men); ctx.fill(); }
 
     // Contours
     ctx.lineJoin = 'round';
@@ -434,12 +449,21 @@ button.primary { background: var(--ink); color: var(--surface); border-color: va
       ctx.beginPath(); ctx.moveTo(O.x, O.y); ctx.lineTo(O.x + Math.cos(a) * k, O.y + Math.sin(a) * k);
       ctx.lineWidth = px(1.75); ctx.strokeStyle = col.cause; ctx.stroke(); ctx.restore();
     }
-    if (st.gC > 0.001) { ctx.beginPath(); poly(shapeC); ctx.lineWidth = px(2 + 1.5 * st.dimC); ctx.strokeStyle = rgba(col.cause, aGC); ctx.stroke(); }
-    if (st.gF > 0.001) { ctx.beginPath(); poly(shapeF); ctx.lineWidth = px(2 + 1.5 * st.dimF); ctx.strokeStyle = rgba(col.fait, aGF); ctx.stroke(); }
+    if (st.gC > 0.001) { ctx.beginPath(); polyC(); ctx.lineWidth = px(2 + 1.5 * st.dimC); ctx.strokeStyle = rgba(col.cause, aGC); ctx.stroke(); }
+    // Position du vrai cercle F, en pointillés, quand on imagine le groupe « pareil partout »
+    if (st.ind > 0.01) {
+      ctx.save(); ctx.setLineDash([px(6), px(5)]); ctx.globalAlpha = st.ind * 0.85;
+      ctx.beginPath(); ctx.arc(X(Fp.x), Y(Fp.y), rf * k, 0, TAU); ctx.lineWidth = px(1.5); ctx.strokeStyle = col.fait; ctx.stroke(); ctx.restore();
+    }
+    if (st.gF > 0.001) { ctx.beginPath(); circF(); ctx.lineWidth = px(2 + 1.5 * st.dimF); ctx.strokeStyle = rgba(col.fait, aGF); ctx.stroke(); }
+    // Centre du cercle F, dans la pizza
+    const aDot = pz * (1 - st.men);
+    if (aDot > 0.01) { ctx.save(); ctx.globalAlpha = aDot; ctx.beginPath(); ctx.arc(X(Fc.x), Y(Fc.y), px(4), 0, TAU); ctx.fillStyle = col.fait; ctx.fill(); ctx.restore(); }
 
     // ---------- Libellés ----------
     // Chaque étiquette a une place en partie 1 (cercles) et une en partie 2 (pizza) : elle glisse de l'une à l'autre.
     const mixP = (a, b) => P({ x: lerp(a.x, b.x, pz), y: lerp(a.y, b.y, pz) });
+    const cen = (key, i) => { const A = CEN[0][key][i], B = CEN[1][key][i]; return { x: lerp(A.x, B.x, st.ind), y: lerp(A.y, B.y, st.ind) }; };
     const ex = st.ex, nex = 1 - ex;
     const outside = 1 - Math.max(st.dimC, st.dimF);
     const aSmall = clamp01(1 - st.dimC - st.dimF) * (1 - st.split);   // P(C), P(F) sous les noms, en partie 1
@@ -457,10 +481,12 @@ button.primary { background: var(--ink); color: var(--surface); border-color: va
 
     // C (puis C₂ / Blonds)
     const aC = Math.min(1, st.gC * 1.5) * (1 - st.dimF);
-    const pC1 = P({ x: C0.x - uCF.x * rc * 0.7, y: C0.y - uCF.y * rc * 0.7 }), pC2 = rimPos(cMid);
+    // Partie 1 : à côté de C, dans la zone libre de Ω (dans C quand on zoome dessus). Partie 2 : au bord de la pizza.
+    const pOut = P(pol(-142 * D, 0.85)), pIn = P({ x: C0.x - uCF.x * rc * 0.78, y: C0.y - uCF.y * rc * 0.78 });
+    const pC1 = { x: lerp(pOut.x, pIn.x, st.dimC), y: lerp(pOut.y, pIn.y, st.dimC) }, pC2 = rimPos(cMid);
     const pC = { x: lerp(pC1.x, pC2.x, pz), y: lerp(pC1.y, pC2.y, pz) };
-    label('C', pC.x, pC.y - px(9) * pz, col.cause, lerp(26, 20, pz), col.math, true, aC * (1 - st.sep));
-    label('P = ' + fr(P_C[1]), pC.x, pC.y + px(lerp(22, 11, pz)), col.cause, lerp(13, 12, pz), col.num, false, aC * (1 - st.sep) * lerp(st.gC * aSmall, 1, pz));
+    label('C', pC.x, pC.y - px(9), col.cause, lerp(lerp(22, 26, st.dimC), 20, pz), col.math, true, aC * (1 - st.sep));
+    label(pre + fr(P_C[1]), pC.x, pC.y + px(12), col.cause, lerp(13, 12, pz), col.num, false, aC * (1 - st.sep) * lerp(st.gC * aSmall, 1, pz));
     rimLabel(cMid, 'C₂', NAMES[1], 'P = ' + fr(P_C[1]), cnt(P_C[1]) + ' pers.', aC * st.sep);
     // Reste de Ω, puis C₁ et C₃
     const aRest = pz * (1 - st.sep) * outside;
@@ -474,11 +500,11 @@ button.primary { background: var(--ink); color: var(--surface); border-color: va
     // F (puis Femmes) et non F (puis Hommes)
     const aF = Math.min(1, st.gF * 1.5) * (1 - 0.7 * st.dimC) * (1 - 0.8 * st.men);
     const side = Math.atan2(uCF.y, uCF.x) + 50 * D;
-    const pF = mixP({ x: F0.x + Math.cos(side) * rf * 0.55, y: F0.y + Math.sin(side) * rf * 0.55 }, pol(190 * D, 0.32));
+    const pF = mixP({ x: F0.x + Math.cos(side) * rf * 0.55, y: F0.y + Math.sin(side) * rf * 0.55 }, pol(200 * D, 0.38));
     label('F', pF.x, pF.y, col.fait, lerp(26, 24, pz), col.math, true, aF * nex);
-    label('P = ' + fr(P_F), pF.x, pF.y + px(26), col.fait, 13, col.num, false, st.gF * aSmall * (1 - pz));
+    label(pre + fr(P_F), pF.x, pF.y + px(26), col.fait, 13, col.num, false, st.gF * aSmall * (1 - pz));
     label(`Femmes (${cnt(P_F)})`, pF.x, pF.y, col.fait, 15, col.body, false, aF * ex);
-    const pm = P(pol(190 * D, 0.835));
+    const pm = P(pol(150 * D, 0.87));
     const aM = pz * outside;
     label('non F', pm.x, pm.y, col.muted, 15, col.math, true, aM * nex, true);
     label(`Hommes (${cnt(P_M)})`, pm.x, pm.y, col.ink, 14, col.body, false, aM * ex, true);
@@ -493,20 +519,20 @@ button.primary { background: var(--ink); color: var(--surface); border-color: va
       else if (st.split < 0.5 && pz < 0.5) txt = fr(joint[1]) + ' de Ω';
       else txt = fr(joint[1]);
       const lensC = { x: C0.x + uCF.x * (d - rf + rc) / 2, y: C0.y + uCF.y * (d - rf + rc) / 2 };
-      const q = mixP(lensC, pol(cMid, rk[1] * 0.6));
+      const q = mixP(lensC, cen('f', 1));
       label(txt, q.x, q.y, col.inter, 14, col.num, false, Math.min(1, st.lens) * (1 - st.men), true);
     }
-    const qo = mixP(fOutC, pol(mid(REST), rRest * 0.55));
+    const qo = mixP(fOutC, CEN[0].rest);
     label(fr(fOut), qo.x, qo.y, col.fait, 14, col.num, false, st.split * (1 - st.sep), true);
     const aPieces = st.sep * (1 - st.men);
     [0, 2].forEach(i => {
-      const q = P(pol(mid(SL[i]), rk[i] * (i === 2 ? 0.7 : 0.6)));
+      const q = P(cen('f', i));
       label(ex > 0.5 ? String(cnt(P_C[i] * pFk(i))) : fr(joint[i]), q.x, q.y, col.ink, 14, col.num, false, aPieces, true);
     });
-    // Effectifs des croûtes (hommes)
-    const aCrust = ex * (1 - 0.85 * st.dimF);
+    // Effectifs hors du cercle (hommes)
+    const aCrust = ex * (1 - st.dimF);
     [0, 1, 2].forEach(i => {
-      const q = P(pol(mid(SL[i]), (rk[i] + 1) / 2));
+      const q = P(cen('m', i));
       label(String(cnt(P_C[i] * (1 - pFk(i)))), q.x, q.y, i === 1 && st.men > 0.5 ? col.inter : col.muted, 13, col.num, false, aCrust, true);
     });
 
