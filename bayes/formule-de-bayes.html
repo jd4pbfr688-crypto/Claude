@@ -142,7 +142,7 @@ button.primary { background: var(--ink); color: var(--surface); border-color: va
     </section>
   </div>
 
-  <p class="note">Les chiffres sont un exemple : trois causes de probabilités 0,50 / 0,30 / 0,20, et le fait F se produit sous chacune avec 0,28 / 0,50 / 0,40. Les aires sont exactes : un cercle de probabilité 0,30 a 30 % de l'aire de Ω. La cause C des premières étapes devient C₂ à l'étape 8.</p>
+  <p class="note">Les chiffres sont un exemple : trois causes de probabilités 0,50 / 0,30 / 0,20, et le fait F se produit sous chacune avec 0,28 / 0,50 / 0,40. Les aires sont exactes : un cercle de probabilité 0,30 occupe 0,30 de l'aire de Ω. La cause C des premières étapes devient C₂ à l'étape 8.</p>
 </div>
 
 <script>
@@ -204,19 +204,19 @@ button.primary { background: var(--ink); color: var(--surface); border-color: va
       c: `<span>P(Ω) = 1</span>`, hl: [], g: [],
       st: S({}) },
     { t: "La cause C : un cercle dans Ω",
-      p: `<span class="m">C</span> occupe 30 % de l'aire de Ω. C'est la probabilité « a priori » de la cause, avant de savoir quoi que ce soit sur le fait.`,
+      p: `<span class="m">C</span> occupe 0,30 de l'aire de Ω. C'est la probabilité « a priori » de la cause, avant de savoir quoi que ce soit sur le fait.`,
       c: `<span class="c-cause">P(C) = ${fr(P_C[1])}</span>`, hl: ['prior'], g: [],
       st: S({ gC: 1 }) },
     { t: "Le fait F chevauche C",
-      p: `<span class="m">F</span> occupe 37 % de Ω. La zone violette, <span class="m">F ∩ C</span>, contient les cas où la cause <b>et</b> le fait se produisent : 15 % de Ω.`,
+      p: `<span class="m">F</span> occupe 0,37 de Ω. La zone violette, <span class="m">F ∩ C</span>, contient les cas où la cause <b>et</b> le fait se produisent : 0,15 de Ω.`,
       c: `<span class="c-fait">P(F) = ${fr(P_F)}</span> · <span class="c-inter">P(F ∩ C) = ${fr(joint[1])}</span>`, hl: [], g: [],
       st: S({ gC: 1, gF: 1, lens: 1 }) },
     { t: "Sachant C : C devient l'univers",
-      p: `« Sachant <span class="m">C</span> », on oublie tout ce qui est hors de <span class="m">C</span>. On agrandit <span class="m">C</span> à la taille de Ω et on mesure <span class="m">F</span> à l'intérieur : la moitié de <span class="m">C</span>.`,
+      p: `« Sachant <span class="m">C</span> », on oublie tout ce qui est hors de <span class="m">C</span>. On agrandit <span class="m">C</span> à la taille de Ω et on mesure <span class="m">F</span> à l'intérieur : il en occupe 0,50 (la moitié).`,
       c: `<span class="c-fait">P(F | C)</span> = P(F ∩ C) / P(C) = ${fr(joint[1])} / ${fr(P_C[1])} = <span class="c-fait">${fr(P_FgC[1])}</span>`, hl: ['lik'], g: [1],
       st: S({ gC: 1, gF: 1, lens: 1, cx: C0.x, cy: C0.y, s: 1 / rc, dimC: 1, om: 0.25 }) },
     { t: "× P(C) : retour à l'échelle de Ω",
-      p: `« La moitié de <span class="m">C</span> », c'est beaucoup ou peu ? Ça dépend de la taille de <span class="m">C</span>. Multiplier par P(C) dé-zoome : la mesure faite dans <span class="m">C</span> redevient une part de Ω.`,
+      p: `« 0,50 de <span class="m">C</span> », c'est beaucoup ou peu ? Ça dépend de la taille de <span class="m">C</span>. Multiplier par P(C) dé-zoome : la mesure faite dans <span class="m">C</span> redevient une part de Ω.`,
       c: `<span class="c-inter">P(F ∩ C)</span> = <span class="c-fait">P(F | C)</span> × <span class="c-cause">P(C)</span> = ${fr(P_FgC[1])} × ${fr(P_C[1])} = <span class="c-inter">${fr(joint[1])}</span>`, hl: ['lik', 'prior'], g: [1, 2],
       st: S({ gC: 1, gF: 1, lens: 1.6 }) },
     { t: "÷ P(F) : F devient l'univers",
@@ -251,7 +251,7 @@ button.primary { background: var(--ink); color: var(--surface); border-color: va
       st: S({ gC: 1, gF: 1, lens: 1.6, sep: 1, ex: 1 }) },
     { t: "On tire une femme au hasard : est-elle blonde ?",
       p: `On sait que la personne est une femme : les femmes deviennent l'univers. Parmi les 37 femmes, 15 sont blondes. La formule fait exactement ce comptage, mais avec des probabilités : le numérateur compte les blondes, le dénominateur compte toutes les femmes, couleur par couleur.`,
-      c: `<span class="c-inter">P(blond | femme)</span> = <span class="c-fait">0,50</span> × <span class="c-cause">0,30</span> / (0,28 × 0,50 + <span class="c-fait">0,50</span> × <span class="c-cause">0,30</span> + 0,40 × 0,20)<br>= <span class="c-inter">0,15</span> / (0,14 + <span class="c-inter">0,15</span> + 0,08) = 0,15 / 0,37 ≈ <span class="c-inter">0,405</span><br><span style="color:var(--muted)">En comptant : 15 blondes / 37 femmes ≈ 40,5 %</span>`,
+      c: `<span class="c-inter">P(blond | femme)</span> = <span class="c-fait">0,50</span> × <span class="c-cause">0,30</span> / (0,28 × 0,50 + <span class="c-fait">0,50</span> × <span class="c-cause">0,30</span> + 0,40 × 0,20)<br>= <span class="c-inter">0,15</span> / (0,14 + <span class="c-inter">0,15</span> + 0,08) = 0,15 / 0,37 ≈ <span class="c-inter">0,405</span><br><span style="color:var(--muted)">En comptant : 15 blondes / 37 femmes ≈ 0,405</span>`,
       hl: ['post', 'lik', 'prior', 'den'], g: [1, 2, 3],
       st: S({ gC: 1, gF: 1, lens: 1.6, sep: 1, ex: 1, cx: F0.x, cy: F0.y, s: 1 / rf, dimF: 1, om: 0.25 }) },
   ];
@@ -397,8 +397,8 @@ button.primary { background: var(--ink); color: var(--surface); border-color: va
     const lx = C0.x + ux * lm, ly = C0.y + uy * lm;
     if (st.lens > 0.05) {
       let txt = fr(joint[1]) + ' de Ω';
-      if (st.dimC > 0.5) txt = '50 % de C';
-      else if (st.dimF > 0.5 && st.sep < 0.5) txt = '≈ 41 % de F';
+      if (st.dimC > 0.5) txt = '0,50 de C';
+      else if (st.dimF > 0.5 && st.sep < 0.5) txt = '≈ 0,41 de F';
       else if (st.ex > 0.5) txt = '15';
       else if (st.split > 0.5 || st.sep > 0.5) txt = fr(joint[1]);
       label(txt, X(lx), Y(ly), col.inter, 14, col.num, false, Math.min(1, st.lens), true);
