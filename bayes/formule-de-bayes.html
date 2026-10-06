@@ -174,6 +174,12 @@ button.primary { background: var(--ink); color: var(--surface); border-color: va
   const REST = { a0: -18 * D, a1: 234 * D };   // C₁ ∪ C₃, avant qu'on les distingue
   const mid = (s) => (s.a0 + s.a1) / 2;
   const inArc = (phi, s) => { let x = (phi - s.a0) % TAU; if (x < 0) x += TAU; return x < s.a1 - s.a0; };
+  // Pizza refaite avec les hommes seuls (étape 13) : angle de chaque part ∝ P(C_k | homme). C₂ garde son milieu.
+  const SLm = (() => {
+    const w = jointM.map(x => x / P_M * TAU), c = mid(SL[1]);
+    const s2 = { a0: c - w[1] / 2, a1: c + w[1] / 2 }, s3 = { a0: s2.a1, a1: s2.a1 + w[2] };
+    return [{ a0: s3.a1, a1: s2.a0 + TAU }, s2, s3];
+  })();
   const rc = Math.sqrt(P_C[1]), rf = Math.sqrt(P_F);
   // Distance du centre de Ω au bord d'un cercle qui contient ce centre, dans la direction phi.
   const rayToCircle = (c, r, phi) => { const p = Math.cos(phi) * c.x + Math.sin(phi) * c.y; return p + Math.sqrt(p * p - (c.x * c.x + c.y * c.y) + r * r); };
@@ -236,7 +242,7 @@ button.primary { background: var(--ink); color: var(--surface); border-color: va
   });
 
   // ---------- Étapes ----------
-  const base = { cx: 0, cy: 0, s: 1, om: 1, gC: 0, gF: 0, lens: 0, dimC: 0, dimF: 0, split: 0, pz: 0, sep: 0, ex: 0, men: 0, ind: 0 };
+  const base = { cx: 0, cy: 0, s: 1, om: 1, gC: 0, gF: 0, lens: 0, dimC: 0, dimF: 0, split: 0, pz: 0, sep: 0, ex: 0, men: 0, rg: 0, ind: 0 };
   const S = (o) => Object.assign({}, base, o);
   const m = (t) => `<span class="m">${t}</span>`;
   const PARTS = { 1: 'Partie 1 : une cause', 2: 'Partie 2 : plusieurs causes' };
@@ -306,10 +312,10 @@ button.primary { background: var(--ink); color: var(--surface); border-color: va
       hl: ['post', 'lik', 'prior', 'den'], g: [1, 2, 3],
       st: S({ gC: 1, gF: 1, lens: 1.6, pz: 1, sep: 1, ex: 1, ...zoomF2 }) },
     { part: 2, t: "Et pour un homme ?",
-      p: `Même formule, on remplace ${m('F')} par « non ${m('F')} » : c'est tout ce qui est hors du cercle qui devient l'univers. Dans chaque part, la zone hors du cercle vaut 1 − P(F | C<sub>k</sub>) de la part. Parmi les ${cnt(P_M)} hommes, ${cnt(jointM[1])} sont blonds.`,
-      c: `<span class="c-inter">P(blond | homme)</span> = ${fr(1 - P_FgC[1])} × ${fr(P_C[1])} / (${fr(1 - P_FgC[0])} × ${fr(P_C[0])} + ${fr(1 - P_FgC[1])} × ${fr(P_C[1])} + ${fr(1 - P_FgC[2])} × ${fr(P_C[2])})<br>= <span class="c-inter">${fr(jointM[1])}</span> / (${fr(jointM[0])} + <span class="c-inter">${fr(jointM[1])}</span> + ${fr(jointM[2])}) = ${fr(jointM[1])} / ${fr(P_M)} = <span class="c-inter">${fr(jointM[1] / P_M)}</span><br><span style="color:var(--muted)">En comptant : ${cnt(jointM[1])} blonds / ${cnt(P_M)} hommes = ${fr(jointM[1] / P_M)}</span>`,
+      p: `Les hommes aussi peuvent devenir l'univers : « sachant que c'est un homme », on ne garde que les ${cnt(P_M)} hommes et on oublie les femmes. Ils forment l'anneau autour du cercle ${m('F')}. On ne peut pas zoomer sur un anneau comme sur un cercle, alors on le <b>recolle</b> pour en faire une pizza entière : c'est le nouvel univers. Chaque part garde ses hommes (${cnt(jointM[0])} bruns, ${cnt(jointM[1])} blonds, ${cnt(jointM[2])} roux), et la part des blonds vaut maintenant ${cnt(jointM[1])}/${cnt(P_M)} = ${fr(jointM[1] / P_M)} de la pizza.<br>Dans la formule, « homme » est un fait comme « femme » : F<sub>1</sub> = femme, F<sub>2</sub> = homme. C'est à ça que sert l'indice j de F<sub>j</sub>.`,
+      c: `<span class="c-inter">P(blond | homme)</span> = ${fr(1 - P_FgC[1])} × ${fr(P_C[1])} / (${fr(1 - P_FgC[0])} × ${fr(P_C[0])} + ${fr(1 - P_FgC[1])} × ${fr(P_C[1])} + ${fr(1 - P_FgC[2])} × ${fr(P_C[2])})<br>= <span class="c-inter">${fr(jointM[1])}</span> / (${fr(jointM[0])} + <span class="c-inter">${fr(jointM[1])}</span> + ${fr(jointM[2])}) = ${fr(jointM[1])} / ${fr(P_M)} = <span class="c-inter">${fr(jointM[1] / P_M)}</span><br><span style="color:var(--muted)">En comptant : ${cnt(jointM[1])} blonds / ${cnt(P_M)} hommes = ${fr(jointM[1] / P_M)}, la part des blonds dans la pizza des hommes</span>`,
       hl: ['post', 'lik', 'prior', 'den'], g: [1, 2, 3],
-      st: S({ gC: 1, gF: 1, pz: 1, sep: 1, ex: 1, men: 1 }) },
+      st: S({ gC: 1, gF: 1, pz: 1, sep: 1, ex: 1, men: 1, rg: 1 }) },
     { part: 2, t: "Et si c'était pareil partout ?",
       p: `Imagine un autre groupe, où chaque couleur de cheveux compte autant de femmes que d'hommes : P(F | C<sub>k</sub>) = ${fr(P_F)} dans toutes les parts. Le cercle ${m('F')} se place alors pile au centre de la pizza, et il couvre la moitié de chaque part. Parmi les ${cnt(P_F)} femmes, ${blondFind} sont blondes : ${blondFind}/${cnt(P_F)} = ${fr(P_C[1])}, exactement la proportion de blonds dans tout le groupe (${cnt(P_C[1])}/${N}). Savoir que c'est une femme ne change rien sur les cheveux : on dit que ${m('C')} et ${m('F')} sont <b>indépendants</b>.<br>Dans le vrai groupe (cercle en pointillés), ${m('F')} penche vers les blonds. C'est ce décalage qui fait passer de P(blond) = ${fr(P_C[1])} à P(blond | femme) = ${fr(joint[1] / P_F)}.`,
       c: `<span class="c-inter">P(blond | femme)</span> = ${fr(P_F)} × ${fr(P_C[1])} / (${fr(P_F)} × ${fr(P_C[0])} + ${fr(P_F)} × ${fr(P_C[1])} + ${fr(P_F)} × ${fr(P_C[2])})<br>= ${fr(P_F * P_C[1])} / ${fr(P_F)} = <span class="c-inter">${fr(P_C[1])}</span> = <span class="c-cause">P(blond)</span><br><span style="color:var(--muted)">Vrai groupe : ${blondF} blondes / ${cnt(P_F)} femmes = ${fr(joint[1] / P_F)} · groupe « pareil partout » : ${blondFind} / ${cnt(P_F)} = ${fr(P_C[1])}</span>`,
@@ -356,7 +362,7 @@ button.primary { background: var(--ink); color: var(--surface); border-color: va
   };
 
   function draw() {
-    const st = cur, pz = st.pz;
+    const st = cur, pz = st.pz, rg = st.rg;
     const k = Math.min(W, H) / 2 * 0.72 * st.s;
     const X = (x) => W / 2 + (x - st.cx) * k;
     const Y = (y) => H / 2 + (y - st.cy) * k;
@@ -364,25 +370,28 @@ button.primary { background: var(--ink); color: var(--surface); border-color: va
     const px = (n) => n * dpr;
     const O = { x: X(0), y: Y(0) };
     const clamp01 = (v) => Math.max(0, Math.min(1, v));
-    const pre = W / dpr < 420 ? '' : 'P = ';   // sur petit écran, la valeur seule
+    const narrow = W / dpr < 420;
+    const pre = narrow ? '' : 'P = ';   // sur petit écran, la valeur seule
 
     ctx.clearRect(0, 0, W, H);
     ctx.fillStyle = col.surface; ctx.fillRect(0, 0, W, H);
 
-    const label = (txt, x, y, color, size = 17, font = col.math, italic = true, alpha = 1, bg = false) => {
+    const label = (txt, x, y, color, size = 17, font = col.math, italic = true, alpha = 1, bg = false, align = 'center') => {
       if (alpha <= 0.01) return;
       ctx.save(); ctx.globalAlpha = Math.min(1, alpha);
       ctx.font = `${italic ? 'italic ' : ''}500 ${px(size)}px ${font}`;
-      ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      ctx.textAlign = align; ctx.textBaseline = 'middle';
+      const w = ctx.measureText(txt).width, lead = align === 'left' ? 0 : align === 'right' ? w : w / 2;
+      // Une étiquette dont l'ancre est dans le canvas n'en sort jamais.
       if (x >= 0 && x <= W && y >= 0 && y <= H) {
-        const half = ctx.measureText(txt).width / 2 + px(bg ? 10 : 4);
-        x = Math.max(half, Math.min(W - half, x));
+        const pad = px(bg ? 10 : 4);
+        x = Math.max(lead + pad, Math.min(W - (w - lead) - pad, x));
         y = Math.max(px(size), Math.min(H - px(size), y));
       }
       if (bg) {
-        const w = ctx.measureText(txt).width + px(12), h = px(size + 8);
+        const h = px(size + 8);
         ctx.fillStyle = rgba(col.surface, 0.88);
-        ctx.beginPath(); ctx.roundRect(x - w / 2, y - h / 2, w, h, px(6)); ctx.fill();
+        ctx.beginPath(); ctx.roundRect(x - lead - px(6), y - h / 2, w + px(12), h, px(6)); ctx.fill();
       }
       ctx.fillStyle = color; ctx.fillText(txt, x, y); ctx.restore();
     };
@@ -460,6 +469,45 @@ button.primary { background: var(--ink); color: var(--surface); border-color: va
     const aDot = pz * (1 - st.men);
     if (aDot > 0.01) { ctx.save(); ctx.globalAlpha = aDot; ctx.beginPath(); ctx.arc(X(Fc.x), Y(Fc.y), px(4), 0, TAU); ctx.fillStyle = col.fait; ctx.fill(); ctx.restore(); }
 
+    // Étape 13 : on recolle l'anneau des hommes pour en faire une pizza entière, le nouvel univers.
+    // Chaque part garde ses hommes ; à la fin, l'angle de chaque part vaut P(C_k | homme).
+    if (rg > 0.001) {
+      const now = (i) => ({ a0: lerp(SL[i].a0, SLm[i].a0, rg), a1: lerp(SL[i].a1, SLm[i].a1, rg) });
+      const nSeg = (i) => Math.ceil((SL[i].a1 - SL[i].a0) / (2 * D));
+      // Point du bord intérieur (le trou laissé par les femmes), u de 0 à 1 le long de la part i
+      const inner = (i, u) => {
+        const a = now(i), t = a.a0 + (a.a1 - a.a0) * u;
+        const r = (1 - rg) * rayToCircle(Fc, rf, SL[i].a0 + (SL[i].a1 - SL[i].a0) * u) * k;
+        return [O.x + Math.cos(t) * r, O.y + Math.sin(t) * r];
+      };
+      const piece = (i) => {
+        const a = now(i), n = nSeg(i);
+        ctx.moveTo(O.x + Math.cos(a.a0) * k, O.y + Math.sin(a.a0) * k); ctx.arc(O.x, O.y, k, a.a0, a.a1);
+        for (let j = n; j >= 0; j--) { const [x, y] = inner(i, j / n); ctx.lineTo(x, y); }
+        ctx.closePath();
+      };
+      const hole = () => {
+        let first = true;
+        [1, 2, 0].forEach(i => { const n = nSeg(i); for (let j = 0; j <= n; j++) { const [x, y] = inner(i, j / n); if (first) { ctx.moveTo(x, y); first = false; } else ctx.lineTo(x, y); } });
+        ctx.closePath();
+      };
+      ctx.beginPath(); omega(); ctx.fillStyle = col.surface; ctx.fill(); ctx.fillStyle = rgba(col.ink, 0.035); ctx.fill();
+      [0.06, 0.17, 0.11].forEach((tint, i) => {
+        ctx.beginPath(); piece(i); ctx.fillStyle = rgba(col.cause, tint); ctx.fill();
+        if (i === 1) { ctx.fillStyle = rgba(col.inter, 0.4 * st.men); ctx.fill(); }
+      });
+      ctx.beginPath(); hole(); ctx.fillStyle = rgba(col.fait, 0.03); ctx.fill();
+      ctx.beginPath(); omega(); ctx.lineWidth = px(2); ctx.strokeStyle = col.ink; ctx.stroke();
+      [0, 1, 2].forEach(i => {
+        const a = now(i).a0;
+        ctx.beginPath(); ctx.moveTo(O.x, O.y); ctx.lineTo(O.x + Math.cos(a) * k, O.y + Math.sin(a) * k);
+        ctx.lineWidth = px(1.75); ctx.strokeStyle = col.cause; ctx.stroke();
+      });
+      const a2 = now(1);
+      ctx.beginPath(); ctx.moveTo(O.x, O.y); ctx.arc(O.x, O.y, k, a2.a0, a2.a1); ctx.closePath(); ctx.lineWidth = px(2); ctx.strokeStyle = col.cause; ctx.stroke();
+      ctx.beginPath(); hole(); ctx.lineWidth = px(2); ctx.strokeStyle = rgba(col.fait, 1 - rg); ctx.stroke();
+    }
+
     // ---------- Libellés ----------
     // Chaque étiquette a une place en partie 1 (cercles) et une en partie 2 (pizza) : elle glisse de l'une à l'autre.
     const mixP = (a, b) => P({ x: lerp(a.x, b.x, pz), y: lerp(a.y, b.y, pz) });
@@ -470,13 +518,15 @@ button.primary { background: var(--ink); color: var(--surface); border-color: va
     const cMid = mid(SL[1]);
     label('Ω', X(-0.86), Y(-0.86), col.ink, 24, col.math, false, st.om);
 
-    const rimPos = (a) => ({ x: X(Math.cos(a)) + Math.cos(a) * px(24), y: Y(Math.sin(a)) + Math.sin(a) * px(24) });
+    // Noms autour de la pizza : juste au-delà du bord, et alignés vers l'extérieur sur les côtés.
+    const rimPos = (a) => { const off = px(10) + Math.abs(Math.sin(a)) * px(18); return { x: X(Math.cos(a)) + Math.cos(a) * off, y: Y(Math.sin(a)) + Math.sin(a) * off }; };
+    const alignAt = (a) => Math.cos(a) > 0.35 ? 'left' : Math.cos(a) < -0.35 ? 'right' : 'center';
     const rimLabel = (a, name, nameEx, val, valEx, alpha) => {
-      const p = rimPos(a);
-      label(name, p.x, p.y - px(9), col.cause, 20, col.math, true, alpha * nex);
-      label(nameEx, p.x, p.y - px(9), col.cause, 15, col.body, false, alpha * ex);
-      label(val, p.x, p.y + px(11), col.cause, 12, col.num, false, alpha * nex);
-      label(valEx, p.x, p.y + px(11), col.cause, 12, col.num, false, alpha * ex);
+      const p = rimPos(a), al = alignAt(a);
+      label(name, p.x, p.y - px(9), col.cause, 20, col.math, true, alpha * nex, false, al);
+      label(nameEx, p.x, p.y - px(9), col.cause, 15, col.body, false, alpha * ex, false, al);
+      label(val, p.x, p.y + px(11), col.cause, 12, col.num, false, alpha * nex, false, al);
+      label(valEx, p.x, p.y + px(11), col.cause, 12, col.num, false, alpha * ex, false, al);
     };
 
     // C (puis C₂ / Blonds)
@@ -487,27 +537,28 @@ button.primary { background: var(--ink); color: var(--surface); border-color: va
     const pC = { x: lerp(pC1.x, pC2.x, pz), y: lerp(pC1.y, pC2.y, pz) };
     label('C', pC.x, pC.y - px(9), col.cause, lerp(lerp(22, 26, st.dimC), 20, pz), col.math, true, aC * (1 - st.sep));
     label(pre + fr(P_C[1]), pC.x, pC.y + px(12), col.cause, lerp(13, 12, pz), col.num, false, aC * (1 - st.sep) * lerp(st.gC * aSmall, 1, pz));
-    rimLabel(cMid, 'C₂', NAMES[1], 'P = ' + fr(P_C[1]), cnt(P_C[1]) + ' pers.', aC * st.sep);
+    const valEx = (i) => { const n = rg > 0.5 ? cnt(jointM[i]) : cnt(P_C[i]); return narrow ? String(n) : n + (rg > 0.5 ? ' hommes' : ' pers.'); };
+    rimLabel(cMid, 'C₂', NAMES[1], pre + fr(P_C[1]), valEx(1), aC * st.sep);
     // Reste de Ω, puis C₁ et C₃
     const aRest = pz * (1 - st.sep) * outside;
-    const pr = rimPos(mid(REST));
-    label('hors de C', pr.x, pr.y - px(9), col.muted, 14, col.body, false, aRest);
-    label('P = ' + fr(P_C[0] + P_C[2]), pr.x, pr.y + px(11), col.muted, 12, col.num, false, aRest);
-    const aO = st.sep * outside * (1 - 0.6 * st.men);
-    rimLabel(mid(SL[0]), 'C₁', NAMES[0], 'P = ' + fr(P_C[0]), cnt(P_C[0]) + ' pers.', aO);
-    rimLabel(mid(SL[2]), 'C₃', NAMES[2], 'P = ' + fr(P_C[2]), cnt(P_C[2]) + ' pers.', aO);
+    const pr = rimPos(mid(REST)), alR = alignAt(mid(REST));
+    label('hors de C', pr.x, pr.y - px(9), col.muted, 14, col.body, false, aRest, false, alR);
+    label(pre + fr(P_C[0] + P_C[2]), pr.x, pr.y + px(11), col.muted, 12, col.num, false, aRest, false, alR);
+    const aO = st.sep * outside * (1 - 0.6 * st.men * (1 - rg));
+    rimLabel(lerp(mid(SL[0]), mid(SLm[0]), rg), 'C₁', NAMES[0], pre + fr(P_C[0]), valEx(0), aO);
+    rimLabel(lerp(mid(SL[2]), mid(SLm[2]), rg), 'C₃', NAMES[2], pre + fr(P_C[2]), valEx(2), aO);
 
     // F (puis Femmes) et non F (puis Hommes)
-    const aF = Math.min(1, st.gF * 1.5) * (1 - 0.7 * st.dimC) * (1 - 0.8 * st.men);
+    const aF = Math.min(1, st.gF * 1.5) * (1 - 0.7 * st.dimC) * (1 - 0.8 * st.men) * (1 - rg);
     const side = Math.atan2(uCF.y, uCF.x) + 50 * D;
     const pF = mixP({ x: F0.x + Math.cos(side) * rf * 0.55, y: F0.y + Math.sin(side) * rf * 0.55 }, pol(200 * D, 0.38));
     label('F', pF.x, pF.y, col.fait, lerp(26, 24, pz), col.math, true, aF * nex);
     label(pre + fr(P_F), pF.x, pF.y + px(26), col.fait, 13, col.num, false, st.gF * aSmall * (1 - pz));
-    label(`Femmes (${cnt(P_F)})`, pF.x, pF.y, col.fait, 15, col.body, false, aF * ex);
+    label(narrow ? 'Femmes' : `Femmes (${cnt(P_F)})`, pF.x, pF.y, col.fait, 15, col.body, false, aF * ex);
     const pm = P(pol(150 * D, 0.87));
-    const aM = pz * outside;
+    const aM = pz * outside * (1 - rg);
     label('non F', pm.x, pm.y, col.muted, 15, col.math, true, aM * nex, true);
-    label(`Hommes (${cnt(P_M)})`, pm.x, pm.y, col.ink, 14, col.body, false, aM * ex, true);
+    label(narrow ? 'Hommes' : `Hommes (${cnt(P_M)})`, pm.x, pm.y, col.ink, 14, col.body, false, aM * ex, true);
 
     // Valeurs dans les morceaux
     const pFk = (i) => st.ind > 0.5 ? P_F : P_FgC[i];
@@ -530,11 +581,20 @@ button.primary { background: var(--ink); color: var(--surface); border-color: va
       label(ex > 0.5 ? String(cnt(P_C[i] * pFk(i))) : fr(joint[i]), q.x, q.y, col.ink, 14, col.num, false, aPieces, true);
     });
     // Effectifs hors du cercle (hommes)
-    const aCrust = ex * (1 - st.dimF);
+    const aCrust = ex * (1 - st.dimF) * (1 - rg);
     [0, 1, 2].forEach(i => {
       const q = P(cen('m', i));
       label(String(cnt(P_C[i] * (1 - pFk(i)))), q.x, q.y, i === 1 && st.men > 0.5 ? col.inter : col.muted, 13, col.num, false, aCrust, true);
     });
+
+    // Pizza des hommes : la part de chaque couleur parmi les hommes
+    if (rg > 0.01) {
+      [0, 1, 2].forEach(i => {
+        const q = P(pol(lerp(mid(SL[i]), mid(SLm[i]), rg), i === 2 ? 0.72 : 0.6));
+        label(fr(jointM[i] / P_M), q.x, q.y - px(9), i === 1 ? col.inter : col.ink, 15, col.num, false, rg * rg, true);
+        label(`${cnt(jointM[i])}/${cnt(P_M)}`, q.x, q.y + px(14), col.muted, 12, col.num, false, rg * rg);
+      });
+    }
 
     // Étiquette « nouvel univers »
     if (st.dimC > 0.05) label('C = nouvel univers', W / 2, px(20), col.cause, 14, col.num, false, st.dimC, true);
@@ -542,9 +602,15 @@ button.primary { background: var(--ink); color: var(--surface); border-color: va
     if (st.men > 0.05) label('Hommes = nouvel univers', W / 2, H - px(20), col.ink, 14, col.num, false, st.men, true);
   }
 
+  let stage = 0;   // 1 : recoller l'anneau des hommes après le reste ; -1 : le décoller avant
   function frame(now) {
     const t = reduce.matches ? 1 : Math.min(1, (now - t0) / dur);
-    cur = lerpState(from, to, ease(t));
+    if (!stage) cur = lerpState(from, to, ease(t));
+    else {
+      const early = ease(Math.min(1, t / 0.45)), late = ease(Math.max(0, (t - 0.4) / 0.6));
+      cur = lerpState(from, to, stage > 0 ? early : late);
+      cur.rg = lerp(from.rg, to.rg, stage > 0 ? late : early);
+    }
     draw();
     if (t < 1) raf = requestAnimationFrame(frame); else raf = 0;
   }
@@ -580,8 +646,10 @@ button.primary { background: var(--ink); color: var(--surface); border-color: va
     pipBtns.forEach((b, j) => j === idx ? b.setAttribute('aria-current', 'step') : b.removeAttribute('aria-current'));
     $('prev').disabled = idx === 0;
     $('next').disabled = idx === steps.length - 1;
-    // Le passage cercles ↔ pizza prend plus de temps.
-    dur = Math.abs(s.st.pz - cur.pz) > 0.01 ? 2200 : 1100;
+    // Le passage cercles ↔ pizza et le recollage de l'anneau prennent plus de temps.
+    const dRg = s.st.rg - cur.rg;
+    stage = Math.abs(dRg) > 0.01 ? Math.sign(dRg) : 0;
+    dur = Math.abs(s.st.pz - cur.pz) > 0.01 ? 2200 : stage ? 2600 : 1100;
     from = cur; to = s.st; t0 = performance.now();
     if (!raf) raf = requestAnimationFrame(frame);
   }
