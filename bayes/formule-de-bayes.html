@@ -142,14 +142,14 @@ button.primary { background: var(--ink); color: var(--surface); border-color: va
     </section>
   </div>
 
-  <p class="note">Les chiffres sont un exemple : trois causes de probabilités 0,50 / 0,30 / 0,20, et le fait F se produit sous chacune avec 0,20 / 0,50 / 0,60. Les aires sont exactes : un cercle de probabilité 0,30 a 30 % de l'aire de Ω. Aux étapes 1 à 6, la cause C est la cause C₂ de la fin.</p>
+  <p class="note">Les chiffres sont un exemple : trois causes de probabilités 0,50 / 0,30 / 0,20, et le fait F se produit sous chacune avec 0,28 / 0,50 / 0,40. Les aires sont exactes : un cercle de probabilité 0,30 a 30 % de l'aire de Ω. La cause C des premières étapes devient C₂ à l'étape 8.</p>
 </div>
 
 <script>
 (() => {
   // ---------- Données ----------
   const P_C = [0.5, 0.3, 0.2];        // P(C_k)
-  const P_FgC = [0.2, 0.5, 0.6];      // P(F | C_k)
+  const P_FgC = [0.28, 0.5, 0.4];     // P(F | C_k)
   const joint = P_C.map((p, k) => p * P_FgC[k]); // P(F ∩ C_k)
   const P_F = joint.reduce((a, b) => a + b, 0); // 0,37
   const fr = (x, n = 2) => x.toFixed(n).replace('.', ',');
@@ -167,14 +167,36 @@ button.primary { background: var(--ink); color: var(--surface); border-color: va
   const C0 = { x: -a * Math.cos(tilt), y: -a * Math.sin(tilt) };
   const F0 = { x: b * Math.cos(tilt), y: b * Math.sin(tilt) };
 
-  // Scène B : Ω découpé en secteurs (aire ∝ P(C_k)), F ∩ C_k = secteur de rayon √P(F|C_k).
-  const start = -Math.PI / 2;
-  const sectors = []; { let a0 = start; P_C.forEach((p, k) => { const a1 = a0 + p * 2 * Math.PI; sectors.push({ a0, a1, r: Math.sqrt(P_FgC[k]) }); a0 = a1; }); }
+  // Hors de C, une droite n·p = t sépare les deux autres causes : C₃ (côté n·p ≥ t, aire 0,20, dont 0,08 dans F)
+  // et C₁ (le reste, aire 0,50, dont 0,14 dans F). Droite calculée hors ligne pour que les aires tombent juste.
+  const TH = 5.6767, LT = 0.4919;
+  const NX = Math.cos(TH), NY = Math.sin(TH);
+  const inC = (x, y) => (x - C0.x) ** 2 + (y - C0.y) ** 2 < rc * rc;
+  const inF = (x, y) => (x - F0.x) ** 2 + (y - F0.y) ** 2 < rf * rf;
+  const side3 = (x, y) => x * NX + y * NY >= LT;
+  // Centres des zones (pour placer les étiquettes), par échantillonnage sur une grille.
+  const cen = {};
+  {
+    const acc = { c1: [0, 0, 0], c3: [0, 0, 0], f1: [0, 0, 0], f3: [0, 0, 0], fout: [0, 0, 0] };
+    const add = (key, x, y) => { const v = acc[key]; v[0] += x; v[1] += y; v[2]++; };
+    const N = 220;
+    for (let i = 0; i < N; i++) for (let j = 0; j < N; j++) {
+      const x = -1 + (i + .5) * 2 / N, y = -1 + (j + .5) * 2 / N;
+      if (x * x + y * y > 1 || inC(x, y)) continue;
+      const f = inF(x, y), s3 = side3(x, y);
+      if (f) { add('fout', x, y); add(s3 ? 'f3' : 'f1', x, y); } else add(s3 ? 'c3' : 'c1', x, y);
+    }
+    for (const key in acc) cen[key] = { x: acc[key][0] / acc[key][2], y: acc[key][1] / acc[key][2] };
+  }
+  // Les centres de C₁ et C₃ tombent sur d'autres formes : on place leurs noms à la main, dans une zone libre.
+  cen.c1 = { x: 0.02, y: 0.76 };
+  cen.c3 = { x: 0.5, y: -0.68 };
 
   // ---------- Étapes ----------
-  const base = { cx: 0, cy: 0, s: 1, aA: 1, aB: 0, om: 1, gC: 0, gF: 0, lens: 0, dimC: 0, dimF: 0, dimFB: 0, hi2: 0 };
+  const base = { cx: 0, cy: 0, s: 1, om: 1, gC: 0, gF: 0, lens: 0, dimC: 0, dimF: 0, split: 0, sep: 0 };
   const S = (o) => Object.assign({}, base, o);
   const sub = (s) => s.replace(/_(\w)/g, '<sub>$1</sub>');
+  const fOut = P_F - joint[1];
 
   const steps = [
     { t: "L'univers Ω",
@@ -201,18 +223,23 @@ button.primary { background: var(--ink); color: var(--surface); border-color: va
       p: `Maintenant on sait que <span class="m">F</span> s'est produit. C'est <span class="m">F</span> qu'on agrandit à la taille de Ω, et on regarde quelle part de <span class="m">F</span> tombe dans <span class="m">C</span>. Diviser par P(F), c'est ce changement d'univers.`,
       c: `<span class="c-inter">P(C | F)</span> = P(F ∩ C) / <span class="c-fait">P(F)</span> = ${fr(joint[1])} / ${fr(P_F)} ≈ <span class="c-inter">${fr(joint[1] / P_F, 3)}</span>`, hl: ['post', 'lik', 'prior', 'den'], g: [1, 2, 3],
       st: S({ gC: 1, gF: 1, lens: 1.6, cx: F0.x, cy: F0.y, s: 1 / rf, dimF: 1, om: 0.25 }) },
-    { t: "Le dénominateur : F, morceau par morceau",
-      p: `En pratique on ne connaît pas P(F) directement. On connaît chaque cause et la fréquence de <span class="m">F</span> sous chacune. On découpe Ω en causes ${sub('C_1, C_2, C_3')} qui ne se chevauchent pas et couvrent tout Ω : <span class="m">F</span> est la somme de ses morceaux. C'est la formule des probabilités totales.`,
-      c: `<table><thead><tr><th>cause</th><th>P(C<sub>k</sub>)</th><th>P(F | C<sub>k</sub>)</th><th>produit</th></tr></thead><tbody>${
-          P_C.map((p, k) => `<tr><td>C<sub>${k + 1}</sub></td><td class="c-cause">${fr(p)}</td><td class="c-fait">${fr(P_FgC[k])}</td><td>${fr(joint[k])}</td></tr>`).join('')
-        }</tbody><tfoot><tr><td colspan="3">∑ = P(F)</td><td class="c-fait">${fr(P_F)}</td></tr></tfoot></table>`,
+    { t: "Problème : on ne connaît pas P(F)",
+      p: `À l'étape 6 on a divisé par P(F). Mais dans un exercice, on te donne rarement P(F) directement. Regarde <span class="m">F</span> : le cercle <span class="m">C</span> le coupe en deux morceaux. Le morceau violet, dans <span class="m">C</span>, on sait déjà le calculer (étape 5). Il reste le morceau orange, <b>hors</b> de <span class="m">C</span>.`,
+      c: `<span class="c-fait">P(F)</span> = <span class="c-inter">morceau dans C</span> + <span class="c-fait">morceau hors de C</span> = <span class="c-inter">${fr(joint[1])}</span> + ${fr(fOut)} = <span class="c-fait">${fr(P_F)}</span>`,
       hl: ['den'], g: [3],
-      st: S({ aA: 0, aB: 1 }) },
+      st: S({ gC: 1, gF: 1, lens: 1.6, split: 1 }) },
+    { t: "Hors de C, il y a les autres causes",
+      p: `Si <span class="m">F</span> s'est produit, il a bien fallu une cause. L'espace hors de <span class="m">C</span>, ce sont les <b>autres causes</b> possibles, ici ${sub('C_1')} et ${sub('C_3')}. <span class="m">C</span> devient donc ${sub('C_2')}. Les causes ne se chevauchent pas et remplissent tout Ω (un « système complet d'événements »). Chaque morceau de <span class="m">F</span> se calcule comme à l'étape 5 : P(F | C<sub>k</sub>) × P(C<sub>k</sub>). On additionne les morceaux, et ça donne le ∑ du dénominateur.`,
+      c: `<table><thead><tr><th>cause</th><th>P(C<sub>k</sub>)</th><th>P(F | C<sub>k</sub>)</th><th>morceau de F</th></tr></thead><tbody>${
+          P_C.map((p, k) => `<tr${k === 1 ? ' class="hi"' : ''}><td>C<sub>${k + 1}</sub></td><td class="c-cause">${fr(p)}</td><td class="c-fait">${fr(P_FgC[k])}</td><td>${fr(joint[k])}</td></tr>`).join('')
+        }</tbody><tfoot><tr><td colspan="3">∑ = P(F)</td><td class="c-fait">${fr(P_F)}</td></tr></tfoot></table>`,
+      hl: ['den'], g: [2],
+      st: S({ gC: 1, gF: 1, lens: 1.6, sep: 1 }) },
     { t: "La formule complète",
-      p: `On ne garde que <span class="m">F</span> (le reste est grisé). La probabilité de la cause ${sub('C_2')} sachant <span class="m">F</span>, c'est son morceau de <span class="m">F</span> divisé par tous les morceaux de <span class="m">F</span>. Même résultat qu'à l'étape 6.`,
+      p: `On revient dans <span class="m">F</span>, le nouvel univers. La probabilité de la cause ${sub('C_2')} sachant <span class="m">F</span>, c'est son morceau de <span class="m">F</span> divisé par tous les morceaux de <span class="m">F</span>. On retrouve le résultat de l'étape 6, mais sans avoir eu besoin de connaître P(F) au départ.`,
       c: `<span class="c-inter">P(C<sub>2</sub> | F)</span> = <span class="c-inter">${fr(joint[1])}</span> / (${fr(joint[0])} + <span class="c-inter">${fr(joint[1])}</span> + ${fr(joint[2])}) = ${fr(joint[1])} / ${fr(P_F)} ≈ <span class="c-inter">${fr(joint[1] / P_F, 3)}</span>`,
       hl: ['post', 'lik', 'prior', 'den'], g: [1, 2, 3],
-      st: S({ aA: 0, aB: 1, dimFB: 1, hi2: 1, s: 1.12 }) },
+      st: S({ gC: 1, gF: 1, lens: 1.6, sep: 1, cx: F0.x, cy: F0.y, s: 1 / rf, dimF: 1, om: 0.25 }) },
   ];
 
   // ---------- Couleurs ----------
@@ -278,113 +305,101 @@ button.primary { background: var(--ink); color: var(--surface); border-color: va
       ctx.fillStyle = color; ctx.fillText(txt, x, y); ctx.restore();
     };
 
-    // Ω (commun aux deux scènes)
+    // Ω
     ctx.save(); ctx.globalAlpha = st.om;
     circ(0, 0, 1); ctx.fillStyle = rgba(col.ink, 0.035); ctx.fill();
     ctx.lineWidth = px(2); ctx.strokeStyle = col.ink; ctx.stroke();
     ctx.restore();
     label('Ω', X(-0.8), Y(-0.8), col.ink, 24, col.math, false, st.om);
 
-    // ----- Scène A : cercles -----
-    if (st.aA > 0.01) {
-      ctx.save(); ctx.globalAlpha = st.aA;
-      const rC = rc * st.gC, rF = rf * st.gF;
-      if (rC > 0) { circ(C0.x, C0.y, rC); ctx.fillStyle = rgba(col.cause, 0.16); ctx.fill(); }
-      if (rF > 0) { circ(F0.x, F0.y, rF); ctx.fillStyle = rgba(col.fait, 0.16); ctx.fill(); }
-      if (rC > 0 && rF > 0 && st.lens > 0) {
-        ctx.save(); circ(C0.x, C0.y, rC); ctx.clip();
-        circ(F0.x, F0.y, rF); ctx.fillStyle = rgba(col.inter, 0.32 * st.lens); ctx.fill(); ctx.restore();
-      }
-      // Assombrir ce qui n'est plus dans l'univers
-      const dimOut = (x, y, r, amt) => {
-        if (amt <= 0.01) return;
-        ctx.save(); ctx.beginPath(); ctx.rect(0, 0, W, H); ctx.arc(X(x), Y(y), r * k, 0, Math.PI * 2, true);
-        ctx.fillStyle = rgba(col.surface, 0.86 * amt); ctx.fill('evenodd'); ctx.restore();
-      };
-      dimOut(C0.x, C0.y, rc, st.dimC);
-      dimOut(F0.x, F0.y, rf, st.dimF);
-      if (rC > 0) { circ(C0.x, C0.y, rC); ctx.lineWidth = px(2 + 1.5 * st.dimC); ctx.strokeStyle = col.cause; ctx.stroke(); }
-      if (rF > 0) { circ(F0.x, F0.y, rF); ctx.lineWidth = px(2 + 1.5 * st.dimF); ctx.strokeStyle = col.fait; ctx.stroke(); }
-      ctx.restore();
+    const rC = rc * st.gC, rF = rf * st.gF;
+    // Chemin « Ω privé de C » (à remplir ou découper en evenodd)
+    const omMinusC = () => { ctx.beginPath(); ctx.arc(X(0), Y(0), k, 0, Math.PI * 2); ctx.moveTo(X(C0.x) + rc * k, Y(C0.y)); ctx.arc(X(C0.x), Y(C0.y), rc * k, 0, Math.PI * 2, true); };
+    // Demi-plan de C₃ (grand polygone du côté n·p ≥ t)
+    const halfPlane3 = () => {
+      const qx = NX * LT, qy = NY * LT, tx = -NY, ty = NX, L = 50;
+      ctx.beginPath();
+      ctx.moveTo(X(qx + tx * L), Y(qy + ty * L)); ctx.lineTo(X(qx - tx * L), Y(qy - ty * L));
+      ctx.lineTo(X(qx - tx * L + NX * L), Y(qy - ty * L + NY * L)); ctx.lineTo(X(qx + tx * L + NX * L), Y(qy + ty * L + NY * L));
+      ctx.closePath();
+    };
 
-      const aA = st.aA;
-      // Libellés
-      const cLab = { x: C0.x - rc * 0.5, y: C0.y - rc * 0.1 };
-      const fLab = { x: F0.x + rf * 0.5, y: F0.y + rf * 0.1 };
-      label('C', X(cLab.x), Y(cLab.y), col.cause, 26, col.math, true, aA * Math.min(1, st.gC * 1.5) * (1 - 0.7 * st.dimF));
-      label('F', X(fLab.x), Y(fLab.y), col.fait, 26, col.math, true, aA * Math.min(1, st.gF * 1.5) * (1 - 0.7 * st.dimC));
-      if (st.dimC > 0.05) label('C = nouvel univers', X(C0.x), Y(C0.y - rc) - px(16), col.cause, 14, col.num, false, aA * st.dimC, true);
-      if (st.dimF > 0.05) label('F = nouvel univers', X(F0.x), Y(F0.y - rf) - px(16), col.fait, 14, col.num, false, aA * st.dimF, true);
-      // Valeur dans la lentille
-      const ux = (F0.x - C0.x) / d, uy = (F0.y - C0.y) / d, lm = (d - rf + rc) / 2;
-      const lx = C0.x + ux * lm, ly = C0.y + uy * lm;
-      if (st.lens > 0.05) {
-        let txt = fr(joint[1]) + ' de Ω';
-        if (st.dimC > 0.5) txt = '50 % de C';
-        else if (st.dimF > 0.5) txt = '≈ 41 % de F';
-        label(txt, X(lx), Y(ly), col.inter, 14, col.num, false, aA * Math.min(1, st.lens), true);
-      }
-      // Petites étiquettes de probabilité
-      if (st.dimC < 0.3 && st.dimF < 0.3) {
-        label('P(C) = ' + fr(P_C[1]), X(C0.x - rc * 0.5), Y(cLab.y) + px(26), col.cause, 13, col.num, false, aA * st.gC * (1 - st.dimC - st.dimF));
-        label('P(F) = ' + fr(P_F), X(F0.x + rf * 0.5), Y(fLab.y) + px(26), col.fait, 13, col.num, false, aA * st.gF * (1 - st.dimC - st.dimF));
-      }
+    // Autres causes C₁ et C₃ (hors de C)
+    if (st.sep > 0.01) {
+      ctx.save(); omMinusC(); ctx.clip('evenodd');
+      ctx.fillStyle = rgba(col.cause, 0.07 * st.sep); ctx.fillRect(0, 0, W, H);
+      halfPlane3(); ctx.fillStyle = rgba(col.cause, 0.13 * st.sep); ctx.fill();
+      ctx.restore();
     }
 
-    // ----- Scène B : partition -----
-    if (st.aB > 0.01) {
-      const aB = st.aB;
-      ctx.save(); ctx.globalAlpha = aB;
-      const cx0 = X(0), cy0 = Y(0);
-      const shades = [0.10, 0.20, 0.30];
-      sectors.forEach((s, i) => {
-        ctx.beginPath(); ctx.moveTo(cx0, cy0); ctx.arc(cx0, cy0, k, s.a0, s.a1); ctx.closePath();
-        ctx.fillStyle = rgba(col.cause, shades[i]); ctx.fill();
-      });
-      sectors.forEach((s, i) => {
-        ctx.beginPath(); ctx.moveTo(cx0, cy0); ctx.arc(cx0, cy0, s.r * k, s.a0, s.a1); ctx.closePath();
-        const isHi = i === 1;
-        ctx.fillStyle = rgba(col.fait, 0.42 - (isHi ? 0.3 * st.hi2 : 0)); ctx.fill();
-        if (isHi && st.hi2 > 0) { ctx.fillStyle = rgba(col.inter, 0.55 * st.hi2); ctx.fill(); }
-      });
-      // Contour de F (fleur)
-      const flower = () => {
-        ctx.beginPath();
-        sectors.forEach((s, i) => {
-          const sx = cx0 + Math.cos(s.a0) * s.r * k, sy = cy0 + Math.sin(s.a0) * s.r * k;
-          if (i === 0) ctx.moveTo(sx, sy); else ctx.lineTo(sx, sy);
-          ctx.arc(cx0, cy0, s.r * k, s.a0, s.a1);
-        });
-        ctx.closePath();
-      };
-      // Grisé hors de F
-      if (st.dimFB > 0.01) {
-        ctx.save(); ctx.beginPath(); ctx.rect(0, 0, W, H);
-        sectors.forEach((s, i) => {
-          const sx = cx0 + Math.cos(s.a0) * s.r * k, sy = cy0 + Math.sin(s.a0) * s.r * k;
-          if (i === 0) ctx.moveTo(sx, sy); else ctx.lineTo(sx, sy);
-          ctx.arc(cx0, cy0, s.r * k, s.a0, s.a1);
-        });
-        ctx.closePath();
-        ctx.fillStyle = rgba(col.surface, 0.8 * st.dimFB); ctx.fill('evenodd'); ctx.restore();
-      }
-      // Frontières entre causes
-      ctx.lineWidth = px(1.5); ctx.strokeStyle = rgba(col.ink, 0.55 * (1 - 0.6 * st.dimFB));
-      sectors.forEach(s => { ctx.beginPath(); ctx.moveTo(cx0, cy0); ctx.lineTo(cx0 + Math.cos(s.a0) * k, cy0 + Math.sin(s.a0) * k); ctx.stroke(); });
-      flower(); ctx.lineWidth = px(2.5); ctx.strokeStyle = col.fait; ctx.stroke();
+    if (rC > 0) { circ(C0.x, C0.y, rC); ctx.fillStyle = rgba(col.cause, 0.16); ctx.fill(); }
+    if (rF > 0) { circ(F0.x, F0.y, rF); ctx.fillStyle = rgba(col.fait, 0.16); ctx.fill(); }
+    // Morceau de F hors de C, mis en évidence
+    const outF = Math.min(1, st.split + 0.6 * st.sep);
+    if (rF > 0 && outF > 0.01) {
+      ctx.save(); omMinusC(); ctx.clip('evenodd');
+      circ(F0.x, F0.y, rF); ctx.fillStyle = rgba(col.fait, 0.3 * outF); ctx.fill();
       ctx.restore();
-
-      sectors.forEach((s, i) => {
-        const m = (s.a0 + s.a1) / 2;
-        const ox = Math.cos(m), oy = Math.sin(m);
-        const fadeC = 1 - 0.75 * st.dimFB;
-        label(`C${['₁', '₂', '₃'][i]}`, X(ox * 0.86), Y(oy * 0.86) - px(9), col.cause, 21, col.math, true, aB * fadeC);
-        label(fr(P_C[i]), X(ox * 0.86), Y(oy * 0.86) + px(12), col.cause, 12, col.num, false, aB * fadeC);
-        const hi = i === 1 ? st.hi2 : 0;
-        label(fr(joint[i]), X(ox * s.r * 0.58), Y(oy * s.r * 0.58), hi > 0.5 ? col.inter : col.ink, 14, col.num, false, aB, true);
-      });
-      label('F', X(0.38), Y(-0.38), col.fait, 24, col.math, true, aB);
     }
+    if (rC > 0 && rF > 0 && st.lens > 0) {
+      ctx.save(); circ(C0.x, C0.y, rC); ctx.clip();
+      circ(F0.x, F0.y, rF); ctx.fillStyle = rgba(col.inter, 0.32 * st.lens); ctx.fill(); ctx.restore();
+    }
+    // Frontière entre C₁ et C₃
+    if (st.sep > 0.01) {
+      const qx = NX * LT, qy = NY * LT, h = Math.sqrt(1 - LT * LT);
+      ctx.save(); ctx.globalAlpha = st.sep;
+      ctx.beginPath(); ctx.moveTo(X(qx - NY * h), Y(qy + NX * h)); ctx.lineTo(X(qx + NY * h), Y(qy - NX * h));
+      ctx.lineWidth = px(1.75); ctx.strokeStyle = col.cause; ctx.stroke();
+      ctx.restore();
+    }
+    // Assombrir ce qui n'est plus dans l'univers
+    const dimOut = (x, y, r, amt) => {
+      if (amt <= 0.01) return;
+      ctx.save(); ctx.beginPath(); ctx.rect(0, 0, W, H); ctx.arc(X(x), Y(y), r * k, 0, Math.PI * 2, true);
+      ctx.fillStyle = rgba(col.surface, 0.86 * amt); ctx.fill('evenodd'); ctx.restore();
+    };
+    dimOut(C0.x, C0.y, rc, st.dimC);
+    dimOut(F0.x, F0.y, rf, st.dimF);
+    if (rC > 0) { circ(C0.x, C0.y, rC); ctx.lineWidth = px(2 + 1.5 * st.dimC); ctx.strokeStyle = col.cause; ctx.stroke(); }
+    if (rF > 0) { circ(F0.x, F0.y, rF); ctx.lineWidth = px(2 + 1.5 * st.dimF); ctx.strokeStyle = col.fait; ctx.stroke(); }
+
+    // Libellés
+    const cLab = { x: C0.x - rc * 0.5, y: C0.y - rc * 0.1 };
+    const fLab = { x: F0.x + rf * 0.42, y: F0.y + rf * 0.42 };
+    const aCl = Math.min(1, st.gC * 1.5) * (1 - 0.7 * st.dimF);
+    label('C', X(cLab.x), Y(cLab.y), col.cause, 26, col.math, true, aCl * (1 - st.sep));
+    label('C₂', X(cLab.x), Y(cLab.y), col.cause, 26, col.math, true, aCl * st.sep);
+    label('F', X(fLab.x), Y(fLab.y), col.fait, 26, col.math, true, Math.min(1, st.gF * 1.5) * (1 - 0.7 * st.dimC) * (1 - 0.5 * st.dimF * st.sep));
+    if (st.dimC > 0.05) label('C = nouvel univers', X(C0.x), Y(C0.y - rc) - px(16), col.cause, 14, col.num, false, st.dimC, true);
+    if (st.dimF > 0.05) label('F = nouvel univers', X(F0.x), Y(F0.y - rf) - px(16), col.fait, 14, col.num, false, st.dimF, true);
+    // Valeur dans la lentille
+    const ux = (F0.x - C0.x) / d, uy = (F0.y - C0.y) / d, lm = (d - rf + rc) / 2;
+    const lx = C0.x + ux * lm, ly = C0.y + uy * lm;
+    if (st.lens > 0.05) {
+      let txt = fr(joint[1]) + ' de Ω';
+      if (st.dimC > 0.5) txt = '50 % de C';
+      else if (st.dimF > 0.5 && st.sep < 0.5) txt = '≈ 41 % de F';
+      else if (st.split > 0.5 || st.sep > 0.5) txt = fr(joint[1]);
+      label(txt, X(lx), Y(ly), col.inter, 14, col.num, false, Math.min(1, st.lens), true);
+    }
+    // Morceaux de F hors de C
+    label(fr(fOut), X(cen.fout.x), Y(cen.fout.y), col.fait, 14, col.num, false, st.split * (1 - st.sep), true);
+    label(fr(joint[0]), X(cen.f1.x), Y(cen.f1.y), col.ink, 14, col.num, false, st.sep, true);
+    label(fr(joint[2]), X(cen.f3.x), Y(cen.f3.y), col.ink, 14, col.num, false, st.sep, true);
+    // Autres causes
+    const aOther = st.sep * (1 - 0.75 * st.dimF);
+    label('C₁', X(cen.c1.x), Y(cen.c1.y) - px(10), col.cause, 22, col.math, true, aOther);
+    label('P = ' + fr(P_C[0]), X(cen.c1.x), Y(cen.c1.y) + px(12), col.cause, 12, col.num, false, aOther);
+    label('C₃', X(cen.c3.x), Y(cen.c3.y) - px(10), col.cause, 22, col.math, true, aOther);
+    label('P = ' + fr(P_C[2]), X(cen.c3.x), Y(cen.c3.y) + px(12), col.cause, 12, col.num, false, aOther);
+    // Petites étiquettes de probabilité
+    const aSmall = (1 - st.dimC - st.dimF) * (1 - st.split) * (1 - st.sep);
+    if (aSmall > 0.01) {
+      label('P(C) = ' + fr(P_C[1]), X(cLab.x), Y(cLab.y) + px(26), col.cause, 13, col.num, false, st.gC * aSmall);
+      label('P(F) = ' + fr(P_F), X(fLab.x), Y(fLab.y) + px(26), col.fait, 13, col.num, false, st.gF * aSmall);
+    }
+    label('P = ' + fr(P_C[1]), X(cLab.x), Y(cLab.y) + px(26), col.cause, 12, col.num, false, st.sep * (1 - 0.75 * st.dimF));
   }
 
   function frame(now) {
