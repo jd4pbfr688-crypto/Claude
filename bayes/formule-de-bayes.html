@@ -1,0 +1,447 @@
+<title>Bayes en cercles</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&family=STIX+Two+Text:ital,wght@0,500;0,600;1,500&display=swap">
+<style>
+/* Layout: stage carré (le diagramme) à gauche, panneau formule + explication à droite ; empilés sur mobile. */
+:root {
+  --bg: #F2F4F7;
+  --surface: #FFFFFF;
+  --ink: #18202E;
+  --muted: #5A6476;
+  --line: #D6DBE4;
+  --cause: #2F5BD3;
+  --fait: #E0620F;
+  --inter: #8A2BA6;
+  --font-math: "STIX Two Text", "Cambria Math", "Times New Roman", serif;
+  --font-body: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-num: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0F131A; --surface: #171C26; --ink: #E5E9F1; --muted: #98A2B4; --line: #2A3140;
+    --cause: #7D9BFF; --fait: #FF8B4D; --inter: #D17EEA; color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0F131A; --surface: #171C26; --ink: #E5E9F1; --muted: #98A2B4; --line: #2A3140;
+  --cause: #7D9BFF; --fait: #FF8B4D; --inter: #D17EEA; color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+body {
+  background: var(--bg); color: var(--ink);
+  font-family: var(--font-body); font-size: 15px; line-height: 1.55;
+}
+.wrap { max-width: 1120px; margin: 0 auto; padding-inline: 20px; padding-block: 28px 40px; display: grid; gap: 22px; }
+
+header { display: grid; gap: 6px; }
+.eyebrow { font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: var(--fait); font-weight: 600; }
+h1 { margin: 0; font-family: var(--font-math); font-weight: 600; font-size: clamp(26px, 4vw, 36px); line-height: 1.15; text-wrap: balance; }
+.lede { margin: 0; color: var(--muted); max-width: 64ch; }
+
+.grid { display: grid; grid-template-columns: minmax(0, 1.05fr) minmax(0, 1fr); gap: 22px; align-items: start; }
+@media (max-width: 820px) { .grid { grid-template-columns: minmax(0, 1fr); } }
+
+.stage { display: grid; gap: 12px; min-width: 0; }
+.canvas-box { position: relative; width: 100%; max-width: 100%; aspect-ratio: 1 / 1; background: var(--surface); border: 1px solid var(--line); border-radius: 14px; overflow: hidden; }
+canvas { display: block; width: 100%; height: 100%; }
+
+.controls { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
+button {
+  font: inherit; font-weight: 500; color: var(--ink); background: var(--surface);
+  border: 1px solid var(--line); border-radius: 999px; padding: 7px 14px; cursor: pointer;
+}
+button:hover { border-color: var(--muted); }
+button:focus-visible { outline: 2px solid var(--cause); outline-offset: 2px; }
+button:disabled { opacity: .4; cursor: default; }
+button.primary { background: var(--ink); color: var(--surface); border-color: var(--ink); }
+.pips { display: flex; gap: 6px; margin-left: auto; }
+.pip { width: 26px; height: 26px; padding: 0; border-radius: 50%; font-family: var(--font-num); font-size: 12px; display: grid; place-items: center; }
+.pip[aria-current="step"] { background: var(--fait); border-color: var(--fait); color: #fff; }
+
+.panel { display: grid; gap: 16px; min-width: 0; }
+.formula-card { background: var(--surface); border: 1.5px solid var(--fait); border-radius: 16px; padding: 18px 16px; overflow-x: auto; }
+.formula { font-family: var(--font-math); font-size: clamp(19px, 2.3vw, 24px); display: flex; align-items: center; justify-content: center; gap: .35em; white-space: nowrap; }
+.frac { display: inline-grid; text-align: center; }
+.frac > .num { padding: 0 .25em .12em; border-bottom: 1.5px solid var(--ink); }
+.frac > .den { padding: .12em .25em 0; }
+.t { border-radius: 6px; padding: 0 .12em; transition: background-color .35s, color .35s; }
+.t.on[data-k="prior"] { background: color-mix(in srgb, var(--cause) 20%, transparent); color: var(--cause); }
+.t.on[data-k="lik"] { background: color-mix(in srgb, var(--fait) 20%, transparent); color: var(--fait); }
+.t.on[data-k="den"] { background: color-mix(in srgb, var(--fait) 14%, transparent); color: var(--fait); }
+.t.on[data-k="post"] { background: color-mix(in srgb, var(--inter) 18%, transparent); color: var(--inter); }
+.formula sub, .formula sup { font-size: .62em; }
+.sum { display: inline-flex; align-items: center; gap: .05em; }
+.sum .lim { display: inline-grid; font-size: .55em; line-height: 1; text-align: left; }
+
+.gestes { list-style: none; margin: 14px 0 0; padding: 0; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+.gestes li { border: 1px solid var(--line); border-radius: 10px; padding: 8px 10px; font-size: 13px; line-height: 1.35; color: var(--muted); transition: border-color .35s, color .35s, background-color .35s; }
+.gestes li b { display: block; font-family: var(--font-math); font-size: 16px; font-weight: 600; color: var(--ink); }
+.gestes li.on { border-color: var(--fait); color: var(--ink); background: color-mix(in srgb, var(--fait) 8%, transparent); }
+@media (max-width: 460px) { .gestes { grid-template-columns: minmax(0, 1fr); } }
+
+.step { display: grid; gap: 8px; }
+.step-n { font-family: var(--font-num); font-size: 12px; color: var(--muted); letter-spacing: .04em; }
+.step h2 { margin: 0; font-family: var(--font-math); font-weight: 600; font-size: 22px; line-height: 1.2; text-wrap: balance; }
+.step p { margin: 0; max-width: 62ch; }
+.m { font-family: var(--font-math); font-style: italic; font-size: 1.08em; }
+.calc { font-family: var(--font-num); font-size: 14px; background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; overflow-x: auto; font-variant-numeric: tabular-nums; }
+.calc table { border-collapse: collapse; width: 100%; }
+.calc th, .calc td { padding: 3px 8px; text-align: right; white-space: nowrap; }
+.calc th { font-family: var(--font-body); font-weight: 500; font-size: 12px; color: var(--muted); }
+.calc td:first-child, .calc th:first-child { text-align: left; }
+.calc tr.hi td { color: var(--inter); font-weight: 500; }
+.calc tfoot td { border-top: 1px solid var(--line); }
+.c-cause { color: var(--cause); } .c-fait { color: var(--fait); } .c-inter { color: var(--inter); }
+
+.note { font-size: 13px; color: var(--muted); max-width: 70ch; margin: 0; }
+</style>
+
+<div class="wrap">
+  <header>
+    <div class="eyebrow">Formule de Bayes · version visuelle</div>
+    <h1>Changer d'univers : de P(F | C) à P(C | F)</h1>
+    <p class="lede">Une probabilité, c'est une part d'aire. Conditionner, c'est choisir un nouveau cercle comme univers. Bayes, c'est passer d'un univers à l'autre en repassant par Ω.</p>
+  </header>
+
+  <div class="grid">
+    <section class="stage" aria-label="Animation">
+      <div class="canvas-box"><canvas id="cv" role="img" aria-label="Diagramme de l'univers Ω, de la cause C et du fait F"></canvas></div>
+      <div class="controls">
+        <button id="prev" type="button">← Précédent</button>
+        <button id="next" type="button" class="primary">Suivant →</button>
+        <button id="play" type="button" aria-pressed="false">▶ Lecture</button>
+        <div class="pips" id="pips" role="group" aria-label="Étapes"></div>
+      </div>
+    </section>
+
+    <section class="panel">
+      <div class="formula-card">
+        <div class="formula" aria-label="P de C i sachant F j égale P de F j sachant C i fois P de C i, divisé par la somme sur k de P de F j sachant C k fois P de C k">
+          <span class="t" data-k="post">P(C<sub>i</sub> | F<sub>j</sub>)</span>
+          <span>=</span>
+          <span class="frac">
+            <span class="num"><span class="t" data-k="lik">P(F<sub>j</sub> | C<sub>i</sub>)</span><span class="t" data-k="prior">P(C<sub>i</sub>)</span></span>
+            <span class="den t" data-k="den"><span class="sum">∑<span class="lim"><span>K</span><span>k=1</span></span></span> P(F<sub>j</sub> | C<sub>k</sub>) P(C<sub>k</sub>)</span>
+          </span>
+        </div>
+        <ol class="gestes" id="gestes">
+          <li data-g="1"><b>mesurer dans C</b>C est l'univers : on obtient P(F | C)</li>
+          <li data-g="2"><b>× P(C)</b>on revient dans Ω : P(F ∩ C)</li>
+          <li data-g="3"><b>÷ P(F)</b>F devient l'univers : P(C | F)</li>
+        </ol>
+      </div>
+
+      <article class="step" aria-live="polite">
+        <div class="step-n" id="stepN"></div>
+        <h2 id="stepT"></h2>
+        <p id="stepP"></p>
+        <div class="calc" id="stepC"></div>
+      </article>
+    </section>
+  </div>
+
+  <p class="note">Les chiffres sont un exemple : trois causes de probabilités 0,50 / 0,30 / 0,20, et le fait F se produit sous chacune avec 0,20 / 0,50 / 0,60. Les aires sont exactes : un cercle de probabilité 0,30 a 30 % de l'aire de Ω. Aux étapes 1 à 6, la cause C est la cause C₂ de la fin.</p>
+</div>
+
+<script>
+(() => {
+  // ---------- Données ----------
+  const P_C = [0.5, 0.3, 0.2];        // P(C_k)
+  const P_FgC = [0.2, 0.5, 0.6];      // P(F | C_k)
+  const joint = P_C.map((p, k) => p * P_FgC[k]); // P(F ∩ C_k)
+  const P_F = joint.reduce((a, b) => a + b, 0); // 0,37
+  const fr = (x, n = 2) => x.toFixed(n).replace('.', ',');
+
+  // Scène A : Ω rayon 1, C = C₂ (aire 0,30), F (aire 0,37), lentille F∩C = 0,15. Aires exactes.
+  const rc = Math.sqrt(P_C[1]), rf = Math.sqrt(P_F);
+  const lens = (d, a, b) => a*a*Math.acos((d*d+a*a-b*b)/(2*d*a)) + b*b*Math.acos((d*d+b*b-a*a)/(2*d*b))
+    - 0.5*Math.sqrt((-d+a+b)*(d+a-b)*(d-a+b)*(d+a+b));
+  let lo = Math.abs(rc - rf) + 1e-9, hi = rc + rf - 1e-9;
+  for (let i = 0; i < 60; i++) { const m = (lo + hi) / 2; if (lens(m, rc, rf) > joint[1] * Math.PI) lo = m; else hi = m; }
+  const d = lo;
+  const maxA = 1 - rc - 0.03, maxB = 1 - rf - 0.03;
+  const a = d * maxA / (maxA + maxB), b = d - a;
+  const tilt = -0.12; // légère inclinaison pour éviter la symétrie plate
+  const C0 = { x: -a * Math.cos(tilt), y: -a * Math.sin(tilt) };
+  const F0 = { x: b * Math.cos(tilt), y: b * Math.sin(tilt) };
+
+  // Scène B : Ω découpé en secteurs (aire ∝ P(C_k)), F ∩ C_k = secteur de rayon √P(F|C_k).
+  const start = -Math.PI / 2;
+  const sectors = []; { let a0 = start; P_C.forEach((p, k) => { const a1 = a0 + p * 2 * Math.PI; sectors.push({ a0, a1, r: Math.sqrt(P_FgC[k]) }); a0 = a1; }); }
+
+  // ---------- Étapes ----------
+  const base = { cx: 0, cy: 0, s: 1, aA: 1, aB: 0, om: 1, gC: 0, gF: 0, lens: 0, dimC: 0, dimF: 0, dimFB: 0, hi2: 0 };
+  const S = (o) => Object.assign({}, base, o);
+  const sub = (s) => s.replace(/_(\w)/g, '<sub>$1</sub>');
+
+  const steps = [
+    { t: "L'univers Ω",
+      p: `Le grand cercle, c'est tout ce qui peut arriver. Son aire vaut 1. Une probabilité, c'est la part de cette aire qu'occupe un événement.`,
+      c: `<span>P(Ω) = 1</span>`, hl: [], g: [],
+      st: S({}) },
+    { t: "La cause C : un cercle dans Ω",
+      p: `<span class="m">C</span> occupe 30 % de l'aire de Ω. C'est la probabilité « a priori » de la cause, avant de savoir quoi que ce soit sur le fait.`,
+      c: `<span class="c-cause">P(C) = ${fr(P_C[1])}</span>`, hl: ['prior'], g: [],
+      st: S({ gC: 1 }) },
+    { t: "Le fait F chevauche C",
+      p: `<span class="m">F</span> occupe 37 % de Ω. La zone violette, <span class="m">F ∩ C</span>, contient les cas où la cause <b>et</b> le fait se produisent : 15 % de Ω.`,
+      c: `<span class="c-fait">P(F) = ${fr(P_F)}</span> · <span class="c-inter">P(F ∩ C) = ${fr(joint[1])}</span>`, hl: [], g: [],
+      st: S({ gC: 1, gF: 1, lens: 1 }) },
+    { t: "Sachant C : C devient l'univers",
+      p: `« Sachant <span class="m">C</span> », on oublie tout ce qui est hors de <span class="m">C</span>. On agrandit <span class="m">C</span> à la taille de Ω et on mesure <span class="m">F</span> à l'intérieur : la moitié de <span class="m">C</span>.`,
+      c: `<span class="c-fait">P(F | C)</span> = P(F ∩ C) / P(C) = ${fr(joint[1])} / ${fr(P_C[1])} = <span class="c-fait">${fr(P_FgC[1])}</span>`, hl: ['lik'], g: [1],
+      st: S({ gC: 1, gF: 1, lens: 1, cx: C0.x, cy: C0.y, s: 1 / rc, dimC: 1, om: 0.25 }) },
+    { t: "× P(C) : retour à l'échelle de Ω",
+      p: `« La moitié de <span class="m">C</span> », c'est beaucoup ou peu ? Ça dépend de la taille de <span class="m">C</span>. Multiplier par P(C) dé-zoome : la mesure faite dans <span class="m">C</span> redevient une part de Ω.`,
+      c: `<span class="c-inter">P(F ∩ C)</span> = <span class="c-fait">P(F | C)</span> × <span class="c-cause">P(C)</span> = ${fr(P_FgC[1])} × ${fr(P_C[1])} = <span class="c-inter">${fr(joint[1])}</span>`, hl: ['lik', 'prior'], g: [1, 2],
+      st: S({ gC: 1, gF: 1, lens: 1.6 }) },
+    { t: "÷ P(F) : F devient l'univers",
+      p: `Maintenant on sait que <span class="m">F</span> s'est produit. C'est <span class="m">F</span> qu'on agrandit à la taille de Ω, et on regarde quelle part de <span class="m">F</span> tombe dans <span class="m">C</span>. Diviser par P(F), c'est ce changement d'univers.`,
+      c: `<span class="c-inter">P(C | F)</span> = P(F ∩ C) / <span class="c-fait">P(F)</span> = ${fr(joint[1])} / ${fr(P_F)} ≈ <span class="c-inter">${fr(joint[1] / P_F, 3)}</span>`, hl: ['post', 'lik', 'prior', 'den'], g: [1, 2, 3],
+      st: S({ gC: 1, gF: 1, lens: 1.6, cx: F0.x, cy: F0.y, s: 1 / rf, dimF: 1, om: 0.25 }) },
+    { t: "Le dénominateur : F, morceau par morceau",
+      p: `En pratique on ne connaît pas P(F) directement. On connaît chaque cause et la fréquence de <span class="m">F</span> sous chacune. On découpe Ω en causes ${sub('C_1, C_2, C_3')} qui ne se chevauchent pas et couvrent tout Ω : <span class="m">F</span> est la somme de ses morceaux. C'est la formule des probabilités totales.`,
+      c: `<table><thead><tr><th>cause</th><th>P(C<sub>k</sub>)</th><th>P(F | C<sub>k</sub>)</th><th>produit</th></tr></thead><tbody>${
+          P_C.map((p, k) => `<tr><td>C<sub>${k + 1}</sub></td><td class="c-cause">${fr(p)}</td><td class="c-fait">${fr(P_FgC[k])}</td><td>${fr(joint[k])}</td></tr>`).join('')
+        }</tbody><tfoot><tr><td colspan="3">∑ = P(F)</td><td class="c-fait">${fr(P_F)}</td></tr></tfoot></table>`,
+      hl: ['den'], g: [3],
+      st: S({ aA: 0, aB: 1 }) },
+    { t: "La formule complète",
+      p: `On ne garde que <span class="m">F</span> (le reste est grisé). La probabilité de la cause ${sub('C_2')} sachant <span class="m">F</span>, c'est son morceau de <span class="m">F</span> divisé par tous les morceaux de <span class="m">F</span>. Même résultat qu'à l'étape 6.`,
+      c: `<span class="c-inter">P(C<sub>2</sub> | F)</span> = <span class="c-inter">${fr(joint[1])}</span> / (${fr(joint[0])} + <span class="c-inter">${fr(joint[1])}</span> + ${fr(joint[2])}) = ${fr(joint[1])} / ${fr(P_F)} ≈ <span class="c-inter">${fr(joint[1] / P_F, 3)}</span>`,
+      hl: ['post', 'lik', 'prior', 'den'], g: [1, 2, 3],
+      st: S({ aA: 0, aB: 1, dimFB: 1, hi2: 1, s: 1.12 }) },
+  ];
+
+  // ---------- Couleurs ----------
+  let col = {};
+  const readColors = () => {
+    const cs = getComputedStyle(document.documentElement);
+    ['bg', 'surface', 'ink', 'muted', 'line', 'cause', 'fait', 'inter'].forEach(k => col[k] = cs.getPropertyValue('--' + k).trim());
+    col.num = cs.getPropertyValue('--font-num').trim();
+    col.math = cs.getPropertyValue('--font-math').trim();
+  };
+  const rgba = (hex, al) => {
+    const h = hex.replace('#', '');
+    const n = parseInt(h.length === 3 ? h.split('').map(c => c + c).join('') : h, 16);
+    return `rgba(${(n >> 16) & 255},${(n >> 8) & 255},${n & 255},${Math.max(0, Math.min(1, al))})`;
+  };
+
+  // ---------- Canvas ----------
+  const cv = document.getElementById('cv');
+  const ctx = cv.getContext('2d');
+  let W = 0, H = 0, dpr = 1;
+  const resize = () => {
+    const r = cv.getBoundingClientRect();
+    dpr = window.devicePixelRatio || 1;
+    W = Math.max(1, Math.round(r.width * dpr)); H = Math.max(1, Math.round(r.height * dpr));
+    cv.width = W; cv.height = H; draw();
+  };
+
+  let cur = Object.assign({}, steps[0].st), from = cur, to = cur, t0 = 0, idx = 0, raf = 0;
+  const reduce = matchMedia('(prefers-reduced-motion: reduce)');
+  const DUR = 1100;
+  const ease = (t) => t < .5 ? 4*t*t*t : 1 - Math.pow(-2*t + 2, 3) / 2;
+
+  // Le zoom s'interpole en échelle logarithmique ; le centre suit pour que le mouvement paraisse naturel.
+  const lerpState = (A, B, t) => {
+    const o = {};
+    for (const k in B) o[k] = A[k] + (B[k] - A[k]) * t;
+    o.s = Math.exp(Math.log(A.s) + (Math.log(B.s) - Math.log(A.s)) * t);
+    return o;
+  };
+
+  function draw() {
+    const st = cur;
+    const k0 = Math.min(W, H) / 2 * 0.84;
+    const k = k0 * st.s;
+    const X = (x) => W / 2 + (x - st.cx) * k;
+    const Y = (y) => H / 2 + (y - st.cy) * k;
+    const circ = (x, y, r) => { ctx.beginPath(); ctx.arc(X(x), Y(y), Math.max(0, r * k), 0, Math.PI * 2); };
+    const px = (n) => n * dpr;
+
+    ctx.clearRect(0, 0, W, H);
+    ctx.fillStyle = col.surface; ctx.fillRect(0, 0, W, H);
+
+    const label = (txt, x, y, color, size = 17, font = col.math, italic = true, alpha = 1, bg = false) => {
+      if (alpha <= 0.01) return;
+      ctx.save(); ctx.globalAlpha = alpha;
+      ctx.font = `${italic ? 'italic ' : ''}500 ${px(size)}px ${font}`;
+      ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      if (bg) {
+        const w = ctx.measureText(txt).width + px(12), h = px(size + 8);
+        ctx.fillStyle = rgba(col.surface, 0.88);
+        ctx.beginPath(); ctx.roundRect(x - w / 2, y - h / 2, w, h, px(6)); ctx.fill();
+      }
+      ctx.fillStyle = color; ctx.fillText(txt, x, y); ctx.restore();
+    };
+
+    // Ω (commun aux deux scènes)
+    ctx.save(); ctx.globalAlpha = st.om;
+    circ(0, 0, 1); ctx.fillStyle = rgba(col.ink, 0.035); ctx.fill();
+    ctx.lineWidth = px(2); ctx.strokeStyle = col.ink; ctx.stroke();
+    ctx.restore();
+    label('Ω', X(-0.8), Y(-0.8), col.ink, 24, col.math, false, st.om);
+
+    // ----- Scène A : cercles -----
+    if (st.aA > 0.01) {
+      ctx.save(); ctx.globalAlpha = st.aA;
+      const rC = rc * st.gC, rF = rf * st.gF;
+      if (rC > 0) { circ(C0.x, C0.y, rC); ctx.fillStyle = rgba(col.cause, 0.16); ctx.fill(); }
+      if (rF > 0) { circ(F0.x, F0.y, rF); ctx.fillStyle = rgba(col.fait, 0.16); ctx.fill(); }
+      if (rC > 0 && rF > 0 && st.lens > 0) {
+        ctx.save(); circ(C0.x, C0.y, rC); ctx.clip();
+        circ(F0.x, F0.y, rF); ctx.fillStyle = rgba(col.inter, 0.32 * st.lens); ctx.fill(); ctx.restore();
+      }
+      // Assombrir ce qui n'est plus dans l'univers
+      const dimOut = (x, y, r, amt) => {
+        if (amt <= 0.01) return;
+        ctx.save(); ctx.beginPath(); ctx.rect(0, 0, W, H); ctx.arc(X(x), Y(y), r * k, 0, Math.PI * 2, true);
+        ctx.fillStyle = rgba(col.surface, 0.86 * amt); ctx.fill('evenodd'); ctx.restore();
+      };
+      dimOut(C0.x, C0.y, rc, st.dimC);
+      dimOut(F0.x, F0.y, rf, st.dimF);
+      if (rC > 0) { circ(C0.x, C0.y, rC); ctx.lineWidth = px(2 + 1.5 * st.dimC); ctx.strokeStyle = col.cause; ctx.stroke(); }
+      if (rF > 0) { circ(F0.x, F0.y, rF); ctx.lineWidth = px(2 + 1.5 * st.dimF); ctx.strokeStyle = col.fait; ctx.stroke(); }
+      ctx.restore();
+
+      const aA = st.aA;
+      // Libellés
+      const cLab = { x: C0.x - rc * 0.5, y: C0.y - rc * 0.1 };
+      const fLab = { x: F0.x + rf * 0.5, y: F0.y + rf * 0.1 };
+      label('C', X(cLab.x), Y(cLab.y), col.cause, 26, col.math, true, aA * Math.min(1, st.gC * 1.5) * (1 - 0.7 * st.dimF));
+      label('F', X(fLab.x), Y(fLab.y), col.fait, 26, col.math, true, aA * Math.min(1, st.gF * 1.5) * (1 - 0.7 * st.dimC));
+      if (st.dimC > 0.05) label('C = nouvel univers', X(C0.x), Y(C0.y - rc) - px(16), col.cause, 14, col.num, false, aA * st.dimC, true);
+      if (st.dimF > 0.05) label('F = nouvel univers', X(F0.x), Y(F0.y - rf) - px(16), col.fait, 14, col.num, false, aA * st.dimF, true);
+      // Valeur dans la lentille
+      const ux = (F0.x - C0.x) / d, uy = (F0.y - C0.y) / d, lm = (d - rf + rc) / 2;
+      const lx = C0.x + ux * lm, ly = C0.y + uy * lm;
+      if (st.lens > 0.05) {
+        let txt = fr(joint[1]) + ' de Ω';
+        if (st.dimC > 0.5) txt = '50 % de C';
+        else if (st.dimF > 0.5) txt = '≈ 41 % de F';
+        label(txt, X(lx), Y(ly), col.inter, 14, col.num, false, aA * Math.min(1, st.lens), true);
+      }
+      // Petites étiquettes de probabilité
+      if (st.dimC < 0.3 && st.dimF < 0.3) {
+        label('P(C) = ' + fr(P_C[1]), X(C0.x - rc * 0.5), Y(cLab.y) + px(26), col.cause, 13, col.num, false, aA * st.gC * (1 - st.dimC - st.dimF));
+        label('P(F) = ' + fr(P_F), X(F0.x + rf * 0.5), Y(fLab.y) + px(26), col.fait, 13, col.num, false, aA * st.gF * (1 - st.dimC - st.dimF));
+      }
+    }
+
+    // ----- Scène B : partition -----
+    if (st.aB > 0.01) {
+      const aB = st.aB;
+      ctx.save(); ctx.globalAlpha = aB;
+      const cx0 = X(0), cy0 = Y(0);
+      const shades = [0.10, 0.20, 0.30];
+      sectors.forEach((s, i) => {
+        ctx.beginPath(); ctx.moveTo(cx0, cy0); ctx.arc(cx0, cy0, k, s.a0, s.a1); ctx.closePath();
+        ctx.fillStyle = rgba(col.cause, shades[i]); ctx.fill();
+      });
+      sectors.forEach((s, i) => {
+        ctx.beginPath(); ctx.moveTo(cx0, cy0); ctx.arc(cx0, cy0, s.r * k, s.a0, s.a1); ctx.closePath();
+        const isHi = i === 1;
+        ctx.fillStyle = rgba(col.fait, 0.42 - (isHi ? 0.3 * st.hi2 : 0)); ctx.fill();
+        if (isHi && st.hi2 > 0) { ctx.fillStyle = rgba(col.inter, 0.55 * st.hi2); ctx.fill(); }
+      });
+      // Contour de F (fleur)
+      const flower = () => {
+        ctx.beginPath();
+        sectors.forEach((s, i) => {
+          const sx = cx0 + Math.cos(s.a0) * s.r * k, sy = cy0 + Math.sin(s.a0) * s.r * k;
+          if (i === 0) ctx.moveTo(sx, sy); else ctx.lineTo(sx, sy);
+          ctx.arc(cx0, cy0, s.r * k, s.a0, s.a1);
+        });
+        ctx.closePath();
+      };
+      // Grisé hors de F
+      if (st.dimFB > 0.01) {
+        ctx.save(); ctx.beginPath(); ctx.rect(0, 0, W, H);
+        sectors.forEach((s, i) => {
+          const sx = cx0 + Math.cos(s.a0) * s.r * k, sy = cy0 + Math.sin(s.a0) * s.r * k;
+          if (i === 0) ctx.moveTo(sx, sy); else ctx.lineTo(sx, sy);
+          ctx.arc(cx0, cy0, s.r * k, s.a0, s.a1);
+        });
+        ctx.closePath();
+        ctx.fillStyle = rgba(col.surface, 0.8 * st.dimFB); ctx.fill('evenodd'); ctx.restore();
+      }
+      // Frontières entre causes
+      ctx.lineWidth = px(1.5); ctx.strokeStyle = rgba(col.ink, 0.55 * (1 - 0.6 * st.dimFB));
+      sectors.forEach(s => { ctx.beginPath(); ctx.moveTo(cx0, cy0); ctx.lineTo(cx0 + Math.cos(s.a0) * k, cy0 + Math.sin(s.a0) * k); ctx.stroke(); });
+      flower(); ctx.lineWidth = px(2.5); ctx.strokeStyle = col.fait; ctx.stroke();
+      ctx.restore();
+
+      sectors.forEach((s, i) => {
+        const m = (s.a0 + s.a1) / 2;
+        const ox = Math.cos(m), oy = Math.sin(m);
+        const fadeC = 1 - 0.75 * st.dimFB;
+        label(`C${['₁', '₂', '₃'][i]}`, X(ox * 0.86), Y(oy * 0.86) - px(9), col.cause, 21, col.math, true, aB * fadeC);
+        label(fr(P_C[i]), X(ox * 0.86), Y(oy * 0.86) + px(12), col.cause, 12, col.num, false, aB * fadeC);
+        const hi = i === 1 ? st.hi2 : 0;
+        label(fr(joint[i]), X(ox * s.r * 0.58), Y(oy * s.r * 0.58), hi > 0.5 ? col.inter : col.ink, 14, col.num, false, aB, true);
+      });
+      label('F', X(0.38), Y(-0.38), col.fait, 24, col.math, true, aB);
+    }
+  }
+
+  function frame(now) {
+    const t = reduce.matches ? 1 : Math.min(1, (now - t0) / DUR);
+    cur = lerpState(from, to, ease(t));
+    draw();
+    if (t < 1) raf = requestAnimationFrame(frame); else raf = 0;
+  }
+
+  // ---------- UI ----------
+  const $ = (id) => document.getElementById(id);
+  const pips = $('pips');
+  steps.forEach((_, i) => {
+    const b = document.createElement('button');
+    b.type = 'button'; b.className = 'pip'; b.textContent = i + 1;
+    b.setAttribute('aria-label', `Étape ${i + 1}`);
+    b.addEventListener('click', () => { stopPlay(); go(i); });
+    pips.appendChild(b);
+  });
+
+  function go(i) {
+    idx = Math.max(0, Math.min(steps.length - 1, i));
+    const s = steps[idx];
+    $('stepN').textContent = `Étape ${idx + 1} / ${steps.length}`;
+    $('stepT').textContent = s.t;
+    $('stepP').innerHTML = s.p;
+    $('stepC').innerHTML = s.c;
+    document.querySelectorAll('.formula .t').forEach(el => el.classList.toggle('on', s.hl.includes(el.dataset.k)));
+    document.querySelectorAll('#gestes li').forEach(el => el.classList.toggle('on', s.g.includes(+el.dataset.g)));
+    [...pips.children].forEach((b, j) => j === idx ? b.setAttribute('aria-current', 'step') : b.removeAttribute('aria-current'));
+    $('prev').disabled = idx === 0;
+    $('next').disabled = idx === steps.length - 1;
+    from = cur; to = s.st; t0 = performance.now();
+    if (!raf) raf = requestAnimationFrame(frame);
+  }
+
+  let timer = 0;
+  const stopPlay = () => { clearInterval(timer); timer = 0; $('play').textContent = '▶ Lecture'; $('play').setAttribute('aria-pressed', 'false'); };
+  $('play').addEventListener('click', () => {
+    if (timer) return stopPlay();
+    if (idx === steps.length - 1) go(0);
+    $('play').textContent = '❚❚ Pause'; $('play').setAttribute('aria-pressed', 'true');
+    timer = setInterval(() => { if (idx >= steps.length - 1) return stopPlay(); go(idx + 1); }, 5200);
+  });
+  $('prev').addEventListener('click', () => { stopPlay(); go(idx - 1); });
+  $('next').addEventListener('click', () => { stopPlay(); go(idx + 1); });
+  document.addEventListener('keydown', (e) => {
+    if (e.target.closest('input, textarea')) return;
+    if (e.key === 'ArrowRight') { stopPlay(); go(idx + 1); }
+    if (e.key === 'ArrowLeft') { stopPlay(); go(idx - 1); }
+  });
+
+  readColors();
+  new MutationObserver(() => { readColors(); draw(); }).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
+  matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => { readColors(); draw(); });
+  new ResizeObserver(resize).observe(cv);
+  go(0);
+  if (document.fonts) document.fonts.ready.then(draw);
+})();
+</script>
