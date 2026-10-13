@@ -1,363 +1,200 @@
-<title>Carré de l'indépendance</title>
+<title>Cercles de l'indépendance</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&family=STIX+Two+Text:ital,wght@0,400;0,600;1,400;1,600&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400..700;1,9..144,400..700&family=JetBrains+Mono:wght@400..700&display=swap">
 <style>
-  /* Layout : en-tête + réglages, puis trois carrés unité côte à côte (une colonne sur téléphone), conclusion dessous. */
+  /* Layout : en-tête, puis trois diagrammes de Venn côte à côte (une colonne sur téléphone), encadré de conclusion.
+     Un seul thème, volontairement : on reprend la palette crème / rouge / jaune du cours. */
   :root {
-    --bg: #eef1f4;
-    --surface: #ffffff;
-    --fg: #18202b;
-    --muted: #5b6676;
-    --line: #c9d0d9;
-    --a: #2563c9;
-    --a-soft: rgba(37, 99, 201, 0.18);
-    --b: #d97a0b;
-    --b-soft: rgba(217, 122, 11, 0.22);
-    --inter: #4a2f9a;
-    --inter-fg: #ffffff;
-    --hatch: #b4bcc7;
-    --font-math: "STIX Two Text", "Cambria Math", "Times New Roman", serif;
-    --font-body: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
-    --font-data: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+    --paper: #FFFDEB;
+    --ink: #1A1612;
+    --text: #3D332B;
+    --soft: #6B5A48;
+    --a: #C81414;
+    --omega: #8C0000;
+    --lens: #FFC917;
+    --callout: #FFF6D2;
+    --callout-line: #F0DE9A;
+    --serif: "Fraunces", Georgia, "Times New Roman", serif;
+    --mono: "JetBrains Mono", "Courier New", ui-monospace, monospace;
+    color-scheme: light;
   }
-  @media (prefers-color-scheme: dark) {
-    :root:not([data-theme="light"]) {
-      --bg: #10141a; --surface: #181e27; --fg: #e5e9ef; --muted: #98a3b3; --line: #2e3744;
-      --a: #6ea0f2; --a-soft: rgba(110, 160, 242, 0.22);
-      --b: #f0a848; --b-soft: rgba(240, 168, 72, 0.22);
-      --inter: #a68cf2; --inter-fg: #10141a; --hatch: #3a4452;
-      color-scheme: dark;
-    }
-  }
-  :root[data-theme="dark"] {
-    --bg: #10141a; --surface: #181e27; --fg: #e5e9ef; --muted: #98a3b3; --line: #2e3744;
-    --a: #6ea0f2; --a-soft: rgba(110, 160, 242, 0.22);
-    --b: #f0a848; --b-soft: rgba(240, 168, 72, 0.22);
-    --inter: #a68cf2; --inter-fg: #10141a; --hatch: #3a4452;
-    color-scheme: dark;
-  }
-
   * { box-sizing: border-box; }
-  body {
-    background: var(--bg);
-    color: var(--fg);
-    font-family: var(--font-body);
-    font-size: 15px;
-    line-height: 1.55;
-  }
-  .wrap {
-    max-width: 1120px;
-    margin: 0 auto;
-    padding-inline: 20px;
-    padding-block: 36px 56px;
-    display: grid;
-    gap: 28px;
-  }
-  .m { font-family: var(--font-math); font-style: italic; font-size: 1.08em; }
-  .m-up { font-family: var(--font-math); font-size: 1.08em; }
-  .ca { color: var(--a); font-weight: 600; }
-  .cb { color: var(--b); font-weight: 600; }
-  .ci { color: var(--inter); font-weight: 600; }
+  body { background: var(--paper); color: var(--text); font-family: var(--serif); font-size: 17px; line-height: 1.5; }
+  .wrap { max-width: 1180px; margin: 0 auto; padding-inline: 20px; padding-block: 40px 56px; display: grid; gap: 32px; }
 
-  header { display: grid; gap: 10px; max-width: 68ch; }
-  .eyebrow {
-    font-size: 12px; letter-spacing: 0.08em; text-transform: uppercase;
-    color: var(--muted); font-weight: 500;
-  }
-  h1 {
-    font-family: var(--font-math); font-weight: 600; font-size: clamp(28px, 4.2vw, 40px);
-    line-height: 1.15; margin: 0; text-wrap: balance;
-  }
-  header p { margin: 0; color: var(--muted); }
+  header { display: grid; gap: 10px; max-width: 70ch; }
+  .eyebrow { font-family: var(--mono); font-size: 13px; letter-spacing: 0.18em; text-transform: uppercase; color: var(--omega); margin: 0; }
+  h1 { font-weight: 600; font-size: clamp(30px, 4.6vw, 48px); line-height: 1.1; color: var(--ink); margin: 0; text-wrap: balance; }
+  header p { margin: 0; }
+  .ca { color: var(--a); font-weight: 600; font-style: italic; }
+  .cb { color: var(--ink); font-weight: 600; font-style: italic; }
 
-  .controls {
-    display: flex; flex-wrap: wrap; gap: 14px 32px; align-items: center;
-    padding: 14px 18px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface);
-  }
-  .ctl { display: flex; align-items: center; gap: 12px; flex: 1 1 240px; min-width: 0; }
-  .ctl label { white-space: nowrap; }
-  .ctl input[type="range"] { flex: 1; min-width: 0; }
-  #pa { accent-color: var(--a); }
-  #pb { accent-color: var(--b); }
-  .ctl output { font-family: var(--font-data); font-variant-numeric: tabular-nums; min-width: 4.5ch; text-align: right; }
-  .reset {
-    font: inherit; font-size: 13px; color: var(--fg); background: transparent;
-    border: 1px solid var(--line); border-radius: 6px; padding: 6px 12px; cursor: pointer;
-  }
-  .reset:hover { border-color: var(--muted); }
-  .reset:focus-visible, input:focus-visible { outline: 2px solid var(--a); outline-offset: 2px; }
+  .panels { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 24px; }
+  figure { margin: 0; display: grid; grid-template-rows: auto auto 1fr; gap: 14px; min-width: 0; }
+  figcaption { font-family: var(--mono); font-size: 12px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--omega); display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
+  figcaption b { font-family: var(--serif); font-size: 24px; letter-spacing: 0; text-transform: none; color: var(--ink); font-weight: 600; white-space: nowrap; }
+  figure svg { width: 100%; max-width: 380px; height: auto; justify-self: center; display: block; overflow: hidden; }
+  .formula { font-family: var(--mono); font-size: 15px; font-weight: 600; color: var(--ink); text-align: center; padding-top: 12px; border-top: 2px solid var(--ink); font-variant-numeric: tabular-nums; }
+  .formula .eq { display: inline-block; background: var(--lens); padding: 2px 8px; border-radius: 6px; }
 
-  .panels {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-    gap: 20px;
-  }
-  .panel {
-    background: var(--surface);
-    border: 1px solid var(--line);
-    border-radius: 12px;
-    padding: 18px 18px 20px;
-    display: grid;
-    grid-template-rows: auto auto 1fr;
-    gap: 14px;
-    min-width: 0;
-  }
-  .panel h2 {
-    margin: 0; font-size: 13px; font-weight: 500; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted);
-    display: flex; justify-content: space-between; align-items: baseline; gap: 8px;
-  }
-  .panel h2 .m, .panel h2 .m-up { text-transform: none; letter-spacing: 0; color: var(--fg); font-size: 22px; }
-  .panel svg { width: 100%; max-width: 340px; height: auto; justify-self: center; display: block; }
-  .panel .read { display: grid; gap: 12px; align-content: start; }
-  .formula {
-    font-family: var(--font-math); font-size: 17px; text-align: center;
-    padding: 8px 6px; border-block: 1px solid var(--line); font-variant-numeric: tabular-nums;
-  }
-  .formula i { font-style: italic; }
-  .note { margin: 0; font-size: 14px; color: var(--muted); }
+  .bottom { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 24px; align-items: start; }
+  .callout { background: var(--callout); border: 2px solid var(--callout-line); border-radius: 16px; padding: 22px 24px; display: grid; gap: 10px; }
+  .callout h2 { margin: 0; font-size: 24px; font-weight: 600; color: var(--ink); }
+  .callout p { margin: 0; max-width: 62ch; }
+  .callout .law { font-family: var(--mono); font-size: 14px; font-weight: 600; color: var(--ink); }
+  .contrast { display: grid; gap: 10px; padding: 22px 4px; }
+  .contrast h2 { margin: 0; font-size: 20px; font-weight: 600; color: var(--ink); }
+  .contrast p { margin: 0; color: var(--soft); max-width: 62ch; }
+  .replay { justify-self: start; font-family: var(--mono); font-size: 13px; color: var(--ink); background: transparent; border: 2px solid var(--ink); border-radius: 999px; padding: 6px 16px; cursor: pointer; }
+  .replay:hover { background: var(--ink); color: var(--paper); }
+  .replay:focus-visible { outline: 3px solid var(--lens); outline-offset: 2px; }
 
-  .bars { display: grid; gap: 8px; }
-  .bar { display: grid; grid-template-columns: 9.5em 1fr 3.6em; gap: 10px; align-items: center; font-size: 13px; }
-  .bar .lab { color: var(--muted); }
-  .bar .track { height: 12px; border-radius: 3px; background: var(--bg); border: 1px solid var(--line); overflow: hidden; }
-  .bar .fill { height: 100%; transition: width 0.25s ease; }
-  .bar .val { font-family: var(--font-data); font-variant-numeric: tabular-nums; text-align: right; }
-  .fill.a { background: var(--a); } .fill.b { background: var(--b); } .fill.i { background: var(--inter); }
-
-  .verdict {
-    display: inline-flex; align-items: center; gap: 6px; justify-self: start;
-    font-size: 12px; font-weight: 500; padding: 3px 10px; border-radius: 999px;
-    border: 1px solid var(--inter); color: var(--inter);
-  }
-
-  .takeaway {
-    display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 20px 40px;
-    padding-top: 8px; border-top: 1px solid var(--line);
-  }
-  .takeaway h3 { margin: 0 0 6px; font-family: var(--font-math); font-weight: 600; font-size: 20px; }
-  .takeaway p { margin: 0; max-width: 62ch; }
-
-  /* SVG */
-  .omega { fill: var(--surface); stroke: var(--fg); stroke-width: 1.5; }
-  .a-soft { fill: var(--a-soft); }
-  .b-soft { fill: var(--b-soft); }
-  .inter { fill: var(--inter); transition: all 0.25s ease; }
-  .out { fill: url(#hatch); }
-  .uni-a { fill: var(--surface); stroke: var(--a); stroke-width: 3; }
-  .uni-b { fill: var(--surface); stroke: var(--b); stroke-width: 3; }
-  .edge-a { fill: none; stroke: var(--a); stroke-width: 1.5; stroke-dasharray: 4 3; }
-  .edge-b { fill: none; stroke: var(--b); stroke-width: 1.5; stroke-dasharray: 4 3; }
-  .hatch-line { stroke: var(--hatch); stroke-width: 1.4; }
-  .t { font-family: var(--font-math); font-style: italic; font-size: 16px; fill: var(--fg); }
-  .t-a { fill: var(--a); font-weight: 600; }
-  .t-b { fill: var(--b); font-weight: 600; }
-  .t-i { fill: var(--inter-fg); font-size: 14px; }
-  .t-o { fill: var(--muted); font-size: 15px; }
-  .dim { stroke: var(--muted); stroke-width: 1; fill: none; }
-  .dim-a { stroke: var(--a); } .dim-b { stroke: var(--b); }
-  .dt { font-family: var(--font-data); font-size: 11px; fill: var(--muted); }
-  .dt-a { fill: var(--a); } .dt-b { fill: var(--b); }
-  .ghost { font-family: var(--font-body); font-size: 11px; fill: var(--muted); }
-
-  @media (max-width: 420px) {
-    .bar { grid-template-columns: 7.8em 1fr 3.4em; font-size: 12px; }
-  }
-  @media (prefers-reduced-motion: reduce) {
-    .inter, .bar .fill { transition: none; }
-  }
+  .t { font-family: var(--mono); font-weight: 700; text-anchor: middle; dominant-baseline: central; }
+  .t-serif { font-family: var(--serif); font-style: italic; font-weight: 600; text-anchor: middle; dominant-baseline: central; }
 </style>
-
-<svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false">
-  <defs>
-    <pattern id="hatch" width="7" height="7" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
-      <line class="hatch-line" x1="0" y1="0" x2="0" y2="7"></line>
-    </pattern>
-  </defs>
-</svg>
 
 <div class="wrap">
   <header>
-    <span class="eyebrow">Probabilités · événements indépendants</span>
-    <h1>Le carré de l'indépendance</h1>
-    <p>Le grand carré, c'est l'univers <span class="m-up">Ω</span> (aire 1). <span class="ca">A</span> est une bande verticale, <span class="cb">B</span> une bande horizontale. Comme elles se croisent « à angle droit », <span class="ca">A</span> occupe la même part de <span class="cb">B</span> que de <span class="m-up">Ω</span> tout entier : c'est exactement ça, l'indépendance.</p>
+    <p class="eyebrow">III · Indépendance</p>
+    <h1>A et B indépendants : 40 % partout</h1>
+    <p>Mêmes cercles que dans « Voir P(A sachant B) », mais cette fois <span class="ca">A</span> et <span class="cb">B</span> font chacun 40 % de Ω et se chevauchent sur 16 %. Les aires sont à l'échelle. Quand on zoome sur <span class="cb">B</span> ou sur <span class="ca">A</span>, la part jaune reste 40 %.</p>
   </header>
 
-  <div class="controls" role="group" aria-label="Réglages">
-    <div class="ctl">
-      <label for="pa"><span class="m">P</span>(<span class="ca m">A</span>)</label>
-      <input id="pa" type="range" min="0.1" max="0.9" step="0.05" value="0.4">
-      <output id="pa-out" for="pa">40 %</output>
-    </div>
-    <div class="ctl">
-      <label for="pb"><span class="m">P</span>(<span class="cb m">B</span>)</label>
-      <input id="pb" type="range" min="0.1" max="0.9" step="0.05" value="0.4">
-      <output id="pb-out" for="pb">40 %</output>
-    </div>
-    <button class="reset" id="reset" type="button">Revenir à 40 % / 40 %</button>
-  </div>
-
   <section class="panels">
-    <article class="panel">
-      <h2>Intersection <span class="m-up"><i>A</i> ∩ <i>B</i></span></h2>
-      <svg id="svg-inter" viewBox="0 0 300 300" role="img" aria-label="A inter B dans l'univers"></svg>
-      <div class="read">
-        <div class="formula" id="f-inter"></div>
-        <div class="bars" id="b-inter"></div>
-        <p class="note">Référence : tout le carré <span class="m-up">Ω</span>. L'aire du petit rectangle est le produit de ses côtés.</p>
-      </div>
-    </article>
-
-    <article class="panel">
-      <h2><span><i class="m">A</i> sachant <i class="m">B</i></span> <span class="m-up"><i>P</i>(<i>A</i> | <i>B</i>)</span></h2>
-      <svg id="svg-ab" viewBox="0 0 300 300" role="img" aria-label="A sachant B"></svg>
-      <div class="read">
-        <div class="formula" id="f-ab"></div>
-        <div class="bars" id="b-ab"></div>
-        <span class="verdict" id="v-ab">P(A | B) = P(A)</span>
-      </div>
-    </article>
-
-    <article class="panel">
-      <h2><span><i class="m">B</i> sachant <i class="m">A</i></span> <span class="m-up"><i>P</i>(<i>B</i> | <i>A</i>)</span></h2>
-      <svg id="svg-ba" viewBox="0 0 300 300" role="img" aria-label="B sachant A"></svg>
-      <div class="read">
-        <div class="formula" id="f-ba"></div>
-        <div class="bars" id="b-ba"></div>
-        <span class="verdict" id="v-ba">P(B | A) = P(B)</span>
-      </div>
-    </article>
+    <figure>
+      <figcaption>Dans Ω <b>A ∩ B</b></figcaption>
+      <svg id="v-inter" viewBox="0 0 1000 1000" role="img" aria-label="Univers Ω avec A et B, chacun 40 % de Ω ; l'intersection jaune fait 16 % de Ω"></svg>
+      <div class="formula">P(A ∩ B) = 0,40 × 0,40 = <span class="eq">0,16</span></div>
+    </figure>
+    <figure>
+      <figcaption>B devient l'univers <b>A sachant B</b></figcaption>
+      <svg id="v-ab" viewBox="0 0 1000 1000" role="img" aria-label="Zoom sur B : l'intersection jaune occupe 40 % de B"></svg>
+      <div class="formula">P(A | B) = 0,16 / 0,40 = <span class="eq">0,40 = P(A)</span></div>
+    </figure>
+    <figure>
+      <figcaption>A devient l'univers <b>B sachant A</b></figcaption>
+      <svg id="v-ba" viewBox="0 0 1000 1000" role="img" aria-label="Zoom sur A : l'intersection jaune occupe 40 % de A"></svg>
+      <div class="formula">P(B | A) = 0,16 / 0,40 = <span class="eq">0,40 = P(B)</span></div>
+    </figure>
   </section>
 
-  <section class="takeaway">
-    <div>
-      <h3>Ce qu'il faut voir</h3>
-      <p>Conditionner par <span class="cb">B</span>, c'est jeter tout ce qui est hors de <span class="cb">B</span> (zone hachurée) et prendre <span class="cb">B</span> comme nouvel univers. Ici, <span class="ca">A</span> coupe toujours sa bande au même endroit : il recouvre <strong id="t-pa">40 %</strong> de <span class="cb">B</span>, comme il recouvre <strong id="t-pa2">40 %</strong> de <span class="m-up">Ω</span>. Savoir que <span class="cb">B</span> est réalisé ne change rien à la probabilité de <span class="ca">A</span>, et inversement.</p>
+  <section class="bottom">
+    <div class="callout">
+      <h2>À chaque fois, 40 %</h2>
+      <p><span class="ca">A</span> occupe 40 % de Ω. Une fois qu'on sait <span class="cb">B</span>, <span class="ca">A</span> occupe encore 40 % de <span class="cb">B</span>. Savoir <span class="cb">B</span> ne change rien à la chance de <span class="ca">A</span>, et inversement : A et B sont indépendants.</p>
+      <p class="law">P(A ∩ B) = P(A) × P(B) ⇔ P(A | B) = P(A) ⇔ P(B | A) = P(B)</p>
+      <button class="replay" id="replay" type="button">Rejouer le zoom</button>
     </div>
-    <div>
-      <h3>Les trois égalités équivalentes</h3>
-      <p class="m-up" style="font-size:17px;line-height:1.9">
-        <i>P</i>(<i>A</i> ∩ <i>B</i>) = <i>P</i>(<i>A</i>) × <i>P</i>(<i>B</i>)<br>
-        ⇔ <i>P</i>(<i>A</i> | <i>B</i>) = <i>P</i>(<i>A</i>)<br>
-        ⇔ <i>P</i>(<i>B</i> | <i>A</i>) = <i>P</i>(<i>B</i>)
-      </p>
+    <div class="contrast">
+      <h2>Comparer avec l'exemple du cours</h2>
+      <p>Avec P(A) = 0,60, P(B) = 0,60 et P(A ∩ B) = 0,24, le zoom sur B donnait P(A | B) = 0,40. Avant, A valait 60 % ; après, 40 %. La part avait changé : A et B n'étaient pas indépendants. Ici, 0,16 = 0,40 × 0,40, et la part ne bouge pas.</p>
     </div>
   </section>
 </div>
 
 <script>
 (function () {
-  const S = 210, O = 56;               // côté du carré et marge dans le viewBox 300×300
-  const pct = v => Math.round(v * 100) + " %";
-  const dec = v => (Math.round(v * 10000) / 10000).toLocaleString("fr-FR");
-  const NS = "http://www.w3.org/2000/svg";
-
-  function r(x, y, w, h, cls) { return `<rect x="${x}" y="${y}" width="${w}" height="${h}" class="${cls}"/>`; }
-  function t(x, y, s, cls, extra = "") { return `<text x="${x}" y="${y}" class="${cls}" text-anchor="middle" dominant-baseline="central" ${extra}>${s}</text>`; }
-
-  // cote horizontale au-dessus du carré
-  function hdim(x1, x2, y, label, cls) {
-    return `<path class="dim ${cls}" d="M${x1},${y - 4}V${y + 4}M${x1},${y}H${x2}M${x2},${y - 4}V${y + 4}"/>` +
-           t((x1 + x2) / 2, y - 10, label, "dt " + (cls ? "dt-" + cls.slice(4) : ""));
+  const C = { ink: "#1A1612", a: "#C81414", omega: "#8C0000", lens: "#FFC917" };
+  const P = 0.4;
+  const CX = 500, CY = 520, R = 440;           // Ω : disque d'aire 1
+  const r = R * Math.sqrt(P);                   // A et B : 40 % de l'aire de Ω
+  // Écart des centres pour que la lentille fasse 40 % d'un cercle (donc 16 % de Ω) :
+  // acos(x) − x·√(1−x²) = 0,2π, avec x = demi-écart / r
+  let lo = 0, hi = 1;
+  for (let i = 0; i < 60; i++) {
+    const m = (lo + hi) / 2;
+    if (Math.acos(m) - m * Math.sqrt(1 - m * m) > Math.PI * P / 2) lo = m; else hi = m;
   }
-  // cote verticale à gauche du carré
-  function vdim(y1, y2, x, label, cls) {
-    const cy = (y1 + y2) / 2;
-    return `<path class="dim ${cls}" d="M${x - 4},${y1}H${x + 4}M${x},${y1}V${y2}M${x - 4},${y2}H${x + 4}"/>` +
-           t(x - 10, cy, label, "dt " + (cls ? "dt-" + cls.slice(4) : ""), `transform="rotate(-90 ${x - 10} ${cy})"`);
-  }
+  const half = lo * r, xa = CX - half, xb = CX + half, h = Math.sqrt(r * r - half * half);
+  const lens = `M${CX} ${CY - h} A${r} ${r} 0 0 1 ${CX} ${CY + h} A${r} ${r} 0 0 1 ${CX} ${CY - h} Z`;
 
-  function drawInter(pA, pB) {
-    const aw = pA * S, bh = pB * S;
-    return r(O, O, S, S, "omega") +
-      r(O, O, aw, S, "a-soft") +
-      r(O, O, S, bh, "b-soft") +
-      r(O, O, aw, bh, "inter") +
-      `<line x1="${O + aw}" y1="${O}" x2="${O + aw}" y2="${O + S}" class="edge-a"/>` +
-      `<line x1="${O}" y1="${O + bh}" x2="${O + S}" y2="${O + bh}" class="edge-b"/>` +
-      t(O + aw / 2, O + bh / 2, "A∩B", "t t-i") +
-      t(O + aw / 2, O + bh + (S - bh) / 2, "A", "t t-a") +
-      t(O + aw + (S - aw) / 2, O + bh / 2, "B", "t t-b") +
-      t(O + S - 12, O + S - 12, "Ω", "t t-o") +
-      hdim(O, O + aw, O - 14, "P(A) = " + pct(pA), "dim-a") +
-      hdim(O + aw, O + S, O - 14, pct(1 - pA), "") +
-      vdim(O, O + bh, O - 14, "P(B) = " + pct(pB), "dim-b") +
-      vdim(O + bh, O + S, O - 14, pct(1 - pB), "");
-  }
+  const txt = (x, y, s, size, fill, cls = "t") =>
+    `<text class="${cls}" x="${x}" y="${y}" font-size="${size}" fill="${fill}">${s}</text>`;
 
-  function drawAgivenB(pA, pB) {
-    const aw = pA * S, bh = pB * S;
-    return r(O, O, S, S, "omega") +
-      r(O, O + bh, S, S - bh, "out") +
-      r(O, O, S, bh, "uni-b") +
-      r(O, O, aw, bh, "inter") +
-      `<line x1="${O + aw}" y1="${O + bh}" x2="${O + aw}" y2="${O + S}" class="edge-a"/>` +
-      t(O + aw / 2, O + bh / 2, "A∩B", "t t-i") +
-      t(O + aw + (S - aw) / 2, O + bh / 2, "B", "t t-b") +
-      (S - bh > 40 && S - aw > 110 ? t(O + aw + (S - aw) / 2, O + bh + (S - bh) / 2, "hors de B : ignoré", "ghost") : "") +
-      hdim(O, O + aw, O - 14, pct(pA) + " de B", "dim-a") +
-      hdim(O + aw, O + S, O - 14, pct(1 - pA), "") +
-      vdim(O, O + bh, O - 14, "B = 100 %", "dim-b");
+  function base() {
+    return `
+      <circle class="om" cx="${CX}" cy="${CY}" r="${R}" fill="none" stroke="${C.omega}" stroke-width="3" stroke-dasharray="12 10"/>
+      <circle class="fillA" cx="${xa}" cy="${CY}" r="${r}" fill="${C.a}" fill-opacity="0.16"/>
+      <circle class="fillB" cx="${xb}" cy="${CY}" r="${r}" fill="${C.ink}" fill-opacity="0.08"/>
+      <path d="${lens}" fill="${C.lens}"/>
+      <circle class="lineA" cx="${xa}" cy="${CY}" r="${r}" fill="none" stroke="${C.a}" stroke-width="5"/>
+      <circle class="lineB" cx="${xb}" cy="${CY}" r="${r}" fill="none" stroke="${C.ink}" stroke-width="5"/>`;
   }
-
-  function drawBgivenA(pA, pB) {
-    const aw = pA * S, bh = pB * S;
-    return r(O, O, S, S, "omega") +
-      r(O + aw, O, S - aw, S, "out") +
-      r(O, O, aw, S, "uni-a") +
-      r(O, O, aw, bh, "inter") +
-      `<line x1="${O + aw}" y1="${O + bh}" x2="${O + S}" y2="${O + bh}" class="edge-b"/>` +
-      t(O + aw / 2, O + bh / 2, "A∩B", "t t-i") +
-      t(O + aw / 2, O + bh + (S - bh) / 2, "A", "t t-a") +
-      (S - aw > 40 && S - bh > 110 ? t(O + aw + (S - aw) / 2, O + bh + (S - bh) / 2, "hors de A : ignoré", "ghost",
-          `transform="rotate(-90 ${O + aw + (S - aw) / 2} ${O + bh + (S - bh) / 2})"`) : "") +
-      vdim(O, O + bh, O - 14, pct(pB) + " de A", "dim-b") +
-      vdim(O + bh, O + S, O - 14, pct(1 - pB), "") +
-      hdim(O, O + aw, O - 14, "A = 100 %", "dim-a");
+  function fullLabels() {
+    return `<g class="lab-full">
+      ${txt(CX, 46, "Ω · 100 %", 34, C.omega)}
+      ${txt(xa - r * 0.45, CY, "A", 72, C.a, "t-serif")}
+      ${txt(xb + r * 0.45, CY, "B", 72, C.ink, "t-serif")}
+      ${txt(xa - 30, CY + r + 52, "A · 40 %", 32, C.a)}
+      ${txt(xb + 30, CY + r + 52, "B · 40 %", 32, C.ink)}
+      ${txt(CX, CY - 22, "16 %", 44, C.ink)}
+      ${txt(CX, CY + 26, "de Ω", 26, C.ink)}
+    </g>`;
+  }
+  // Étiquettes de l'état zoomé, en unités du viewBox final (cadré sur le nouvel univers)
+  function zoomLabels(on) {
+    const other = on === "B" ? "A" : "B";
+    const cU = on === "B" ? xb : xa;
+    const col = on === "B" ? C.ink : C.a;
+    const outX = on === "B" ? (xa + r + xb + r) / 2 : (xa - r + xb - r) / 2;   // milieu de la partie « sans »
+    return `<g class="lab-zoom" opacity="0">
+      ${txt(cU, CY - r - 24, on + " = 100 %", 26, col)}
+      ${txt(CX, CY - 48, "A ∩ B", 24, C.ink)}
+      ${txt(CX, CY, "40 %", 46, C.ink)}
+      ${txt(CX, CY + 46, "de " + on, 26, C.ink)}
+      ${txt(outX, CY - 8, "60 %", 34, C.omega)}
+      ${txt(outX, CY + 32, on + " sans " + other, 22, C.omega)}
+    </g>`;
   }
 
-  function bar(label, v, cls) {
-    return `<div class="bar"><span class="lab">${label}</span>` +
-      `<span class="track"><span class="fill ${cls}" style="display:block;width:${v * 100}%"></span></span>` +
-      `<span class="val">${pct(v)}</span></div>`;
+  function build(id, on) {
+    const svg = document.getElementById(id);
+    svg.innerHTML = base() + fullLabels() + (on ? zoomLabels(on) : "");
+    return svg;
   }
 
-  const $ = id => document.getElementById(id);
-  const pa = $("pa"), pb = $("pb");
+  build("v-inter", null);
+  const views = [
+    { svg: build("v-ab", "B"), on: "B" },
+    { svg: build("v-ba", "A"), on: "A" },
+  ];
 
-  function render() {
-    const pA = +pa.value, pB = +pb.value, pI = pA * pB;
-    $("pa-out").textContent = pct(pA);
-    $("pb-out").textContent = pct(pB);
-    $("t-pa").textContent = pct(pA);
-    $("t-pa2").textContent = pct(pA);
+  const ease = x => 1 - Math.pow(1 - x, 3);
+  const lerp = (a, b, k) => a + (b - a) * k;
+  const S = 2 * r * 1.2;
 
-    $("svg-inter").innerHTML = drawInter(pA, pB);
-    $("svg-ab").innerHTML = drawAgivenB(pA, pB);
-    $("svg-ba").innerHTML = drawBgivenA(pA, pB);
-
-    $("f-inter").innerHTML = `<i>P</i>(<i>A</i> ∩ <i>B</i>) = ${dec(pA)} × ${dec(pB)} = <b>${dec(pI)}</b>`;
-    $("f-ab").innerHTML = `<i>P</i>(<i>A</i> | <i>B</i>) = ${dec(pI)} / ${dec(pB)} = <b>${dec(pI / pB)}</b>`;
-    $("f-ba").innerHTML = `<i>P</i>(<i>B</i> | <i>A</i>) = ${dec(pI)} / ${dec(pA)} = <b>${dec(pI / pA)}</b>`;
-
-    $("b-inter").innerHTML =
-      bar("A∩B dans Ω", pI, "i") +
-      bar("A dans Ω", pA, "a") +
-      bar("B dans Ω", pB, "b");
-    $("b-ab").innerHTML =
-      bar("A dans B : P(A|B)", pI / pB, "i") +
-      bar("A dans Ω : P(A)", pA, "a");
-    $("b-ba").innerHTML =
-      bar("B dans A : P(B|A)", pI / pA, "i") +
-      bar("B dans Ω : P(B)", pB, "b");
-
-    $("v-ab").textContent = `Même part : P(A | B) = P(A) = ${pct(pA)}`;
-    $("v-ba").textContent = `Même part : P(B | A) = P(B) = ${pct(pB)}`;
+  function setZoom(v, k) {
+    const cU = v.on === "B" ? xb : xa;
+    v.svg.setAttribute("viewBox", [lerp(0, cU - S / 2, k), lerp(0, CY - S / 2, k), lerp(1000, S, k), lerp(1000, S, k)].join(" "));
+    const q = s => v.svg.querySelector(s);
+    q(".om").style.opacity = 1 - k;
+    q(".lab-full").style.opacity = Math.max(0, 1 - k * 2.5);
+    q(".lab-zoom").style.opacity = Math.max(0, k * 2 - 1);
+    // ce qui sort du nouvel univers s'efface et passe en pointillés, comme dans le cours
+    const gone = v.on === "B" ? "A" : "B";
+    q(".fill" + gone).style.opacity = 1 - k;
+    const line = q(".line" + gone);
+    line.style.opacity = lerp(1, 0.55, k);
+    line.setAttribute("stroke-dasharray", k > 0.4 ? "14 12" : "none");
+    q(".line" + v.on).setAttribute("stroke-width", lerp(5, 6, k));
   }
 
-  pa.addEventListener("input", render);
-  pb.addEventListener("input", render);
-  $("reset").addEventListener("click", () => { pa.value = 0.4; pb.value = 0.4; render(); });
-  render();
+  const reduce = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  let raf = 0;
+  function play() {
+    cancelAnimationFrame(raf);
+    if (reduce) { views.forEach(v => setZoom(v, 1)); return; }
+    views.forEach(v => setZoom(v, 0));
+    const t0 = performance.now(), DELAY = 900, DUR = 1700;
+    const step = now => {
+      const k = ease(Math.max(0, Math.min(1, (now - t0 - DELAY) / DUR)));
+      views.forEach(v => setZoom(v, k));
+      if (k < 1) raf = requestAnimationFrame(step);
+    };
+    raf = requestAnimationFrame(step);
+  }
+  document.getElementById("replay").addEventListener("click", play);
+  play();
 })();
 </script>
