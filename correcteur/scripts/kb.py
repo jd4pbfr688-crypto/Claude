@@ -77,7 +77,7 @@ def sha256(p: Path) -> str:
 def pdf_pages(p: Path) -> list[str]:
     try:
         out = subprocess.run(
-            ["pdftotext", "-enc", "UTF-8", str(p), "-"],
+            ["pdftotext", "-q", "-enc", "UTF-8", str(p), "-"],
             check=True, capture_output=True,
         ).stdout.decode("utf-8", "replace")
     except FileNotFoundError:
