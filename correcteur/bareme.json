@@ -1,0 +1,17 @@
+{
+  "_commentaire": "Barème par défaut inspiré de la notation des épreuves nationales (EDN) : à adapter aux règles de ta fac.",
+  "qcm": {
+    "QRM": {
+      "mode": "discordances",
+      "options": "ABCDE",
+      "points_par_discordances": { "0": 1.0, "1": 0.5, "2": 0.2, "autre": 0.0 }
+    },
+    "QRU": { "mode": "tout_ou_rien", "options": "ABCDE" },
+    "QRP": { "mode": "tout_ou_rien", "options": "ABCDEFGHIJKL" }
+  },
+  "redactionnel": {
+    "_commentaire": "Pour QROC / questions rédactionnelles / dossiers : points par mot-clé ou élément attendu, défini question par question dans la grille de correction.",
+    "mot_cle_obligatoire_manquant": "la question plafonne à 50 % de ses points",
+    "erreur_grave_dangereuse": "0 à la question (équivalent PMZ)"
+  }
+}
