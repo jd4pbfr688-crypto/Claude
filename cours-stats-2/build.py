@@ -75,6 +75,15 @@ def main():
         "    const pad = 200, chs = [...document.querySelectorAll('.chapter')].map(c => +c.dataset.x);\n"
         "    const minX = Math.min(...stations.map(s => s.x), ...chs) - pad")
     assert "chs = [" in engine, 'overview patch failed'
+    # rich text: multi-character subscripts written _{e1} (S_{e1}², C_{11}…), also when re-edited in edit mode
+    for a, b in [
+        ("seg.split(/(_[A-Za-z0-9α])/)", "seg.split(/(_\\{[^}]*\\}|_[A-Za-z0-9α])/)"),
+        ("sub = q.length === 2 && q[0] === '_';", "sub = q[0] === '_' && (q.length === 2 || q[1] === '{');"),
+        ("S('tspan', a, t).textContent = sub ? q[1] : q;", "S('tspan', a, t).textContent = sub ? (q[1] === '{' ? q.slice(2, -1) : q[1]) : q;"),
+        ("out += sub ? '_' + x.textContent :", "out += sub ? (x.textContent.length > 1 ? '_{' + x.textContent + '}' : '_' + x.textContent) :"),
+    ]:
+        assert engine.count(a) == 1, a
+        engine = engine.replace(a, b)
     # overview = the map of the course: every frame shows its last step (they are all mounted)
     old = "    document.body.classList.add('is-overview');\n"
     assert engine.count(old) == 1

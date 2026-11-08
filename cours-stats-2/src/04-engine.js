@@ -348,7 +348,7 @@
   const lerp = (a, b, t) => a + (b - a) * t;
   const lerpObj = (A, B, t) => { const o = {}; for (const k in A) o[k] = typeof A[k] === 'number' ? lerp(A[k], B[k], t) : A[k]; return o; };
   const fr = (v, d = 1) => v.toFixed(d).replace('.', ',');
-  const flat = a => [a].flat(3).filter(Boolean).flatMap(x => (x instanceof NodeList ? [...x] : [x]));
+  const flat = a => [a].flat(Infinity).filter(Boolean).flatMap(x => (x instanceof NodeList ? [...x] : [x]));
   function S(tag, attrs, parent) {
     const e = document.createElementNS(NS, tag);
     if (attrs) for (const k in attrs) e.setAttribute(k, attrs[k]);

@@ -44,10 +44,18 @@
   .btn svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
   .status { font-size: 14px; color: var(--muted); min-height: 1.5em; }
   .status.err { color: var(--red); }
-  .previews { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 12px; }
+  .previews { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+  @media (max-width: 600px) { .previews { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
   .previews figure { margin: 0; display: grid; gap: 6px; min-width: 0; }
   .previews img { width: 100%; max-width: 100%; aspect-ratio: 16 / 9; object-fit: cover; border: 1px solid var(--line); border-radius: 8px; background: #fff; display: block; }
   .previews figcaption { font-size: 13px; color: var(--muted); }
+  .toc { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 18px 24px; }
+  .toc-part { min-width: 0; }
+  .toc-head { font-size: 13px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); margin-bottom: 6px; }
+  .toc ul { margin: 0; padding: 0; list-style: none; display: grid; gap: 4px; }
+  .toc a { color: var(--fg); text-decoration: none; border-bottom: 1px solid var(--line); font-size: 15px; }
+  .toc a:hover { border-bottom-color: var(--fg); }
+  .toc a:focus-visible { outline: 2px solid var(--orange); outline-offset: 2px; }
   .keys { display: flex; flex-wrap: wrap; gap: 8px 18px; font-size: 14px; color: var(--muted); margin: 0; padding: 0; list-style: none; }
   kbd { font: 600 12px var(--font); border: 1px solid var(--line); border-bottom-width: 2px; border-radius: 5px; padding: 1px 6px; color: var(--fg); background: var(--soft); }
   footer { font-size: 13px; color: var(--muted); border-top: 1px solid var(--line); padding-top: 18px; }
@@ -68,22 +76,30 @@
   </header>
 
   <section class="course" aria-labelledby="c2">
-    <div class="course-head"><h2 id="c2">Cours 2 · Tests d'hypothèses</h2><span class="num" id="c2meta">8 diapos · 21 étapes · version 1 (partie II)</span></div>
+    <div class="course-head"><h2 id="c2">Cours 2 · Tests d'hypothèses</h2><span class="num" id="c2meta">22 diapos · 68 étapes · version 2</span></div>
     <p class="topics">H₀ et H₁, le risque α et le risque β, puissance, écart réduit, tests unilatéraux, degré de signification p ; tests de conformité, d'homogénéité et du χ².</p>
     <div class="actions">
       <a class="btn primary" href="https://claude.ai/artifact/PQHnn2GYkivW1xJsEyjm1H" target="_blank" rel="noopener">
         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 4l14 8-14 8z"/></svg>Ouvrir le diaporama</a>
       <button class="btn ghost" id="dl" type="button">
         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4v11M7 10l5 5 5-5M5 20h14"/></svg>Télécharger le PDF</button>
-      <span class="meta">une page par étape · 2,2 Mo</span>
+      <span class="meta">une page par étape · 68 pages · 3,8 Mo</span>
     </div>
     <div class="status" id="st" role="status" aria-live="polite"></div>
     <div class="previews">
-      <figure><img src="apercu-1.jpg" alt="Le fabricant annonce 72,5 mm, l'échantillon G1 donne 70,4 mm" loading="lazy"><figcaption>La question du fabricant</figcaption></figure>
-      <figure><img src="apercu-2.jpg" alt="La courbe sous H₀, l'intervalle de pari et la moyenne qui tombe dans une queue" loading="lazy"><figcaption>On suppose H₀ vraie</figcaption></figure>
-      <figure><img src="apercu-3.jpg" alt="La vraie courbe et la zone β hachurée en vert" loading="lazy"><figcaption>Le risque β</figcaption></figure>
-      <figure><img src="apercu-4.jpg" alt="Tableau des deux erreurs : α et β" loading="lazy"><figcaption>Deux façons de se tromper</figcaption></figure>
+      <figure><img src="apercu-1.jpg" alt="La courbe sous H₀ et l'intervalle de pari" loading="lazy"><figcaption>On suppose H₀ vraie</figcaption></figure>
+      <figure><img src="apercu-2.jpg" alt="La vraie courbe et la zone β hachurée en vert" loading="lazy"><figcaption>Le risque β</figcaption></figure>
+      <figure><img src="apercu-3.jpg" alt="L'axe gradué en écart réduit ε" loading="lazy"><figcaption>Le raccourci ε</figcaption></figure>
+      <figure><img src="apercu-4.jpg" alt="Les deux échantillons G1 et H et la différence réduite" loading="lazy"><figcaption>Deux moyennes</figcaption></figure>
+      <figure><img src="apercu-5.jpg" alt="Les trois tableaux du χ²" loading="lazy"><figcaption>Le χ² pas à pas</figcaption></figure>
+      <figure><img src="apercu-6.jpg" alt="Le tableau de tous les tests" loading="lazy"><figcaption>Bilan : quel test ?</figcaption></figure>
     </div>
+    <nav class="toc" aria-label="Sommaire du cours 2">
+      <div class="toc-part"><div class="toc-head">II · Position du problème</div><ul><li><a href="https://claude.ai/artifact/PQHnn2GYkivW1xJsEyjm1H#QUESTION" target="_blank" rel="noopener">La question du fabricant</a></li><li><a href="https://claude.ai/artifact/PQHnn2GYkivW1xJsEyjm1H#HYPO" target="_blank" rel="noopener">H₀ et H₁</a></li><li><a href="https://claude.ai/artifact/PQHnn2GYkivW1xJsEyjm1H#RAISON" target="_blank" rel="noopener">Le raisonnement</a></li><li><a href="https://claude.ai/artifact/PQHnn2GYkivW1xJsEyjm1H#ALPHA" target="_blank" rel="noopener">Le risque α</a></li><li><a href="https://claude.ai/artifact/PQHnn2GYkivW1xJsEyjm1H#ALPHA1" target="_blank" rel="noopener">Et à 1 % ?</a></li><li><a href="https://claude.ai/artifact/PQHnn2GYkivW1xJsEyjm1H#BETA" target="_blank" rel="noopener">Le risque β</a></li><li><a href="https://claude.ai/artifact/PQHnn2GYkivW1xJsEyjm1H#ERREURS" target="_blank" rel="noopener">Les deux erreurs</a></li></ul></div>
+      <div class="toc-part"><div class="toc-head">III · Tests de conformité</div><ul><li><a href="https://claude.ai/artifact/PQHnn2GYkivW1xJsEyjm1H#EPS" target="_blank" rel="noopener">Le raccourci ε</a></li><li><a href="https://claude.ai/artifact/PQHnn2GYkivW1xJsEyjm1H#UNI" target="_blank" rel="noopener">Le test unilatéral</a></li><li><a href="https://claude.ai/artifact/PQHnn2GYkivW1xJsEyjm1H#PVAL" target="_blank" rel="noopener">Le degré de signification p</a></li><li><a href="https://claude.ai/artifact/PQHnn2GYkivW1xJsEyjm1H#METHODE" target="_blank" rel="noopener">La méthode</a></li><li><a href="https://claude.ai/artifact/PQHnn2GYkivW1xJsEyjm1H#CFREQ" target="_blank" rel="noopener">Une fréquence</a></li><li><a href="https://claude.ai/artifact/PQHnn2GYkivW1xJsEyjm1H#CMOY" target="_blank" rel="noopener">Une moyenne</a></li><li><a href="https://claude.ai/artifact/PQHnn2GYkivW1xJsEyjm1H#CVAR" target="_blank" rel="noopener">Une variance</a></li></ul></div>
+      <div class="toc-part"><div class="toc-head">IV · Tests d'homogénéité</div><ul><li><a href="https://claude.ai/artifact/PQHnn2GYkivW1xJsEyjm1H#HOMO" target="_blank" rel="noopener">Conformité ou homogénéité ?</a></li><li><a href="https://claude.ai/artifact/PQHnn2GYkivW1xJsEyjm1H#HFREQ" target="_blank" rel="noopener">Deux fréquences</a></li><li><a href="https://claude.ai/artifact/PQHnn2GYkivW1xJsEyjm1H#HVAR" target="_blank" rel="noopener">Deux variances</a></li><li><a href="https://claude.ai/artifact/PQHnn2GYkivW1xJsEyjm1H#HMOY" target="_blank" rel="noopener">Deux moyennes</a></li></ul></div>
+      <div class="toc-part"><div class="toc-head">V · Le test du χ²</div><ul><li><a href="https://claude.ai/artifact/PQHnn2GYkivW1xJsEyjm1H#CHI2" target="_blank" rel="noopener">Le χ² pas à pas</a></li><li><a href="https://claude.ai/artifact/PQHnn2GYkivW1xJsEyjm1H#CHI22" target="_blank" rel="noopener">χ² et homogénéité</a></li><li><a href="https://claude.ai/artifact/PQHnn2GYkivW1xJsEyjm1H#BILAN" target="_blank" rel="noopener">Bilan : quel test ?</a></li></ul></div>
+    </nav>
     <ul class="keys">
       <li><kbd>→</kbd> ou <kbd>espace</kbd> avancer</li><li><kbd>←</kbd> revenir</li><li><kbd>↓</kbd> rejouer l'étape</li>
       <li><kbd>O</kbd> carte du cours</li><li><kbd>F</kbd> plein écran</li><li><kbd>E</kbd> éditer</li>
