@@ -1,0 +1,130 @@
+<title>Biostatistiques PASS</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  /* Layout: one column of course "cards" read top to bottom, the newest course open with its previews.
+     Palette = the charte of the slides: ink, orange (sample), grey (population), green (estimate), red (α). */
+  :root {
+    --bg: #FFFFFF; --fg: #1F2937; --muted: #4B5563; --line: #E5E7EB; --soft: #F3F4F6;
+    --orange: #C2410C; --green: #15803D; --red: #DC2626; --btn: #1F2937; --btn-fg: #FFFFFF;
+    --font: "Inter", "Source Sans 3", Calibri, system-ui, -apple-system, "Segoe UI", sans-serif;
+  }
+  @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+    --bg: #12151B; --fg: #E5E7EB; --muted: #A3ABB8; --line: #2A303A; --soft: #1B2029;
+    --orange: #F59E5B; --green: #4ADE80; --red: #F87171; --btn: #E5E7EB; --btn-fg: #12151B; color-scheme: dark } }
+  :root[data-theme="dark"] {
+    --bg: #12151B; --fg: #E5E7EB; --muted: #A3ABB8; --line: #2A303A; --soft: #1B2029;
+    --orange: #F59E5B; --green: #4ADE80; --red: #F87171; --btn: #E5E7EB; --btn-fg: #12151B; color-scheme: dark }
+  html, body { background: var(--bg); color: var(--fg); }
+  body { font-family: var(--font); -webkit-font-smoothing: antialiased; line-height: 1.5;
+         padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); padding-block: 48px 64px; }
+  .wrap { max-width: 980px; margin: 0 auto; display: grid; gap: 40px; }
+  header { display: grid; gap: 10px; }
+  .eyebrow { font-size: 13px; font-weight: 600; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); }
+  h1 { margin: 0; font-size: clamp(34px, 6vw, 56px); line-height: 1.05; letter-spacing: -.02em; text-wrap: balance; }
+  .lead { margin: 0; max-width: 62ch; color: var(--muted); font-size: 17px; }
+  .bell { width: 180px; height: 56px; display: block; }
+  .bell .area { fill: var(--soft); } .bell .curve { fill: none; stroke: var(--fg); stroke-width: 2; }
+  .bell .tail { fill: var(--red); opacity: .75; } .bell .ax { stroke: var(--fg); stroke-width: 1.5; } .bell .pt { fill: var(--red); }
+  .course { border-top: 1px solid var(--line); padding-top: 28px; display: grid; gap: 18px; }
+  .course-head { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 6px 20px; }
+  .num { font-size: 14px; font-weight: 600; color: var(--muted); font-variant-numeric: tabular-nums; }
+  h2 { margin: 0; font-size: 28px; letter-spacing: -.01em; }
+  .topics { margin: 0; color: var(--muted); max-width: 62ch; }
+  .meta { font-size: 14px; color: var(--muted); font-variant-numeric: tabular-nums; }
+  .actions { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; }
+  .btn { display: inline-flex; align-items: center; gap: 10px; min-height: 46px; padding: 0 20px; border-radius: 10px; font: 600 16px var(--font);
+         text-decoration: none; cursor: pointer; border: 1.5px solid var(--btn); }
+  .btn.primary { background: var(--btn); color: var(--btn-fg); }
+  .btn.ghost { background: transparent; color: var(--fg); }
+  .btn:hover { opacity: .88; } .btn:focus-visible { outline: 3px solid var(--orange); outline-offset: 2px; }
+  .btn[disabled] { opacity: .5; cursor: progress; }
+  .btn svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+  .status { font-size: 14px; color: var(--muted); min-height: 1.5em; }
+  .status.err { color: var(--red); }
+  .previews { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 12px; }
+  .previews figure { margin: 0; display: grid; gap: 6px; min-width: 0; }
+  .previews img { width: 100%; max-width: 100%; aspect-ratio: 16 / 9; object-fit: cover; border: 1px solid var(--line); border-radius: 8px; background: #fff; display: block; }
+  .previews figcaption { font-size: 13px; color: var(--muted); }
+  .keys { display: flex; flex-wrap: wrap; gap: 8px 18px; font-size: 14px; color: var(--muted); margin: 0; padding: 0; list-style: none; }
+  kbd { font: 600 12px var(--font); border: 1px solid var(--line); border-bottom-width: 2px; border-radius: 5px; padding: 1px 6px; color: var(--fg); background: var(--soft); }
+  footer { font-size: 13px; color: var(--muted); border-top: 1px solid var(--line); padding-top: 18px; }
+  @media (prefers-reduced-motion: no-preference) { .btn { transition: opacity .15s; } }
+</style>
+
+<div class="wrap">
+  <header>
+    <svg class="bell" viewBox="0 0 180 56" aria-hidden="true">
+      <path class="area" d="M10 50 C 60 50, 70 6, 90 6 C 110 6, 120 50, 170 50 Z"/>
+      <path class="tail" d="M10 50 C 30 50, 38 48, 46 44 L46 50 Z"/><path class="tail" d="M134 44 C 142 48, 150 50, 170 50 L134 50 Z"/>
+      <path class="curve" d="M10 50 C 60 50, 70 6, 90 6 C 110 6, 120 50, 170 50"/>
+      <line class="ax" x1="4" x2="176" y1="50" y2="50"/><circle class="pt" cx="36" cy="50" r="4"/>
+    </svg>
+    <div class="eyebrow">Tutorat PASS · UE4 Biostatistiques</div>
+    <h1>Statistiques probabilistes</h1>
+    <p class="lead">Les diaporamas animés du tutorat, d'après le poly du Pr Morin. Chaque cours est un monde de diapos : on avance clic par clic, et la touche O montre la carte du cours.</p>
+  </header>
+
+  <section class="course" aria-labelledby="c2">
+    <div class="course-head"><h2 id="c2">Cours 2 · Tests d'hypothèses</h2><span class="num" id="c2meta">8 diapos · 21 étapes · version 1 (partie II)</span></div>
+    <p class="topics">H₀ et H₁, le risque α et le risque β, puissance, écart réduit, tests unilatéraux, degré de signification p ; tests de conformité, d'homogénéité et du χ².</p>
+    <div class="actions">
+      <a class="btn primary" href="https://claude.ai/artifact/PQHnn2GYkivW1xJsEyjm1H" target="_blank" rel="noopener">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 4l14 8-14 8z"/></svg>Ouvrir le diaporama</a>
+      <button class="btn ghost" id="dl" type="button">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4v11M7 10l5 5 5-5M5 20h14"/></svg>Télécharger le PDF</button>
+      <span class="meta">une page par étape · 2,2 Mo</span>
+    </div>
+    <div class="status" id="st" role="status" aria-live="polite"></div>
+    <div class="previews">
+      <figure><img src="apercu-1.jpg" alt="Le fabricant annonce 72,5 mm, l'échantillon G1 donne 70,4 mm" loading="lazy"><figcaption>La question du fabricant</figcaption></figure>
+      <figure><img src="apercu-2.jpg" alt="La courbe sous H₀, l'intervalle de pari et la moyenne qui tombe dans une queue" loading="lazy"><figcaption>On suppose H₀ vraie</figcaption></figure>
+      <figure><img src="apercu-3.jpg" alt="La vraie courbe et la zone β hachurée en vert" loading="lazy"><figcaption>Le risque β</figcaption></figure>
+      <figure><img src="apercu-4.jpg" alt="Tableau des deux erreurs : α et β" loading="lazy"><figcaption>Deux façons de se tromper</figcaption></figure>
+    </div>
+    <ul class="keys">
+      <li><kbd>→</kbd> ou <kbd>espace</kbd> avancer</li><li><kbd>←</kbd> revenir</li><li><kbd>↓</kbd> rejouer l'étape</li>
+      <li><kbd>O</kbd> carte du cours</li><li><kbd>F</kbd> plein écran</li><li><kbd>E</kbd> éditer</li>
+    </ul>
+  </section>
+
+  <section class="course" aria-labelledby="c1">
+    <div class="course-head"><h2 id="c1">Cours 1 · Estimation</h2><span class="num">25 diapos</span></div>
+    <p class="topics">Distributions d'échantillonnage, estimateurs, intervalle de confiance et intervalle de pari, avec l'histoire des largeurs de main.</p>
+    <div class="actions">
+      <a class="btn ghost" href="https://claude.ai/artifact/GiiBHYuyWCTXY3huaovfDD" target="_blank" rel="noopener">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 4l14 8-14 8z"/></svg>Ouvrir le diaporama</a>
+    </div>
+  </section>
+
+  <footer>Document d'étudiants, non relu par les enseignants : il ne remplace pas le cours.</footer>
+</div>
+
+<script>
+(() => {
+  const btn = document.getElementById('dl'), st = document.getElementById('st');
+  const say = (t, err) => { st.textContent = t; st.classList.toggle('err', !!err); };
+  const ready = (window.claude && typeof window.claude.use === 'function') ? window.claude.use('downloads').catch(() => null) : Promise.resolve(null);
+  ready.then(d => { if (!d) { btn.hidden = true; say('Le téléchargement n\'est pas disponible dans cette vue : ouvre la page dans claude.ai.'); } });
+  btn.addEventListener('click', async () => {
+    const d = await ready;
+    if (!d) return;
+    btn.disabled = true; say('Préparation du PDF…');
+    try {
+      const r = await fetch('statistiques-probabilistes-2.pdf');
+      if (!r.ok) throw { code: 'fetch', message: r.status };
+      const blob = await r.blob();
+      await d.save({ filename: 'Statistiques probabilistes 2 - Tests d\'hypothèses.pdf', data: blob });
+      say('PDF enregistré.');
+    } catch (e) {
+      const code = e && e.code;
+      if (code === 'declined') say('');
+      else if (code === 'rate_limited') say('Une fenêtre d\'enregistrement est déjà ouverte.');
+      else say('Le PDF n\'a pas pu être téléchargé. Recharge la page et réessaie.', true);
+    }
+    btn.disabled = false;
+  });
+})();
+</script>

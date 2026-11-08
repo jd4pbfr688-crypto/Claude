@@ -1,0 +1,31 @@
+
+  /* ---------- cours 2 : tests d'hypothèses ---------- */
+  .stage .fbar      { stroke: var(--ink); stroke-width: 2.5; }
+  .stage .popcard   { fill: var(--bg); stroke: var(--pop); stroke-width: 2.5; }
+  .stage .chip-pop  { fill: var(--guide); }
+  .stage .h1-arr    { stroke: var(--pop); stroke-width: 3; }
+  .stage .h1-arr-h  { fill: var(--pop); }
+  .stage .tb-true   { fill: none; stroke: var(--pop); stroke-width: 3; stroke-dasharray: 10 7; }
+  .stage .beta-bg   { fill: var(--green); fill-opacity: .07; }
+  .stage .beta-hatch { stroke: var(--green); stroke-width: 3.5; stroke-opacity: .7; }
+  .stage .cell-a    { fill: var(--red); fill-opacity: .08; stroke: var(--red); stroke-width: 2.5; }
+  .stage .cell-b    { stroke: var(--green); stroke-width: 2.5; }
+  .stage .cell-ok   { fill: var(--bg); stroke: var(--grid); stroke-width: 2.5; }
+  .stage .box-red   { fill: var(--bg); stroke: var(--red); stroke-width: 2.5; }
+  .stage .box-or    { fill: var(--bg); stroke: var(--orange); stroke-width: 2.5; }
+  .stage .box-pop   { fill: var(--bg); stroke: var(--pop); stroke-width: 2.5; }
+  .stage .box-green { fill: var(--bg); stroke: var(--green); stroke-width: 2.5; }
+  .stage .tbl-head  { fill: var(--guide); }
+  .stage .tbl-line  { stroke: var(--grid); stroke-width: 2; }
+  .stage .tbl-hl    { fill: var(--orange); fill-opacity: .12; }
+  .stage .tree-l    { fill: none; stroke: var(--pop); stroke-width: 2.5; }
+  .stage .tree-on   { stroke: var(--green); stroke-width: 4; }
+  .stage .sqh       { fill: var(--blue); stroke: var(--blue-dk); stroke-width: 1.5; }
+
+  /* the world between the frames: one row per part of the course, its name at the left */
+  .chapter { position: absolute; top: 0; left: 0; width: 1920px; height: 1080px; pointer-events: none;
+             display: flex; flex-direction: column; justify-content: center; padding-left: 170px; color: var(--ink); }
+  .chapter .ch-num   { font-size: 300px; font-weight: 700; line-height: .9; color: var(--grid); letter-spacing: -.02em; }
+  .chapter .ch-title { font-size: 120px; font-weight: 700; line-height: 1.05; letter-spacing: -.02em; margin-top: 10px; }
+  .chapter .ch-sub   { font-size: 52px; font-weight: 500; color: var(--pop); margin-top: 24px; }
+  .stage .beta-hatch.light { stroke-opacity: .3; }

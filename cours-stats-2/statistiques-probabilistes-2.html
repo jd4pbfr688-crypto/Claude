@@ -1,0 +1,1969 @@
+<title>Statistiques probabilistes 2</title>
+<!--
+  ============================================================
+  STATISTIQUES PROBABILISTES 2 · TESTS D'HYPOTHÈSES
+  Tutorat PASS · UE4 Biostatistiques (poly du Pr Morin, parties II à V)
+
+  Même moteur que le cours 1 (caméra sur un plan infini, anime.js v4) : un monde où chaque
+  rangée est une partie du cours (II position du problème, III conformité, IV homogénéité, V χ²),
+  et chaque cadre 1920×1080 une diapo. → / espace : étape suivante, puis diapo suivante.
+  ← revient d'une étape. ↓ rejoue l'étape. O = vue d'ensemble (la carte du cours). E = édition.
+
+  Charte (celle du cours 1) : bleu = individus ; orange = échantillon (mₑ, fₑ, Sₑ) ;
+  gris foncé = population (pointillés = inconnue, plein = connue ou supposée par H₀) ;
+  vert = estimation, et la zone β (hachures) ; rouge = α uniquement.
+  Les nombres viennent de donnees.py (même dossier) : G1 et la population du cours 1,
+  l'échantillon H (handballeurs), l'exemple des quartiers du poly.
+  Source : dossier cours-stats-2 du dépôt ; ce fichier est assemblé par build.py.
+  ============================================================
+-->
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500&display=swap" rel="stylesheet">
+<style>
+  /* Charte du brief : la seule palette du fichier. Fond blanc, aucune autre couleur. */
+  :root {
+    color-scheme: light;
+    --bg:        #FFFFFF;
+    --ink:       #1F2937;   /* texte principal, axes */
+    --blue:      #3B82F6;   /* individus : remplissage */
+    --blue-dk:   #1E40AF;   /* individus : contour */
+    --orange:    #F28C28;   /* moyennes mₑ : remplissage */
+    --orange-dk: #C2410C;   /* moyennes mₑ : contour, texte */
+    --pop:       #4B5563;   /* population inconnue : gris foncé, pointillés 8/6 */
+    --green:     #16A34A;   /* estimation retenue */
+    --red:       #DC2626;   /* slide 5 : les queues α/2 */
+    --grid:      #E5E7EB;   /* grille, éléments estompés */
+    --guide:     #F3F4F6;   /* repères verticaux, fonds très clairs */
+    --font: "Inter", "Source Sans 3", Calibri, system-ui, -apple-system, "Segoe UI", sans-serif;
+    --ease-expo: cubic-bezier(.82,0,.18,1);
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { height: 100%; overflow: hidden; background: var(--bg); color: var(--ink); overscroll-behavior: none; }
+  body { font-family: var(--font); -webkit-font-smoothing: antialiased; }
+
+  #viewport { position: fixed; inset: 0; overflow: hidden; background: var(--bg); }
+  #world { position: absolute; top: 0; left: 0; transform-origin: 0 0; will-change: transform; }
+  body:not(.deck-ready) #world { visibility: hidden; }
+
+  .station { position: absolute; width: 1920px; height: 1080px; background: var(--bg); }
+  /* in the overview, frames need an edge on a white plane */
+  body.is-overview .station { outline: 3px solid var(--grid); }
+  .station.dormant[data-poster] { background-size: cover; background-position: center; }
+  .station-error { font-size: 28px; opacity: .6; padding: 80px; }
+
+  /* ---------- the stage: one SVG per station ---------- */
+  .stage { position: absolute; inset: 0; display: block; overflow: visible; }
+  .stage text { fill: var(--ink); font-family: var(--font); }
+  .stage * { transform-box: fill-box; transform-origin: 50% 50%; }
+  /* elements placed with an SVG transform attribute keep plain SVG transform semantics */
+  .stage [transform] { transform-box: view-box; transform-origin: 0 0; }
+  .stage .grow  { transform-origin: 50% 100%; }
+  .stage .growx { transform-origin: 0% 50%; }
+  .stage .t-title { font-size: 44px; font-weight: 700; }
+  .stage .t-ax    { font-size: 26px; }
+  .stage .t-tick  { font-size: 22px; }
+  .stage .t-ann   { font-size: 30px; }
+  .stage .t-28    { font-size: 28px; }
+  .stage .t-or    { fill: var(--orange-dk); }
+  .stage .t-pop   { fill: var(--pop); }
+  .stage .t-green { fill: var(--green); }
+  .stage .t-blue  { fill: var(--blue-dk); }
+  .stage .halo    { paint-order: stroke; stroke: var(--bg); stroke-width: 7px; stroke-linejoin: round; }
+
+  .stage .sq   { fill: var(--blue); stroke: var(--blue-dk); stroke-width: 1.5; }
+  .stage .sqg  { fill: var(--blue); fill-opacity: .25; stroke: none; }
+  .stage .sqo  { fill: var(--orange); stroke: var(--orange-dk); stroke-width: 1.5; }
+  .stage .tok  { fill: var(--orange); stroke: var(--orange-dk); stroke-width: 1.5; }
+  .stage .chip { fill: var(--bg); stroke: var(--orange); stroke-width: 1.5; }
+  .stage .gridl { stroke: var(--grid); stroke-width: 1.5; }
+  .stage .basel { stroke: var(--ink); stroke-width: 1.5; }
+  .stage .guide { stroke: var(--guide); stroke-width: 2; }
+  .stage .axl   { stroke: var(--ink); stroke-width: 2; }
+  .stage .mline { stroke: var(--orange); stroke-width: 3; }
+  .stage .mtri  { fill: var(--orange); stroke: var(--orange-dk); stroke-width: 1.5; stroke-linejoin: round; }
+  .stage .mext  { stroke: var(--orange); stroke-width: 1.5; stroke-dasharray: 6 6; }
+  /* the same mean, read as the estimate m (aide 3bis-c) */
+  .stage .est .mline, .stage .mext.est { stroke: var(--green); }
+  .stage .est .mtri { fill: var(--green); stroke: #15803D; }
+  .station:is([data-key="ECHANT"], [data-key="UN"]) .stage .t-or { fill: var(--green); }
+  .station:is([data-key="ECHANT"], [data-key="UN"]) .stage :is(.mline, .bell, .oarr) { stroke: var(--green); }
+  .station:is([data-key="ECHANT"], [data-key="UN"]) .stage .mext { stroke: var(--green); }
+  .station:is([data-key="ECHANT"], [data-key="UN"]) .stage :is(.mtri, .sqo, .tok) { fill: var(--green); stroke: #15803D; }
+  .station:is([data-key="ECHANT"], [data-key="UN"]) .stage .chip { stroke: var(--green); }
+  .station:is([data-key="ECHANT"], [data-key="UN"]) .stage .oarr-h { fill: var(--green); }
+  .station:is([data-key="ECHANT"], [data-key="UN"]) .stage .bell.mu { stroke: var(--ink); }
+  .stage .pop   { stroke: var(--pop); stroke-width: 2.5; stroke-dasharray: 8 6; fill: none; }
+  .stage .popbox { stroke: var(--pop); stroke-width: 2.5; stroke-dasharray: 8 6; fill: var(--bg); }
+  .stage .box   { fill: var(--bg); stroke: var(--grid); stroke-width: 2; }
+  .stage .nobox { display: none; }
+  .stage .card  { fill: var(--bg); stroke: var(--grid); stroke-width: 3; }
+  .stage .hl    { fill: var(--grid); }
+  .stage .dot   { fill: var(--blue); stroke: var(--blue-dk); stroke-width: 1; }
+  .stage .potato { fill: none; stroke: var(--pop); stroke-width: 3; }
+  .stage .lasso { fill: none; stroke: var(--blue-dk); stroke-width: 3; }
+  .stage .arrow { fill: none; stroke: var(--blue-dk); stroke-width: 2.5; }
+  .stage .ahead { fill: var(--blue-dk); }
+  .stage .ahead-ink { fill: var(--ink); }
+  .stage .hand rect { fill: var(--bg); stroke: var(--ink); stroke-width: 2.5; vector-effect: non-scaling-stroke; }
+  .stage .hand rect.on { fill: var(--blue); stroke: var(--blue-dk); }
+  .stage .ruler { fill: var(--bg); stroke: var(--ink); stroke-width: 2.5; }
+  .stage .rtick { stroke: var(--ink); stroke-width: 2; }
+  .stage .pile  { fill: var(--grid); stroke: var(--bg); stroke-width: 3; }
+  .stage .bell  { fill: none; stroke: var(--orange-dk); stroke-width: 3; }
+  .stage .thin  { stroke: var(--pop); stroke-width: 1.5; }
+  .stage .banner { fill: var(--guide); }
+  .stage .barr  { stroke: var(--blue); stroke-width: 3; }
+  .stage .barr-h { fill: var(--blue); }
+  .stage .oarr  { stroke: var(--orange); stroke-width: 3; }
+  .stage .oarr-h { fill: var(--orange); }
+  .stage .sw-green { fill: var(--green); }
+  .stage .row-solid { fill: none; stroke: var(--grid); stroke-width: 2; }
+  .stage .band-or { fill: var(--orange); }
+  .stage .band-gr { fill: var(--green); }
+  .stage .band-pop { stroke: var(--pop); stroke-width: 16; stroke-dasharray: 8 6; }
+  .stage .colhl { fill: var(--guide); }
+  .stage .vline { stroke: var(--ink); stroke-width: 2; }
+  .stage .t-red { fill: var(--red); }
+  .stage .ic-area-g  { fill: var(--green); fill-opacity: .14; }
+  .stage .ic-curve-g { fill: none; stroke: var(--green); stroke-width: 3; }
+  .stage .ic-area-k  { fill: var(--grid); }
+  .stage .ic-curve-k { fill: none; stroke: var(--ink); stroke-width: 3; }
+  .stage .ic-tail  { fill: var(--red); fill-opacity: .6; }
+  .stage .ic-seg   { stroke: var(--green); stroke-width: 4; }
+  .stage .ic-br    { fill: none; stroke: var(--green); stroke-width: 4; }
+  .stage .ic-seg.p, .stage .ic-br.p { stroke: var(--pop); }
+  .stage .ic-dot   { fill: var(--green); }
+  .stage .ic-box   { fill: var(--bg); stroke: var(--green); stroke-width: 2; }
+  .stage .ic-box.p { stroke: var(--pop); }
+  .stage .ic-musolid { stroke: var(--pop); stroke-width: 3; }
+  .stage .ic-me      { stroke: var(--orange-dk); stroke-width: 3; }
+  .stage .ic-msolid  { stroke: var(--green); stroke-width: 3.5; }
+  .stage .ic-pt      { fill: var(--orange); stroke: var(--orange-dk); stroke-width: 2; }
+  .stage .ic-pt.out  { fill: var(--red); stroke: #991B1B; }
+  .stage .ic-arr     { stroke: var(--ink); stroke-width: 3; }
+  .stage .est-box    { fill: var(--bg); stroke: var(--green); stroke-width: 3; }
+  .stage .est-box.o  { stroke: var(--orange); }
+  .stage .est-arr    { stroke: var(--ink); stroke-width: 2.5; }
+  .stage .est-arr-h  { fill: var(--ink); }
+  .stage .ret-seg    { stroke: var(--green); stroke-width: 3; }
+  .stage .ret-dot    { fill: var(--green); }
+  .stage .ret-seg.r  { stroke: var(--red); }
+  .stage .ret-dot.r  { fill: var(--red); }
+  .stage .est-arr2   { stroke: var(--pop); stroke-width: 2.5; stroke-dasharray: 8 6; }
+  .stage .est-arr2-h { fill: var(--pop); }
+  .stage .sqo.est    { fill: var(--green); stroke: #15803D; }
+  .stage .bell.est, .stage .mline.est { stroke: var(--green); }
+  .stage .bi-line    { fill: none; stroke-width: 3; }
+  .stage .bi-pt      { fill: var(--bg); stroke-width: 3; }
+  .stage .bi-line.o, .stage .bi-pt.o { stroke: var(--orange-dk); }
+  .stage .bi-line.g, .stage .bi-pt.g { stroke: var(--green); }
+  .stage .f-bullet   { fill: var(--pop); }
+  .stage .ip-carto   { fill: var(--bg); stroke: var(--pop); stroke-width: 2.5; }
+  .stage .ic-arr-h   { fill: var(--ink); }
+
+  /* ---------- HUD ---------- */
+  #hud {
+    position: fixed; left: 0; right: 0; bottom: 0; z-index: 50;
+    display: grid; grid-template-columns: 1fr auto 1fr; align-items: center;
+    column-gap: 28px; padding: 18px 30px; pointer-events: none;
+    font-size: 13px; letter-spacing: .08em; color: var(--ink);
+  }
+  #hud .counter { justify-self: start; min-width: 0; white-space: nowrap; font-variant-numeric: tabular-nums; opacity: .7; }
+  #hud .counter #stepl { font-weight: 700; }
+  #hud .station-name { justify-self: end; min-width: 0; max-width: 100%; text-align: right;
+                       overflow: hidden; white-space: nowrap; text-overflow: ellipsis; opacity: .55; }
+  #hud .station-key { font-weight: 700; }
+  #rail { justify-self: center; display: flex; gap: 10px; pointer-events: auto; }
+  #rail .dot { width: 8px; height: 8px; border-radius: 50%; background: currentColor; opacity: .22; cursor: pointer; transition: opacity .3s, transform .3s; }
+  #rail .dot:hover { opacity: .6; }
+  #rail .dot.active { opacity: 1; transform: scale(1.35); }
+  #rail .dot.out { display: none; }
+  #rail .dot.edge { opacity: .22; transform: scale(.62); }
+  #railtip { position: fixed; bottom: 48px; transform: translateX(-50%); z-index: 51; background: var(--ink); color: var(--bg);
+             font-size: 12px; padding: 6px 12px; border-radius: 4px; opacity: 0; pointer-events: none; transition: opacity .25s; }
+  #railtip.show { opacity: 1; }
+  .station-tag { position: absolute; top: 0; left: 0; pointer-events: none; white-space: nowrap; font-weight: 700; font-size: 84px;
+                 letter-spacing: .04em; line-height: 1; color: var(--ink); opacity: 0; transition: opacity .4s ease; }
+  .station-tag .tag-name { font-weight: 400; opacity: .45; }
+  body.is-overview .station-tag { opacity: .7; }
+  #fsbtn { position: fixed; top: 20px; right: 24px; pointer-events: auto; cursor: pointer; background: none; border: 0; padding: 8px;
+           line-height: 0; color: currentColor; opacity: .45; transition: opacity .25s, transform .25s var(--ease-expo); }
+  #fsbtn:hover, #fsbtn:focus-visible { opacity: 1; transform: scale(1.1); }
+  #fsbtn:focus-visible { outline: 2px solid currentColor; outline-offset: 2px; }
+  #fsbtn svg { width: 22px; height: 22px; display: block; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+  #fsbtn .ic-exit { display: none; }
+  body.is-fullscreen #fsbtn .ic-enter { display: none; }
+  body.is-fullscreen #fsbtn .ic-exit { display: block; }
+
+  /* ---------- edit mode ---------- */
+  [hidden] { display: none !important; }
+  #edbtn { position: fixed; top: 16px; right: 66px; pointer-events: auto; cursor: pointer; display: flex; align-items: center; gap: 8px;
+           background: var(--bg); border: 1px solid var(--grid); border-radius: 999px; padding: 7px 14px 7px 11px;
+           font: 600 13px var(--font); color: var(--ink); box-shadow: 0 2px 10px rgba(31,41,55,.08); transition: border-color .2s; }
+  #edbtn::after { content: "Éditer"; }
+  #edbtn:hover { border-color: var(--ink); }
+  #edbtn:focus-visible { outline: 2px solid var(--blue); outline-offset: 2px; }
+  #edbtn svg { width: 16px; height: 16px; display: block; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+  body.editing #edbtn { display: none; }
+  #edbar { position: fixed; top: 12px; left: 50%; transform: translateX(-50%); z-index: 70; max-width: calc(100vw - 140px);
+           display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 8px 14px; padding: 8px 12px;
+           background: var(--bg); border: 1px solid var(--grid); border-radius: 10px; box-shadow: 0 6px 24px rgba(31,41,55,.14);
+           font: 500 13px var(--font); color: var(--ink); }
+  #edbar .grp { display: flex; align-items: center; gap: 6px; }
+  #edbar button { font: inherit; color: var(--ink); background: var(--bg); border: 1px solid var(--grid); border-radius: 6px; padding: 5px 10px; cursor: pointer; }
+  #edbar button:hover { border-color: var(--ink); }
+  #edbar button:focus-visible { outline: 2px solid var(--blue); outline-offset: 1px; }
+  #edbar button.primary { background: var(--ink); color: var(--bg); border-color: var(--ink); }
+  #edbar button.armed { border-color: var(--orange-dk); color: var(--orange-dk); }
+  #edbar .sw { width: 22px; height: 22px; padding: 0; border-radius: 50%; border: 2px solid var(--bg); box-shadow: 0 0 0 1px var(--grid); }
+  #edbar .sel-only { display: none; }
+  #edbar.has-sel .sel-only { display: flex; }
+  #edbar.has-sel:not(.is-text) .text-only { display: none; }
+  #edbar .hint { flex-basis: 100%; text-align: center; font-size: 12px; font-weight: 400; color: var(--pop); }
+  #edbar .hint b { font-weight: 600; color: var(--ink); }
+  #edsel { position: fixed; z-index: 65; pointer-events: none; outline: 2px dashed var(--orange-dk); outline-offset: 4px; border-radius: 2px; }
+  #edtext { position: fixed; z-index: 75; font-family: var(--font); color: var(--ink); background: var(--bg);
+            padding: 2px 8px; border: 2px solid var(--orange-dk); border-radius: 6px; outline: none; }
+  body.editing .stage * { cursor: move; }
+  body.editing .stage text, body.editing .stage tspan { cursor: text; }
+
+  #swipehint { position: fixed; left: 50%; bottom: 64px; z-index: 60; pointer-events: none; font-weight: 600; font-size: 12px;
+               letter-spacing: .1em; text-transform: uppercase; background: var(--ink); color: var(--bg); padding: 10px 18px;
+               border-radius: 999px; opacity: 0; transform: translateX(-50%); animation: swipehint 5s ease 1.1s forwards; }
+  @keyframes swipehint { 0% { opacity: 0; transform: translate(-50%, 10px); } 12%, 78% { opacity: 1; transform: translate(-50%, 0); } 100% { opacity: 0; transform: translate(-50%, -8px); } }
+  @media (pointer: coarse) {
+    #railtip { display: none; }
+    #fsbtn svg { width: 28px; height: 28px; }
+    #fsbtn { animation: fs-nudge 1.5s ease 1.8s 3; }
+  }
+  @keyframes fs-nudge { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.4); } }
+  @media (max-width: 760px), (max-height: 500px) {
+    #hud { font-size: 10px; column-gap: 14px;
+           padding: 10px calc(14px + env(safe-area-inset-right, 0px)) calc(10px + env(safe-area-inset-bottom, 0px)) calc(14px + env(safe-area-inset-left, 0px)); }
+    #fsbtn { top: calc(12px + env(safe-area-inset-top, 0px)); right: calc(12px + env(safe-area-inset-right, 0px)); }
+    #rail { gap: 5px; }
+    #rail .dot { width: 5px; height: 5px; }
+  }
+  #rotatehint { display: none; position: fixed; inset: 0; z-index: 90; background: var(--bg); color: var(--ink);
+                flex-direction: column; align-items: center; justify-content: center; gap: 34px; text-align: center; cursor: pointer; }
+  @media (pointer: coarse) and (orientation: portrait) and (max-width: 760px) { body:not(.rh-dismissed) #rotatehint { display: flex; } }
+  #rotatehint .rh-phone { width: 60px; height: 60px; fill: none; stroke: currentColor; stroke-width: 2.6; stroke-linecap: round; stroke-linejoin: round;
+                          animation: rh-turn 2.8s var(--ease-expo) infinite; }
+  @keyframes rh-turn { 0%, 22% { transform: rotate(0); } 55%, 80% { transform: rotate(-90deg); } 100% { transform: rotate(0); } }
+  #rotatehint .rh-title { font-weight: 700; line-height: .95; letter-spacing: -.02em; font-size: 15vw; }
+  #rotatehint .rh-sub { font-weight: 500; font-size: 12px; letter-spacing: .1em; text-transform: uppercase; opacity: .6; max-width: 80vw; line-height: 1.7; }
+  #rotatehint .rh-nofs { display: none; }
+  body.no-fullscreen #rotatehint .rh-fs { display: none; }
+  body.no-fullscreen #rotatehint .rh-nofs { display: inline; }
+
+  /* ---------- cours 2 : tests d'hypothèses ---------- */
+  .stage .fbar      { stroke: var(--ink); stroke-width: 2.5; }
+  .stage .popcard   { fill: var(--bg); stroke: var(--pop); stroke-width: 2.5; }
+  .stage .chip-pop  { fill: var(--guide); }
+  .stage .h1-arr    { stroke: var(--pop); stroke-width: 3; }
+  .stage .h1-arr-h  { fill: var(--pop); }
+  .stage .tb-true   { fill: none; stroke: var(--pop); stroke-width: 3; stroke-dasharray: 10 7; }
+  .stage .beta-bg   { fill: var(--green); fill-opacity: .07; }
+  .stage .beta-hatch { stroke: var(--green); stroke-width: 3.5; stroke-opacity: .7; }
+  .stage .cell-a    { fill: var(--red); fill-opacity: .08; stroke: var(--red); stroke-width: 2.5; }
+  .stage .cell-b    { stroke: var(--green); stroke-width: 2.5; }
+  .stage .cell-ok   { fill: var(--bg); stroke: var(--grid); stroke-width: 2.5; }
+  .stage .box-red   { fill: var(--bg); stroke: var(--red); stroke-width: 2.5; }
+  .stage .box-or    { fill: var(--bg); stroke: var(--orange); stroke-width: 2.5; }
+  .stage .box-pop   { fill: var(--bg); stroke: var(--pop); stroke-width: 2.5; }
+  .stage .box-green { fill: var(--bg); stroke: var(--green); stroke-width: 2.5; }
+  .stage .tbl-head  { fill: var(--guide); }
+  .stage .tbl-line  { stroke: var(--grid); stroke-width: 2; }
+  .stage .tbl-hl    { fill: var(--orange); fill-opacity: .12; }
+  .stage .tree-l    { fill: none; stroke: var(--pop); stroke-width: 2.5; }
+  .stage .tree-on   { stroke: var(--green); stroke-width: 4; }
+  .stage .sqh       { fill: var(--blue); stroke: var(--blue-dk); stroke-width: 1.5; }
+
+  /* the world between the frames: one row per part of the course, its name at the left */
+  .chapter { position: absolute; top: 0; left: 0; width: 1920px; height: 1080px; pointer-events: none;
+             display: flex; flex-direction: column; justify-content: center; padding-left: 170px; color: var(--ink); }
+  .chapter .ch-num   { font-size: 300px; font-weight: 700; line-height: .9; color: var(--grid); letter-spacing: -.02em; }
+  .chapter .ch-title { font-size: 120px; font-weight: 700; line-height: 1.05; letter-spacing: -.02em; margin-top: 10px; }
+  .chapter .ch-sub   { font-size: 52px; font-weight: 500; color: var(--pop); margin-top: 24px; }
+  .stage .beta-hatch.light { stroke-opacity: .3; }
+</style>
+
+<div id="viewport">
+  <div id="world">
+    <div class="chapter" data-x="-2300" data-y="0" style="transform: translate(-2300px, 0px)"><div class="ch-num">II</div><div class="ch-title">Position du problème</div><div class="ch-sub">H₀, H₁, les risques α et β</div></div>
+    <section class="station" id="s1" data-key="TITRE" data-name="Titre" data-x="0" data-y="0" data-scene="titre">
+      <svg class="stage" width="1920" height="1080" viewBox="0 0 1920 1080" role="img" aria-label="Titre"></svg>
+    </section>
+    <section class="station" id="s2" data-key="QUESTION" data-name="La question du fabricant" data-x="2300" data-y="0" data-scene="question">
+      <svg class="stage" width="1920" height="1080" viewBox="0 0 1920 1080" role="img" aria-label="La question du fabricant"></svg>
+    </section>
+    <section class="station" id="s3" data-key="HYPO" data-name="H₀ et H₁" data-x="4600" data-y="0" data-scene="hypo">
+      <svg class="stage" width="1920" height="1080" viewBox="0 0 1920 1080" role="img" aria-label="H₀ et H₁"></svg>
+    </section>
+    <section class="station" id="s4" data-key="RAISON" data-name="Le raisonnement" data-x="6900" data-y="0" data-scene="raison">
+      <svg class="stage" width="1920" height="1080" viewBox="0 0 1920 1080" role="img" aria-label="Le raisonnement"></svg>
+    </section>
+    <section class="station" id="s5" data-key="ALPHA" data-name="Le risque α" data-x="9200" data-y="0" data-scene="alpha">
+      <svg class="stage" width="1920" height="1080" viewBox="0 0 1920 1080" role="img" aria-label="Le risque α"></svg>
+    </section>
+    <section class="station" id="s6" data-key="ALPHA1" data-name="Et à 1 % ?" data-x="11500" data-y="0" data-scene="alpha1">
+      <svg class="stage" width="1920" height="1080" viewBox="0 0 1920 1080" role="img" aria-label="Et à 1 % ?"></svg>
+    </section>
+    <section class="station" id="s7" data-key="BETA" data-name="Le risque β" data-x="13800" data-y="0" data-scene="beta">
+      <svg class="stage" width="1920" height="1080" viewBox="0 0 1920 1080" role="img" aria-label="Le risque β"></svg>
+    </section>
+    <section class="station" id="s8" data-key="ERREURS" data-name="Les deux erreurs" data-x="16100" data-y="0" data-scene="erreurs">
+      <svg class="stage" width="1920" height="1080" viewBox="0 0 1920 1080" role="img" aria-label="Les deux erreurs"></svg>
+    </section>
+  </div>
+</div>
+
+<div id="hud">
+  <div class="counter"><span id="idx">01</span> / <span id="total">07</span><span id="stepl"></span></div>
+  <div id="rail"></div>
+  <div class="station-name"></div>
+  <button id="edbtn" type="button" aria-label="Mode édition" title="Éditer (E)"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20h4L19 9l-4-4L4 16v4zM14 6l4 4"/></svg></button>
+  <button id="fsbtn" type="button" aria-label="Plein écran" title="Plein écran (F)">
+    <svg class="ic-enter" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 8V3h5M21 8V3h-5M3 16v5h5M21 16v5h-5"/></svg>
+    <svg class="ic-exit" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 3v5H3M16 3v5h5M8 21v-5H3M16 21v-5h5"/></svg>
+  </button>
+</div>
+
+<div id="edbar" hidden role="toolbar" aria-label="Édition">
+  <span class="grp sel-only">
+    <button type="button" class="sw" data-color="#1F2937" title="Quasi-noir" style="background:#1F2937"></button>
+    <button type="button" class="sw" data-color="#3B82F6" title="Bleu individus" style="background:#3B82F6"></button>
+    <button type="button" class="sw" data-color="#1E40AF" title="Bleu foncé" style="background:#1E40AF"></button>
+    <button type="button" class="sw" data-color="#F28C28" title="Orange moyennes" style="background:#F28C28"></button>
+    <button type="button" class="sw" data-color="#C2410C" title="Orange foncé" style="background:#C2410C"></button>
+    <button type="button" class="sw" data-color="#4B5563" title="Gris population" style="background:#4B5563"></button>
+    <button type="button" class="sw" data-color="#16A34A" title="Vert estimation" style="background:#16A34A"></button>
+  </span>
+  <span class="grp sel-only text-only">
+    <button type="button" data-act="smaller" title="Texte plus petit">A−</button>
+    <button type="button" data-act="bigger" title="Texte plus grand">A+</button>
+  </span>
+  <span class="grp sel-only"><button type="button" data-act="hide" title="Masquer (Suppr)">Masquer</button></span>
+  <span class="grp">
+    <button type="button" data-act="undo" title="Annuler (Ctrl+Z)">Annuler</button>
+    <button type="button" data-act="reset" title="Retirer toutes les modifications de ce visuel">Réinitialiser ce visuel</button>
+    <button type="button" data-act="done" class="primary">Terminer</button>
+  </span>
+  <span class="hint">Clic : sélectionner · glisser : déplacer · Maj+glisser : tout le groupe · double-clic : modifier un texte · <b id="edstat"></b></span>
+</div>
+<div id="edsel" hidden></div>
+<input id="edtext" type="text" hidden aria-label="Modifier le texte" autocomplete="off" spellcheck="false">
+
+<div id="rotatehint" role="button" aria-label="Continuer en portrait">
+  <svg class="rh-phone" viewBox="0 0 48 48" aria-hidden="true">
+    <rect x="16" y="7" width="16" height="34" rx="3.5"/>
+    <line x1="21" y1="12" x2="27" y2="12"/>
+  </svg>
+  <div class="rh-title">Tournez<br>votre<br>téléphone</div>
+  <div class="rh-sub">
+    <span class="rh-fs">Présentation en 16:9 —<br>touchez pour le plein écran, puis balayez</span>
+    <span class="rh-nofs">Présentation en 16:9 — touchez, puis balayez.<br>Vrai plein écran : Partager → Sur l'écran d'accueil</span>
+  </div>
+</div>
+
+<script>document.documentElement.dataset.live = "all";</script>
+<script src="https://cdn.jsdelivr.net/npm/animejs@4.4.1/dist/bundles/anime.umd.min.js"></script>
+<script>
+(function () {
+  const { animate, utils } = anime;
+  const EASE = anime.cubicBezier ? anime.cubicBezier(.82, 0, .18, 1) : 'inOutQuart';
+  const PACE = 1;
+  const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const MOTION = (reduceMotion ? 0.6 : 1) * PACE;
+  const STILL = /[?&]still=1(&|$)/.test(location.search);
+  const TOUCH = matchMedia('(pointer: coarse)').matches;
+
+  /* ---------- collect stations ---------- */
+  const nodes = Array.from(document.querySelectorAll('.station'));
+  const stations = nodes.map(el => {
+    const x = +el.dataset.x, y = +el.dataset.y, zoom = +el.dataset.zoom || 1;
+    el.style.transform = `translate(${x}px, ${y}px)`;
+    return { el, x, y, w: el.offsetWidth, h: el.offsetHeight, zoom,
+             cx: x + el.offsetWidth / 2, cy: y + el.offsetHeight / 2,
+             name: el.dataset.name, key: el.dataset.key || '' };
+  });
+  function stationFromHash(h) {
+    let t = (h || '').replace(/^#/, '');
+    try { t = decodeURIComponent(t); } catch (e) {}
+    if (!t) return -1;
+    const byId = stations.findIndex(s => s.el.id === t);
+    if (byId >= 0) return byId;
+    const T = t.toUpperCase();
+    return stations.findIndex(s => s.key && s.key.toUpperCase() === T);
+  }
+
+  const world = document.getElementById('world');
+  const viewportEl = document.getElementById('viewport');
+  const hud = document.getElementById('hud');
+  const cam = { x: stations[0].cx, y: stations[0].cy, zoom: 1 };
+  let cur = 0, busy = false, overview = false, navToken = 0;
+
+  let insetLeft = 0;
+  function vw() { return window.innerWidth - insetLeft; }
+  function vh() { return window.innerHeight; }
+  function render() {
+    world.style.transform =
+      `translate(${insetLeft + vw() / 2 - cam.x * cam.zoom}px, ${vh() / 2 - cam.y * cam.zoom}px) scale(${cam.zoom})`;
+  }
+  function fitZoom(s) { return Math.min(vw() / s.w, vh() / s.h) * s.zoom; }
+  function maskToStation(s) {
+    const z = fitZoom(s);
+    const l = Math.max(0, (vw() - s.w * z) / 2).toFixed(1), t = Math.max(0, (vh() - s.h * z) / 2).toFixed(1);
+    viewportEl.style.clipPath = `inset(${t}px ${l}px ${t}px ${(+l + insetLeft).toFixed(1)}px)`;
+  }
+  function unmask() { viewportEl.style.clipPath = 'inset(0px 0px 0px 0px)'; }
+  function updateCulling() {
+    if (!TOUCH) return;
+    stations.forEach((s, k) => { s.el.style.visibility = (overview || Math.abs(k - cur) <= 1) ? '' : 'hidden'; });
+  }
+
+  /* ---------- live window: only stations near the camera exist in the DOM ---------- */
+  const LIVE_SPAN = TOUCH ? 1 : 2, PREFETCH_SPAN = LIVE_SPAN + 2, FETCH_MS = 10000;
+  let liveAll = (document.documentElement.dataset.live || document.body.dataset.live) === 'all';
+  stations.forEach(s => {
+    const tpl = s.el.querySelector(':scope > template[data-station]');
+    if (tpl) { s.src = tpl.innerHTML; tpl.remove(); s.live = false; }
+    else if (s.el.dataset.src) { s.src = null; s.live = false; }
+    else { s.src = s.el.innerHTML; s.live = true; }
+    if (!s.live) s.el.classList.add('dormant');
+  });
+  const sceneOf = s => { const n = s.el.dataset.scene; return n ? sceneRegistry[n] : null; };
+  function loadSrc(s) {
+    if (s.src != null) return Promise.resolve();
+    if (s.loading) return s.loading;
+    const ctl = typeof AbortController === 'function' ? new AbortController() : null;
+    const timer = ctl && setTimeout(() => ctl.abort(), FETCH_MS);
+    return (s.loading = fetch(s.el.dataset.src, ctl ? { signal: ctl.signal } : undefined)
+      .then(r => { if (!r.ok) throw new Error(r.status + ' ' + r.statusText); return r.text(); })
+      .then(t => { s.src = t; })
+      .catch(e => { console.warn('[deckadence] could not load', s.el.dataset.src, e); s.failed = true; })
+      .finally(() => { clearTimeout(timer); s.loading = null; }));
+  }
+  function mountStation(s) {
+    if (s.mounted) return true;
+    if (s.mounting) return s.mounting;
+    if (!s.live) {
+      if (s.src == null && !s.failed) return loadSrc(s).then(() => mountStation(s));
+      if (s.src == null) {
+        s.el.innerHTML = `<p class="station-error">${s.key || s.el.id} · could not load ${s.el.dataset.src}</p>`;
+        s.failed = false; s.live = s.mounted = true; s.el.classList.remove('dormant');
+        return true;
+      }
+      s.el.innerHTML = s.src; s.live = true; s.primed = false;
+      s.el.classList.remove('dormant'); s.el.style.backgroundImage = '';
+    }
+    const sc = sceneOf(s);
+    let r = null;
+    try { r = sc && sc.mount ? sc.mount(s.el) : null; } catch (e) { console.error('[deckadence] mount failed:', s.key || s.el.id, e); }
+    s.el.dispatchEvent(new CustomEvent('deck:mount', { bubbles: true, detail: { key: s.key, id: s.el.id } }));
+    if (!(r && typeof r.then === 'function')) { s.mounted = true; return true; }
+    const settle = () => { s.mounted = true; s.mounting = null; return true; };
+    return (s.mounting = r.then(settle, e => { console.error('[deckadence] mount failed:', s.key || s.el.id, e); return settle(); }));
+  }
+  function releaseMedia(el) {
+    el.querySelectorAll('img').forEach(i => { i.removeAttribute('srcset'); i.src = 'data:,'; });
+    el.querySelectorAll('video, audio').forEach(m => { try { m.pause(); m.removeAttribute('src'); m.querySelectorAll('source').forEach(x => x.remove()); m.load(); } catch (e) {} });
+    el.querySelectorAll('iframe').forEach(f => { f.src = 'about:blank'; });
+  }
+  function unmountStation(s) {
+    if (!s.live || liveAll || s.mounting) return;
+    const sc = sceneOf(s);
+    if (s.mounted && sc && sc.unmount) sc.unmount(s.el);
+    if (s.mounted) s.el.dispatchEvent(new CustomEvent('deck:unmount', { bubbles: true, detail: { key: s.key, id: s.el.id } }));
+    releaseMedia(s.el);
+    s.el.replaceChildren();
+    s.live = false; s.mounted = false; s.primed = false;
+    s.el.classList.add('dormant');
+  }
+  const near = (k, i, span) => Math.abs(k - i) <= span;
+  function settleLive(i) {
+    stations.forEach((s, k) => {
+      if (liveAll || near(k, i, LIVE_SPAN)) { const m = mountStation(s); if (m !== true) m.catch(() => {}); }
+      else unmountStation(s);
+      if (!liveAll && s.src == null && near(k, i, PREFETCH_SPAN)) loadSrc(s);
+    });
+  }
+  function setSource(i, html) { const s = stations[i]; if (s && typeof html === 'string') s.src = html; }
+  function setLive(mode) {
+    if (mode !== 'all') return Promise.resolve();
+    liveAll = true;
+    return Promise.all(stations.map(s => mountStation(s))).then(() => {});
+  }
+
+  /* ---------- HUD ---------- */
+  const rail = document.getElementById('rail');
+  const railtip = document.createElement('div'); railtip.id = 'railtip'; document.body.appendChild(railtip);
+  stations.forEach((s, i) => {
+    const d = document.createElement('div'); d.className = 'dot' + (i ? '' : ' active');
+    d.addEventListener('click', () => { if (!busy && i !== cur) goto(i); });
+    d.addEventListener('mouseenter', () => {
+      const r = d.getBoundingClientRect();
+      railtip.textContent = [String(i + 1).padStart(2, '0'), s.key, s.name].filter(Boolean).join(' · ');
+      railtip.style.left = (r.left + r.width / 2) + 'px';
+      railtip.classList.add('show');
+    });
+    d.addEventListener('mouseleave', () => railtip.classList.remove('show'));
+    rail.appendChild(d);
+  });
+  const dots = Array.from(rail.children);
+  stations.forEach(s => {
+    if (!s.key) return;
+    const t = document.createElement('div'); t.className = 'station-tag';
+    t.textContent = s.key;
+    if (s.name) { const n = document.createElement('span'); n.className = 'tag-name'; n.textContent = ' · ' + s.name; t.appendChild(n); }
+    t.style.transform = `translate(${s.x}px, ${s.y}px) translateY(-140%)`;
+    world.appendChild(t);
+  });
+  document.getElementById('total').textContent = String(stations.length).padStart(2, '0');
+  function railWindow(i) {
+    const n = dots.length;
+    if (!n) return;
+    dots[i].classList.remove('out');
+    const DOT = dots[i].offsetWidth || 8, GAP = parseFloat(getComputedStyle(rail).gap) || 10;
+    const hs = getComputedStyle(hud), CLEAR = parseFloat(hs.columnGap) || 0;
+    const inner = hud.clientWidth - parseFloat(hs.paddingLeft) - parseFloat(hs.paddingRight);
+    const counterW = hud.querySelector('.counter').scrollWidth;
+    const nameMin = Math.min(160, inner * 0.2);
+    let avail = inner - 2 * (Math.max(counterW, nameMin) + CLEAR);
+    if (!(inner > 0)) avail = Math.max(100, vw() * 0.5 - 2 * CLEAR);
+    const max = Math.max(5, Math.floor((avail + GAP) / (DOT + GAP)));
+    if (n <= max) { dots.forEach(d => d.classList.remove('out', 'edge')); return; }
+    const start = Math.min(Math.max(0, i - Math.floor(max / 2)), n - max), end = start + max - 1;
+    dots.forEach((d, k) => {
+      const inWin = k >= start && k <= end;
+      d.classList.toggle('out', !inWin);
+      d.classList.toggle('edge', inWin && ((k === start && start > 0) || (k === end && end < n - 1)));
+    });
+  }
+  function setHud(i) {
+    document.getElementById('idx').textContent = String(i + 1).padStart(2, '0');
+    const label = hud.querySelector('.station-name'), s = stations[i];
+    label.textContent = s.name || '';
+    if (s.key) {
+      const k = document.createElement('span'); k.className = 'station-key'; k.textContent = s.key;
+      label.prepend(k, s.name ? ' · ' : '');
+    }
+    dots.forEach((d, k) => d.classList.toggle('active', k === i));
+    railWindow(i);
+    stepHud();
+  }
+  function syncHash(i) {
+    const s = stations[i], h = '#' + encodeURIComponent(s.key || s.el.id);
+    if (location.hash === h) return;
+    try { history.replaceState(null, '', location.pathname + location.search + h); } catch (e) {}
+  }
+  function setTone(i) {
+    const inv = stations[i].el.classList.contains('invert');
+    hud.classList.toggle('on-invert', inv);
+    document.body.classList.toggle('invert-hud', inv);
+  }
+
+  /* ---------- camera ---------- */
+  function flyTo(target, { dur = 1150, ease = EASE, mid, done } = {}) {
+    if (STILL) { Object.assign(cam, target); render(); maskToStation(stations[cur]); if (mid) mid(); if (done) done(); return; }
+    busy = true; unmask();
+    const D = dur * MOTION;
+    if (mid) setTimeout(mid, D * 0.55);
+    animate(cam, { x: target.x, y: target.y, zoom: target.zoom,
+      duration: D, ease, onUpdate: render,
+      onComplete: () => { busy = false; maskToStation(stations[cur]); if (done) done(); } });
+  }
+  function flyDive(s, { mid, done } = {}) {
+    const target = { x: s.cx, y: s.cy, zoom: fitZoom(s) };
+    if (STILL) { Object.assign(cam, target); render(); maskToStation(s); if (mid) mid(); if (done) done(); return; }
+    busy = true; unmask();
+    const D = 1750 * MOTION;
+    if (mid) setTimeout(mid, D * 0.55);
+    animate(cam, { x: target.x, y: target.y,
+      zoom: [
+        { to: target.zoom * 0.34, duration: 720 * MOTION, ease: 'inOutQuad' },
+        { to: target.zoom,        duration: 1030 * MOTION, ease: EASE }
+      ],
+      duration: D, ease: EASE, onUpdate: render,
+      onComplete: () => { busy = false; maskToStation(s); if (done) done(); } });
+  }
+  function overviewCam() {
+    const pad = 200, chs = [...document.querySelectorAll('.chapter')].map(c => +c.dataset.x);
+    const minX = Math.min(...stations.map(s => s.x), ...chs) - pad, maxX = Math.max(...stations.map(s => s.x + s.w)) + pad;
+    const minY = Math.min(...stations.map(s => s.y)) - pad, maxY = Math.max(...stations.map(s => s.y + s.h)) + pad;
+    return { x: (minX + maxX) / 2, y: (minY + maxY) / 2,
+             zoom: Math.min(vw() / (maxX - minX), vh() / (maxY - minY)) };
+  }
+  function toOverview() {
+    overview = true; busy = true; unmask(); updateCulling();
+    document.body.classList.add('is-overview');
+    stations.forEach((s, i) => { const sc = sceneOf(s); if (i !== cur && s.mounted && sc && sc.labels) sc.set(s.el, sc.labels.length - 1); });
+    stations.forEach(s => { if (!s.live && s.el.dataset.poster) s.el.style.backgroundImage = `url("${s.el.dataset.poster}")`; });
+    const c = overviewCam();
+    animate(cam, { x: c.x, y: c.y, zoom: c.zoom, duration: 1300 * MOTION, ease: EASE,
+      onUpdate: render, onComplete: () => busy = false });
+  }
+
+  /* ---------- scene registry ---------- */
+  const sceneRegistry = {};
+
+  /* ---------- navigation ---------- */
+  function holdFor(pending, then) {
+    busy = true; const t = ++navToken;
+    pending.then(() => { busy = false; if (t === navToken) then(); }, () => { busy = false; });
+  }
+  function goto(i, opts) {
+    if (i < 0 || i >= stations.length) return;
+    const m = mountStation(stations[i]);
+    if (m !== true) return holdFor(m, () => goto(i, opts));
+    const prev = cur, wasOverview = overview; cur = i; overview = false;
+    if (wasOverview) stations.forEach(t => { if (!t.live) t.el.style.backgroundImage = ''; });
+    document.body.classList.remove('is-overview');
+    setHud(i); updateCulling(); syncHash(i);
+    Object.values(sceneRegistry).forEach(sc => sc.stop());
+    const s = stations[i], isNew = i !== prev;
+    const token = ++navToken;
+    const fresh = () => token === navToken && !overview;
+    const fromEnd = !!(opts && opts.fromEnd);
+    primeStation(s, fromEnd);
+    const reveal = () => { if (fresh()) { revealStation(s, fromEnd); settleLive(i); } };
+    const mid = () => { if (fresh()) setTone(i); };
+    if (!isNew) { setTone(i); flyTo({ x: s.cx, y: s.cy, zoom: fitZoom(s) }, opts); reveal(); return; }
+    if (s.el.dataset.fly === 'dive') flyDive(s, { mid, done: reveal });
+    else flyTo({ x: s.cx, y: s.cy, zoom: fitZoom(s) }, { ...opts, mid, done: reveal });
+  }
+
+  /* ---------- generic intro ---------- */
+  function splitLines(el) {
+    if (el.dataset.done) return;
+    el.innerHTML = el.innerHTML.split(/<br\s*\/?>/i)
+      .map(html => `<span class="clip"><span class="lineInner">${html}</span></span>`)
+      .join('');
+    el.dataset.done = '1';
+  }
+  function fitHeading(el) {
+    if (el.dataset.fit) return; el.dataset.fit = '1';
+    const lines = [...el.querySelectorAll('.lineInner')];
+    if (!lines.length) return;
+    const wraps = l => {
+      const lh = parseFloat(getComputedStyle(l).lineHeight) || parseFloat(getComputedStyle(l).fontSize) * 1.2;
+      return l.offsetHeight > lh * 1.3;
+    };
+    let guard = 0;
+    while (lines.some(wraps) && guard++ < 26) {
+      el.style.fontSize = (parseFloat(getComputedStyle(el).fontSize) * 0.94).toFixed(1) + 'px';
+    }
+  }
+  function releaseClips(el) { el.querySelectorAll('.clip').forEach(c => { c.style.overflow = 'visible'; }); }
+
+  function introTargets(el) {
+    el.querySelectorAll('[data-split="lines"]').forEach(splitLines);
+    el.querySelectorAll('[data-split="lines"]').forEach(fitHeading);
+    const lines = el.querySelectorAll('.lineInner');
+    const fades = Array.from(el.querySelectorAll('[data-fade]'));
+    let autos = [];
+    if (!lines.length && !fades.length) {
+      autos = Array.from(el.children).filter(c => getComputedStyle(c).position !== 'absolute');
+    }
+    return { lines, fadeTargets: [...fades, ...autos] };
+  }
+  function primeIntro(el) {
+    el.querySelectorAll('.clip').forEach(c => { c.style.overflow = 'hidden'; });
+    const { lines, fadeTargets } = introTargets(el);
+    if (lines.length) utils.set(lines, { translateY: '100%' });
+    if (fadeTargets.length) utils.set(fadeTargets, { opacity: 0, translateY: 22 });
+  }
+  function playIntro(el) {
+    const { lines, fadeTargets } = introTargets(el);
+    if (STILL) {
+      releaseClips(el);
+      if (lines.length) utils.set(lines, { translateY: '0%' });
+      if (fadeTargets.length) utils.set(fadeTargets, { opacity: 1, translateY: 0 });
+      return;
+    }
+    if (lines.length) animate(lines, { translateY: ['100%', '0%'], duration: 1150 * MOTION,
+      delay: anime.stagger(150 * MOTION), ease: EASE, onComplete: () => releaseClips(el) });
+    else releaseClips(el);
+    if (fadeTargets.length) animate(fadeTargets, { opacity: [0, 1], translateY: [22, 0],
+      duration: 900 * MOTION, delay: anime.stagger(110 * MOTION, { start: (lines.length ? 440 : 90) * MOTION }),
+      ease: 'out(2)' });
+  }
+
+  function revealStation(s, fromEnd) {
+    const name = s.el.dataset.scene, sc = name && sceneRegistry[name];
+    if (STILL) { if (sc && sc.still) sc.still(s.el); playIntro(s.el); return; }
+    if (!s.primed) { console.warn('[deckadence] station revealed without priming (it will flash):', s.key || s.el.id); primeStation(s, fromEnd); }
+    s.primed = false;
+    if (sc) { if (fromEnd && sc.labels) stepHud(); else sc.run(s.el); return; }
+    playIntro(s.el);
+  }
+  function primeStation(s, fromEnd) {
+    s.primed = true;
+    if (STILL) return;
+    const name = s.el.dataset.scene, sc = name && sceneRegistry[name];
+    if (!sc) { primeIntro(s.el); return; }
+    if (sc.prep) sc.prep(s.el, fromEnd);
+    else console.warn('[deckadence] scene "' + name + '" has no prep(el): it will flash on every arrival');
+  }
+
+  /* ==========================================================
+     SCÈNES À ÉTAPES
+     stepped(name, { labels, build(svg) → m, pose(m, k), play(m, k, c) → ms })
+       build  : dessine tout le SVG (une fois par montage), puis pose(-1)
+       pose   : état FINAL de l'étape k, posé d'un coup (k = -1 : avant l'étape a)
+       play   : anime de l'état k-1 vers k ; renvoie sa durée, pose(k) est réappliqué à la fin
+     Un clic (→, espace, swipe) = une étape. ← revient d'une étape. ↓ rejoue l'étape.
+     ========================================================== */
+  const T = ms => ms * MOTION;
+  const NS = 'http://www.w3.org/2000/svg';
+  const lerp = (a, b, t) => a + (b - a) * t;
+  const lerpObj = (A, B, t) => { const o = {}; for (const k in A) o[k] = typeof A[k] === 'number' ? lerp(A[k], B[k], t) : A[k]; return o; };
+  const fr = (v, d = 1) => v.toFixed(d).replace('.', ',');
+  const flat = a => [a].flat(3).filter(Boolean).flatMap(x => (x instanceof NodeList ? [...x] : [x]));
+  function S(tag, attrs, parent) {
+    const e = document.createElementNS(NS, tag);
+    if (attrs) for (const k in attrs) e.setAttribute(k, attrs[k]);
+    if (parent) parent.appendChild(e);
+    return e;
+  }
+  // Rich SVG text: *gras*, ~italique~, _e en indice ; espace insécable avant : ? ! ;
+  function rich(t, content) {
+    while (t.firstChild) t.removeChild(t.firstChild);
+    const segs = typeof content === 'string' ? [[content]] : content;
+    let up = false;
+    segs.forEach(([str, attrs]) => {
+      str = str.replace(/ ([:?!;])/g, ' $1');
+      str.split(/(\*[^*]+\*|~[^~]+~)/).forEach(seg => {
+        if (!seg) return;
+        const sa = Object.assign({}, attrs || {});
+        if (seg.length > 2 && seg[0] === '*' && seg.endsWith('*')) { sa['font-weight'] = 700; seg = seg.slice(1, -1); }
+        else if (seg.length > 2 && seg[0] === '~' && seg.endsWith('~')) { sa['font-style'] = 'italic'; seg = seg.slice(1, -1); }
+        seg.split(/(_[A-Za-z0-9α])/).forEach(q => {
+          if (!q) return;
+          const a = Object.assign({}, sa), sub = q.length === 2 && q[0] === '_';
+          if (sub) { a.dy = '0.25em'; a['font-size'] = '70%'; } else if (up) a.dy = '-0.175em';
+          S('tspan', a, t).textContent = sub ? q[1] : q;
+          up = sub;
+        });
+      });
+    });
+    return t;
+  }
+  const tx = (parent, x, y, content, attrs) => rich(S('text', Object.assign({ x, y }, attrs || {}), parent), content);
+  function seeded(seed) {
+    return function () {
+      seed = seed + 0x6D2B79F5 | 0;
+      let t = Math.imul(seed ^ seed >>> 15, 1 | seed);
+      t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t;
+      return ((t ^ t >>> 14) >>> 0) / 4294967296;
+    };
+  }
+  function shuffle(arr, r) { for (let i = arr.length - 1; i > 0; i--) { const j = Math.floor(r() * (i + 1)); [arr[i], arr[j]] = [arr[j], arr[i]]; } return arr; }
+
+  // pose helpers
+  function clean(svg) { svg.querySelectorAll('[style]').forEach(e => e.removeAttribute('style')); }
+  // hidden = transparent AND not clickable (otherwise an invisible element from another step catches edit clicks)
+  function vis(els, on) { flat(els).forEach(e => { e.style.opacity = on ? '' : 0; e.style.pointerEvents = on ? '' : 'none'; }); }
+  // play helpers (all queued on the step controller c, so leaving the step cancels them)
+  function fadeIn(c, els, d = 0, dur = 500) { const t = flat(els); if (!t.length) return; t.forEach(e => { e.style.opacity = 0; }); c.anim(t, { opacity: [0, 1], duration: T(dur), delay: T(d), ease: 'out(2)' }); }
+  function fadeOut(c, els, d = 0, dur = 400) { const t = flat(els); if (!t.length) return; c.anim(t, { opacity: 0, duration: T(dur), delay: T(d), ease: 'out(2)' }); }
+  function tweenT(c, dur, d, fn, ease = EASE) { const o = { t: 0 }; c.anim(o, { t: [0, 1], duration: T(dur), delay: T(d), ease, onUpdate: () => fn(o.t) }); }
+  function hidePath(p) { const L = p.getTotalLength(); p.style.strokeDasharray = L + ' ' + L; p.style.strokeDashoffset = L; }
+  function drawPath(c, p, dur, d = 0, ease = 'inOutQuad') {
+    const L = p.getTotalLength(), o = { v: L };
+    p.style.opacity = ''; p.style.strokeDasharray = L + ' ' + L; p.style.strokeDashoffset = L;
+    c.anim(o, { v: [L, 0], duration: T(dur), delay: T(d), ease, onUpdate: () => { p.style.strokeDashoffset = o.v; } });
+  }
+
+  let stepHud = () => {};
+  function stepped(name, def) {
+    let ctl = null;
+    const n = def.labels.length;
+    const pose = (m, k) => { def.pose(m, k); applyEdits(m.svg); };
+    const sc = sceneRegistry[name] = {
+      labels: def.labels,
+      mount(el) {
+        const svg = el.querySelector('svg.stage');
+        svg.replaceChildren();
+        el._m = def.build(svg); el._m.svg = svg; el._at = 0;
+        nameBlocks(svg);
+        pose(el._m, -1);
+      },
+      stop() {
+        if (!ctl) return;
+        ctl.cancelled = true; ctl.timers.forEach(clearTimeout);
+        ctl.anims.forEach(a => { try { a.pause(); } catch (e) {} });
+        ctl = null;
+      },
+      prep(el, fromEnd) { sc.stop(); const k = fromEnd ? n - 1 : -1; pose(el._m, k); el._at = Math.max(0, k); },
+      run(el) { sc.go(el, 0); },
+      still(el) { sc.set(el, 0); },
+      go(el, k) {
+        sc.stop(); pose(el._m, k - 1); el._at = k; stepHud();
+        const c = ctl = { cancelled: false, timers: [], anims: [] };
+        c.at = (ms, fn) => c.timers.push(setTimeout(() => { if (!c.cancelled) fn(); }, T(ms)));
+        c.anim = (t, p) => { const a = animate(t, p); c.anims.push(a); return a; };
+        const ms = def.play(el._m, k, c) || 0;
+        c.at(ms + 80, () => pose(el._m, k));
+      },
+      set(el, k) { sc.stop(); pose(el._m, k); el._at = k; stepHud(); },
+      forward(el) { if (el._at < n - 1) { sc.go(el, el._at + 1); return true; } return false; },
+      back(el) { if (el._at > 0) { sc.set(el, el._at - 1); return true; } return false; },
+    };
+  }
+
+
+  /* ==========================================================
+     MODE ÉDITION · touche E ou bouton ✎
+     Clic : sélectionner · glisser : déplacer · Maj + glisser : déplacer tout le groupe
+     Flèches : déplacer de 1 px (Maj : 10 px) · double-clic sur un texte : le réécrire
+     (*gras*, ~italique~, m_e pour l'indice) · Suppr : masquer · Ctrl+Z : annuler.
+     Une modification vaut pour toutes les étapes du visuel. Elle est enregistrée avec la
+     présentation (stockage partagé de l'artifact) ; hors ligne, dans ce navigateur.
+     EDITS = { CLÉ_STATION : { chemin-dans-le-svg : { dx, dy, text, fill, size, hidden } } }
+     ========================================================== */
+  const EDITS = {};
+  const LS_KEY = 'stats-proba-2-edits-v1';
+  // Inside the claude.ai viewer (an iframe) the edits saved with the artifact are the only truth:
+  // this browser's copy is ignored, then overwritten once they arrive. Opened as a plain file,
+  // the browser copy is all there is.
+  const IN_VIEWER = window.parent !== window;
+  const loadLocal = () => { try { Object.assign(EDITS, JSON.parse(localStorage.getItem(LS_KEY) || '{}')); } catch (e) {} };
+  if (!IN_VIEWER) loadLocal();
+  const stationKey = svg => svg.closest('.station').dataset.key;
+  // An element's address = the stable name of its top-level block + its child indices inside it.
+  // Blocks are named from their content at build time (before any edit), so adding or removing
+  // another block elsewhere in the drawing never re-targets a saved edit.
+  const hashName = str => { let h = 5381; for (let i = 0; i < str.length; i++) h = ((h << 5) + h + str.charCodeAt(i)) | 0; return 'k' + (h >>> 0).toString(36); };
+  function nameBlocks(svg) {
+    const seen = {};
+    [...svg.children].forEach(ch => {
+      const t = ch.tagName === 'text' ? ch : ch.querySelector('text');
+      const sig = ch.tagName + ':' + (t ? t.textContent.trim().slice(0, 40) : (ch.getAttribute('class') || ''));
+      seen[sig] = (seen[sig] || 0) + 1;
+      ch.dataset.ek = hashName(sig + '#' + seen[sig]);
+    });
+  }
+  const pathOf = (el, svg) => {
+    const rel = []; let top = el;
+    while (top.parentNode !== svg) { rel.unshift([...top.parentNode.children].indexOf(top)); top = top.parentNode; }
+    return top.dataset.ek + (rel.length ? '/' + rel.join('-') : '');
+  };
+  const byPath = (svg, p) => {
+    if (p[0] !== 'k') return p.split('-').reduce((n, i) => n && n.children[+i], svg);   // older index-only addresses
+    const [top, rel] = p.split('/');
+    let n = svg.querySelector(':scope > [data-ek="' + top + '"]');
+    if (n && rel) n = rel.split('-').reduce((x, i) => x && x.children[+i], n);
+    return n;
+  };
+  function recolor(t, c) {
+    if (t.tagName === 'g') { [...t.children].forEach(ch => recolor(ch, c)); return; }
+    if (t.tagName === 'text') { t.style.fill = c; t.querySelectorAll('tspan').forEach(x => { x.style.fill = c; }); return; }
+    const cs = getComputedStyle(t);
+    if (t.tagName === 'line' || cs.fill === 'none') t.style.stroke = c;
+    else { t.style.fill = c; if (cs.stroke !== 'none') t.style.stroke = c; }
+  }
+  function paint(t, o) {
+    if (o.text != null && t.tagName === 'text') rich(t, o.text);
+    if (o.hidden) t.style.display = 'none';
+    if (o.dx || o.dy) t.style.translate = `${o.dx || 0}px ${o.dy || 0}px`;   // CSS translate composes with any transform
+    if (o.size) t.style.fontSize = o.size + 'px';
+    if (o.fill) recolor(t, o.fill);
+  }
+  function applyEdits(svg) {
+    const key = stationKey(svg), E = EDITS[key];
+    if (!E) return;
+    let migrated = false;
+    for (const p of Object.keys(E)) {
+      const t = byPath(svg, p); if (!t) continue;
+      paint(t, E[p]);
+      if (p[0] !== 'k') { const np = pathOf(t, svg); E[np] = { ...(E[np] || {}), ...E[p] }; delete E[p]; migrated = true; }   // upgrade old addresses
+    }
+    if (migrated && !STILL && (!IN_VIEWER || storeReady)) save(key);
+  }
+  // text element → the markup rich() reads back (*gras*, ~italique~, _e)
+  function toMarkup(t) {
+    const ts = [...t.querySelectorAll('tspan')];
+    if (!ts.length) return t.textContent;
+    let out = '', bold = false;
+    ts.forEach(x => {
+      const sub = x.getAttribute('font-size') === '70%', b = +x.getAttribute('font-weight') >= 700, it = x.getAttribute('font-style') === 'italic';
+      if (!sub && b !== bold) { out += '*'; bold = b; }
+      out += sub ? '_' + x.textContent : it ? '~' + x.textContent + '~' : x.textContent;
+    });
+    if (bold) out += '*';
+    return out.replace(/ /g, ' ').replace(/\*\*/g, '');
+  }
+
+  let editing = false, sel = null, selPath = null, undo = [], db = null, saving = false, saveTimer = 0, storeReady = !IN_VIEWER;
+  const pending = new Set();
+  const $id = id => document.getElementById(id);
+  const edbar = $id('edbar'), edsel = $id('edsel'), edtext = $id('edtext'), edstat = $id('edstat');
+  const curSvg = () => stations[cur].el.querySelector('svg.stage');
+  const edStatus = t => { edstat.textContent = t; };
+  function save(key) {
+    if (!storeReady) return;
+    try { localStorage.setItem(LS_KEY, JSON.stringify(EDITS)); } catch (e) {}
+    pending.add(key);
+    clearTimeout(saveTimer); saveTimer = setTimeout(flush, 700);
+    edStatus(db ? 'Enregistrement…' : 'Enregistré dans ce navigateur');
+  }
+  async function flush() {
+    if (!db || saving || !pending.size) return;
+    saving = true;
+    try {
+      for (const key of [...pending]) { pending.delete(key); await db.doc('edits/' + key).set({ o: JSON.parse(JSON.stringify(EDITS[key] || {})) }); }
+      edStatus('Enregistré');
+    } catch (e) {
+      edStatus(e && (e.code === 'not_granted' || e.code === 'revoked') ? 'Lecture seule : gardé dans ce navigateur' : 'Pas enregistré : réessaie dans un moment');
+    }
+    saving = false;
+    if (pending.size) flush();
+  }
+  function repose() {
+    const s = stations[cur], sc = sceneOf(s);
+    if (sc && sc.labels && s.mounted) sc.set(s.el, s.el._at || 0);
+    if (selPath) sel = byPath(curSvg(), selPath);
+  }
+  function change(svg, p, patch) {
+    const key = stationKey(svg), E = EDITS[key] = EDITS[key] || {};
+    undo.push({ key, p, prev: E[p] ? { ...E[p] } : null });
+    E[p] = { ...(E[p] || {}), ...patch };
+    repose(); save(key);
+  }
+  function doUndo() {
+    const u = undo.pop(); if (!u) return;
+    const E = EDITS[u.key] = EDITS[u.key] || {};
+    if (u.prev) E[u.p] = u.prev; else delete E[u.p];
+    repose(); save(u.key);
+  }
+  function select(t) {
+    sel = t; selPath = t ? pathOf(t, curSvg()) : null;
+    edbar.classList.toggle('has-sel', !!t);
+    edbar.classList.toggle('is-text', !!t && t.tagName === 'text');
+  }
+  // the selection outline follows its element (camera moves, steps, drags)
+  (function track() {
+    if (editing && sel && sel.isConnected && curSvg().contains(sel) && getComputedStyle(sel).display !== 'none') {
+      const r = sel.getBoundingClientRect();
+      Object.assign(edsel.style, { left: r.left + 'px', top: r.top + 'px', width: r.width + 'px', height: r.height + 'px' });
+      edsel.hidden = false;
+    } else edsel.hidden = true;
+    requestAnimationFrame(track);
+  })();
+  function toggleEdit(on = !editing) {
+    editing = on;
+    document.body.classList.toggle('editing', on);
+    edbar.hidden = !on;
+    select(null); edtext.hidden = true;
+    if (on) { repose(); edStatus(db ? 'Les modifications sont enregistrées avec la présentation' : 'Les modifications sont gardées dans ce navigateur'); }
+  }
+  $id('edbtn').addEventListener('click', e => { toggleEdit(); e.currentTarget.blur(); });
+
+  viewportEl.addEventListener('pointerdown', e => {
+    if (!editing || busy || e.button > 0) return;
+    const svg = curSvg();
+    let t = e.target;
+    if (!svg.contains(t) || t === svg) { select(null); return; }
+    if (t.tagName === 'tspan') t = t.parentNode;
+    if (e.shiftKey && t.parentNode !== svg) t = t.parentNode;   // Maj : the whole group
+    select(t);
+    const p = selPath, key = stationKey(svg), base = { ...((EDITS[key] || {})[p] || {}) };
+    const M = t.parentNode.getScreenCTM().inverse(), P = ev => new DOMPoint(ev.clientX, ev.clientY).matrixTransform(M);
+    const p0 = P(e), off = ev => { const q = P(ev); return [Math.round((base.dx || 0) + q.x - p0.x), Math.round((base.dy || 0) + q.y - p0.y), Math.abs(q.x - p0.x) + Math.abs(q.y - p0.y)]; };
+    let moved = false;
+    const mv = ev => { const [dx, dy, d] = off(ev); if (d > 2) moved = true; if (moved) t.style.translate = `${dx}px ${dy}px`; };
+    const up = ev => {
+      window.removeEventListener('pointermove', mv); window.removeEventListener('pointerup', up);
+      if (moved) { const [dx, dy] = off(ev); change(svg, p, { dx, dy }); }
+    };
+    window.addEventListener('pointermove', mv); window.addEventListener('pointerup', up);
+    e.preventDefault();
+  });
+  viewportEl.addEventListener('dblclick', e => {
+    if (!editing) return;
+    let t = e.target;
+    if (t.tagName === 'tspan') t = t.parentNode;
+    if (t.tagName === 'text' && curSvg().contains(t)) openText(t);
+  });
+  function openText(t) {
+    const svg = curSvg(), p = pathOf(t, svg), key = stationKey(svg), r = t.getBoundingClientRect();
+    const before = ((EDITS[key] || {})[p] || {}).text ?? toMarkup(t);
+    edtext.value = before;
+    Object.assign(edtext.style, { left: r.left - 8 + 'px', top: r.top - 6 + 'px', width: Math.max(r.width + 80, 240) + 'px',
+      fontSize: Math.max(13, parseFloat(getComputedStyle(t).fontSize) * cam.zoom) + 'px' });
+    edtext.hidden = false; edtext.focus(); edtext.select();
+    const done = keep => {
+      edtext.onkeydown = edtext.onblur = null; edtext.hidden = true;
+      if (keep && edtext.value !== before) change(svg, p, { text: edtext.value });
+    };
+    edtext.onkeydown = ev => { ev.stopPropagation(); if (ev.key === 'Enter') done(true); else if (ev.key === 'Escape') done(false); };
+    edtext.onblur = () => done(true);
+  }
+  edbar.addEventListener('click', e => {
+    const b = e.target.closest('button'); if (!b) return;
+    const svg = curSvg(), key = stationKey(svg), act = b.dataset.act;
+    if (act === 'done') return toggleEdit(false);
+    if (act === 'undo') return doUndo();
+    if (act === 'reset') {
+      if (!b.classList.contains('armed')) { b.classList.add('armed'); b.textContent = 'Confirmer ?'; setTimeout(() => { b.classList.remove('armed'); b.textContent = 'Réinitialiser ce visuel'; }, 2500); return; }
+      b.classList.remove('armed'); b.textContent = 'Réinitialiser ce visuel';
+      delete EDITS[key]; undo = undo.filter(u => u.key !== key); select(null); repose(); save(key); return;
+    }
+    if (!sel) return;
+    if (b.dataset.color) change(svg, selPath, { fill: b.dataset.color });
+    else if (act === 'bigger' || act === 'smaller') {
+      if (sel.tagName === 'text') change(svg, selPath, { size: Math.round(parseFloat(getComputedStyle(sel).fontSize) * (act === 'bigger' ? 1.12 : 0.89) * 10) / 10 });
+    } else if (act === 'hide') { change(svg, selPath, { hidden: true }); select(null); }
+  });
+  // keys: E toggles; while editing, arrows / Suppr / Ctrl+Z act on the selection before the deck sees them
+  window.addEventListener('keydown', e => {
+    if (e.target.closest && e.target.closest('input, textarea')) return;
+    if ((e.key === 'e' || e.key === 'E') && !e.metaKey && !e.ctrlKey && !e.altKey) { e.preventDefault(); e.stopImmediatePropagation(); toggleEdit(); return; }
+    if (!editing) return;
+    const eat = () => { e.preventDefault(); e.stopImmediatePropagation(); };
+    if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'z') { eat(); doUndo(); return; }
+    if (e.key === 'Escape') { eat(); if (sel) select(null); else toggleEdit(false); return; }
+    if (!sel) return;
+    const st = e.shiftKey ? 10 : 1, d = { ArrowLeft: [-st, 0], ArrowRight: [st, 0], ArrowUp: [0, -st], ArrowDown: [0, st] }[e.key];
+    const svg = curSvg(), o = (EDITS[stationKey(svg)] || {})[selPath] || {};
+    if (d) { eat(); change(svg, selPath, { dx: (o.dx || 0) + d[0], dy: (o.dy || 0) + d[1] }); }
+    else if (e.key === 'Delete' || e.key === 'Backspace') { eat(); change(svg, selPath, { hidden: true }); select(null); }
+  }, true);
+  // shared store: the edits saved with the artifact replace this browser's copy
+  function reposeAll() { stations.forEach(st => { const sc = sceneOf(st); if (st.mounted && sc && sc.labels && st !== stations[cur]) sc.set(st.el, st.el._at || 0); }); repose(); }
+  function useLocalCopy() { if (storeReady) return; storeReady = true; loadLocal(); reposeAll(); }   // no shared store in this view
+  (function connect(t0) {
+    const C = window.claude;
+    if (!(C && typeof C.use === 'function')) { if (IN_VIEWER && Date.now() - t0 < 8000) setTimeout(() => connect(t0), 150); else useLocalCopy(); return; }
+    C.use('db').then(async d => {
+      if (!d) { useLocalCopy(); return; }
+      try {
+        const qs = await d.collection('edits').get();
+        for (const k in EDITS) delete EDITS[k];
+        qs.docs.forEach(doc => { const v = doc.data(); if (v && v.o) EDITS[doc.id] = JSON.parse(JSON.stringify(v.o)); });
+        db = d; storeReady = true;
+        try { localStorage.setItem(LS_KEY, JSON.stringify(EDITS)); } catch (e) {}
+        reposeAll();
+      } catch (e) { db = d; useLocalCopy(); }
+      if (editing) edStatus('Les modifications sont enregistrées avec la présentation');
+      flush();
+    }, () => useLocalCopy());
+  })(Date.now());
+
+
+  /* ==========================================================
+     DONNÉES · toutes issues du cours 1 ou de donnees.py (même dossier)
+     Population Ω (PASS) : largeur de main, μ = 70 mm, σ² = 22,5 mm², N = 30.
+     G1 : les 30 valeurs du cours 1 (mₑ = 70,4 ; Sₑ² = 17,57 ; 11 mains ≥ 72 mm).
+     H  : 30 handballeurs, valeurs générées une fois pour toutes (mₑ = 74,9 ; Sₑ² = 20,36 ; 23 mains ≥ 72 mm).
+     Hypothèses du fabricant (H₀) : μ = 72,5 mm ; ϕ = 0,20 de gants L (main ≥ 72 mm).
+     ========================================================== */
+  const G1 = { name: 'G1', m: 70.4, v: [58, 63, 65, 67, 67, 68, 68, 68, 69, 69, 69, 69, 70, 70, 70, 70, 71, 71, 71, 72, 72, 73, 74, 74, 74, 74, 75, 75, 75, 81] };
+  const HB = { name: 'H', m: 74.9, v: [64, 68, 69, 69, 70, 71, 71, 72, 72, 72, 72, 73, 74, 74, 75, 76, 76, 77, 77, 78, 78, 78, 78, 78, 79, 80, 80, 81, 82, 83] };
+  const NIND = 30, N = 30, SIG2 = 22.5, SIG = Math.sqrt(SIG2), SEM = SIG / Math.sqrt(N);   // σ/√N = 0,866 mm
+  const MU0 = 72.5, MU_TRUE = 70, ME = G1.m;
+  const Z90 = 1.645, Z95 = 1.96, Z98 = 2.326, Z99 = 2.576, ZMAX = 3.4;
+  const Z_ME = (ME - MU0) / SEM;   // −2,42
+
+  // loi normale centrée réduite : fonction de répartition (Abramowitz-Stegun 7.1.26) et quantile (dichotomie)
+  function Phi(x) {
+    const t = 1 / (1 + 0.3275911 * Math.abs(x) / Math.SQRT2);
+    const y = 1 - (((((1.061405429 * t - 1.453152027) * t) + 1.421413741) * t - 0.284496736) * t + 0.254829592) * t * Math.exp(-x * x / 2);
+    return x >= 0 ? (1 + y) / 2 : (1 - y) / 2;
+  }
+  function zOf(p) { let a = -8, b = 8; for (let i = 0; i < 60; i++) { const c = (a + b) / 2; if (Phi(c) < p) a = c; else b = c; } return (a + b) / 2; }
+  const pctTxt = (a, d = 1) => (Math.round(a * 100 * 10 ** d) / 10 ** d).toFixed(d).replace('.', ',').replace(/,0+$/, '') + ' %';
+
+  // mini balisage des formules : {p:…} gris, {g:…} vert, {o:…} orange, {b:…} gras, {r:…} rouge,
+  // majuscule = la même couleur en gras ; ~…~ italique, _x indice (comme dans le cours 1)
+  const FMA = { p: { class: 't-pop' }, g: { class: 't-green' }, o: { class: 't-or' }, b: { 'font-weight': 700 }, r: { class: 't-red' }, u: { class: 't-blue' },
+    P: { class: 't-pop', 'font-weight': 700 }, G: { class: 't-green', 'font-weight': 700 }, O: { class: 't-or', 'font-weight': 700 }, R: { class: 't-red', 'font-weight': 700 }, U: { class: 't-blue', 'font-weight': 700 } };
+  const FM = s => s.split(/(\{[pgobruPGORU]:[^}]*\})/).filter(Boolean).map(t => { const q = t.match(/^\{([pgobruPGORU]):([^}]*)\}$/); return q ? [q[2], FMA[q[1]]] : [t]; });
+  const ftx = (parent, x, y, s, attrs) => tx(parent, x, y, FM(s), attrs);
+  // une fraction : numérateur, barre, dénominateur, centrés sur cx ; y = hauteur de la barre
+  function frac(parent, cx, y, num, den, w, size = 40, cls = '') {
+    const g = S('g', {}, parent);
+    ftx(g, cx, y - size * 0.32, num, { 'text-anchor': 'middle', 'font-size': size, 'font-weight': 600 });
+    S('line', { x1: cx - w / 2, x2: cx + w / 2, y1: y, y2: y, class: 'fbar' + (cls ? ' ' + cls : '') }, g);
+    ftx(g, cx, y + size * 1.02, den, { 'text-anchor': 'middle', 'font-size': size, 'font-weight': 600 });
+    return g;
+  }
+  // une « formule-fraction » sur une ligne : gauche = fraction = droite
+  function fracLine(parent, cx, y, left, num, den, w, right, size = 40) {
+    const g = S('g', {}, parent);
+    if (left) ftx(g, cx - w / 2 - 18, y + size * 0.34, left, { 'text-anchor': 'end', 'font-size': size, 'font-weight': 600 });
+    frac(g, cx, y, num, den, w, size);
+    if (right) ftx(g, cx + w / 2 + 18, y + size * 0.34, right, { 'font-size': size, 'font-weight': 600 });
+    return g;
+  }
+  function card(parent, x, y, w, h, cls = 'card', rx = 18) { return S('rect', { x, y, width: w, height: h, rx, class: cls }, parent); }
+  // apparition « une ligne après l'autre » des enfants d'un groupe
+  function stagger(c, g, d0 = 0, gap = 140, dur = 450) {
+    const kids = [...g.children];
+    g.style.opacity = '';
+    kids.forEach((e, i) => { e.style.opacity = 0; c.at(d0 + i * gap, () => c.anim(e, { opacity: [0, 1], translateY: [14, 0], duration: T(dur), ease: 'out(3)' })); });
+    return d0 + kids.length * gap + dur;
+  }
+  function popIn(c, el, d = 0, dur = 550) { c.at(d, () => { el.style.opacity = ''; c.anim(el, { opacity: [0, 1], scale: [0.85, 1], duration: T(dur), ease: 'out(3)' }); }); el.style.opacity = 0; }
+  /* ---------- chart parts (shared by every station) ---------- */
+  const geoX = G => mm => G.x0 + (mm - G.d0) * (G.x1 - G.x0) / (G.d1 - G.d0);
+  const fmtTick = v => Number.isInteger(v) ? String(v) : fr(v);
+  const range = (a, b, s) => { const o = []; for (let v = a; v <= b + 1e-9; v += s) o.push(+v.toFixed(4)); return o; };
+
+  // Moyenne mₑ : jamais une barre. Trait vertical 3 px + triangle sous l'axe + étiquette orange.
+  function makeMean(parent, m, label, sym = 'm_e') {
+    const g = S('g', {}, parent);
+    const line = S('line', { class: 'mline grow' }, g);
+    const tri = S('path', { class: 'mtri' }, g);
+    const lbl = S('text', { class: 't-or', 'font-weight': 600 }, g);
+    let mode = null;
+    return { g, line, tri, lbl, m, layout(X, top, base, md, L = {}) {
+      const x = X(m);
+      line.setAttribute('x1', x); line.setAttribute('x2', x); line.setAttribute('y1', top); line.setAttribute('y2', base);
+      const [h, hw] = md === 'below' ? [26, 14] : md === 'right' ? [13, 8] : [12, 7];
+      tri.setAttribute('d', `M${x} ${base + 2}L${x + hw} ${base + 2 + h}L${x - hw} ${base + 2 + h}Z`);
+      if (md !== mode) {
+        mode = md;
+        rich(lbl, md === 'top' ? `${sym} = ${fr(m)}` : (label || `${sym} = ${fr(m)} mm`));
+        lbl.setAttribute('font-size', md === 'top' ? 22 : 28);
+        lbl.setAttribute('text-anchor', md === 'top' ? 'middle' : 'start');
+      }
+      if (md === 'below') { lbl.setAttribute('x', x + 22); lbl.setAttribute('y', base + 28); }
+      else if (md === 'right') { lbl.setAttribute('x', L.labelX); lbl.setAttribute('y', (top + base) / 2 + 10); }
+      else { lbl.setAttribute('x', x); lbl.setAttribute('y', top - 8); }
+    } };
+  }
+
+  // Une barre d'histogramme : de x0 à x1, hauteur h px posée sur base (cachée quand vide).
+  function setBar(el, x0, x1, base, h) {
+    el.setAttribute('x', x0); el.setAttribute('width', x1 - x0);
+    el.setAttribute('y', base - h); el.setAttribute('height', Math.max(0, h));
+    el.setAttribute('visibility', h > 0.5 ? 'visible' : 'hidden');
+  }
+  // Diagramme en bâtons d'un groupe : les longueurs sont arrondies au mm, donc un bâton fin
+  // posé EXACTEMENT sur chaque valeur (56…84 mm), haut de son effectif. Ainsi le trait mₑ tombe
+  // sur une abscisse précise, jamais sur un intervalle. Les valeurs arrivent dans un ordre
+  // aléatoire (graine fixe) : à chaque arrivée, le bâton de sa valeur monte d'un cran.
+  const YMAX = 5;   // effectif maximal d'une valeur dans G1–G9 (N = 30)
+  const stickW = G => Math.max(3, Math.min(18, 0.32 * (G.x1 - G.x0) / (G.d1 - G.d0)));
+  function makeChart(parent, grp, o = {}) {
+    const g = S('g', {}, parent);
+    const frame = S('g', {}, g);
+    const grid = [], ylab = [];
+    for (let i = 0; i <= YMAX; i++) {
+      grid.push(S('line', { class: i ? 'gridl' : 'basel' }, frame));
+      if (o.ylabels !== false) ylab.push(tx(frame, 0, 0, String(i), { class: 't-tick', 'text-anchor': 'end' }));
+    }
+    const yTitle = o.yTitle ? tx(frame, 0, 0, 'Effectif', { class: 't-ax', 'text-anchor': 'middle' }) : null;
+    const sqG = S('g', {}, g);
+    const r = seeded(o.seed || 7), lv = {};
+    const counts = new Array(29).fill(0);
+    grp.v.forEach(v => counts[v - 56]++);
+    const bars = counts.map(() => S('rect', { class: 'sq' }, sqG));
+    const sq = shuffle(grp.v.map((_, i) => i), r).map(i => {
+      const c = grp.v[i] - 56;
+      lv[c] = (lv[c] ?? -1) + 1;
+      return { c, lvl: lv[c] };
+    });
+    const mean = makeMean(g, grp.m, o.meanText, o.sym);
+    const cart = S('g', {}, g), cr = S('rect', { class: 'nobox', rx: 8 }, cart), ct = tx(cart, 0, 0, grp.name, { 'text-anchor': 'middle', 'font-weight': 700 });
+    const ext = o.ext === false ? null : S('line', { class: 'mext' }, o.extParent || g);
+    const ch = { g, frame, sq, bars, sqEls: bars, counts, shown: counts.slice(), mean, cart, ext, yTitle, grp, G: null,
+      drawBars() { const G = ch.G, X = geoX(G), w = stickW(G); bars.forEach((b, c) => setBar(b, X(56 + c) - w / 2, X(56 + c) + w / 2, G.base, ch.shown[c] * G.unit)); },
+      layout(G, L = {}) {
+        ch.G = G; ch.shown = counts.slice();
+        const X = geoX(G), top = G.base - YMAX * G.unit;
+        grid.forEach((l, i) => { const y = G.base - i * G.unit; l.setAttribute('x1', X(56)); l.setAttribute('x2', X(84)); l.setAttribute('y1', y); l.setAttribute('y2', y); });
+        ylab.forEach((t, i) => { t.setAttribute('x', G.x0 - 14); t.setAttribute('y', G.base - i * G.unit + 8); t.setAttribute('visibility', G.unit < 60 && (i % 2 || i === 0) ? 'hidden' : 'visible'); });
+        if (yTitle) { const x = G.x0 - 70, y = (top + G.base) / 2; yTitle.setAttribute('x', x); yTitle.setAttribute('y', y); yTitle.setAttribute('transform', `rotate(-90 ${x} ${y})`); }
+        ch.drawBars();
+        mean.layout(X, top, G.base, L.mean || 'below', L);
+        const [cw, chh] = L.cartSize || [76, 44], [cx, cy] = L.cart || [G.x0 - 100, (top + G.base) / 2];
+        cr.setAttribute('x', cx - cw / 2); cr.setAttribute('y', cy - chh / 2); cr.setAttribute('width', cw); cr.setAttribute('height', chh);
+        ct.setAttribute('x', cx); ct.setAttribute('y', cy + (L.cartFont || 26) * 0.36); ct.setAttribute('font-size', L.cartFont || 26);
+        if (ext) { const x = X(grp.m); ext.setAttribute('x1', x); ext.setAttribute('x2', x); ext.setAttribute('y1', L.extTop ?? top); ext.setAttribute('y2', L.extBot ?? G.base); }
+      } };
+    return ch;
+  }
+
+  function makeAxis(parent, ticks, isLabel, title, cls = 't-tick') {
+    const g = S('g', {}, parent);
+    const line = S('line', { class: 'axl' }, g);
+    const tk = ticks.map(v => ({ v, l: S('line', { class: 'axl' }, g), t: isLabel(v) ? tx(g, 0, 0, fmtTick(v), { class: cls, 'text-anchor': 'middle' }) : null }));
+    const tt = title ? tx(g, 0, 0, title, { class: 't-ax', 'text-anchor': 'middle' }) : null;
+    return { g, labels: tk.filter(k => k.t).map(k => k.t), tt, layout(X, y, o = {}) {
+      line.setAttribute('x1', X(ticks[0])); line.setAttribute('x2', X(ticks[ticks.length - 1])); line.setAttribute('y1', y); line.setAttribute('y2', y);
+      tk.forEach(k => {
+        const x = X(k.v);
+        k.l.setAttribute('x1', x); k.l.setAttribute('x2', x); k.l.setAttribute('y1', y); k.l.setAttribute('y2', y + 8);
+        if (k.t) { k.t.setAttribute('x', x); k.t.setAttribute('y', y + (o.ldy || 34)); k.t.setAttribute('visibility', o.thin && k.v % 4 ? 'hidden' : 'visible'); }
+      });
+      if (tt) { tt.setAttribute('x', (X(ticks[0]) + X(ticks[ticks.length - 1])) / 2); tt.setAttribute('y', y + (o.tdy || 78)); }
+    } };
+  }
+
+  // Les barres partent de zéro ; à chaque valeur qui arrive, la barre de sa classe monte d'un cran.
+  function growBars(c, ch, start, step) {
+    ch.shown = ch.counts.map(() => 0); ch.drawBars(); vis(ch.bars, true);
+    ch.sq.forEach((s, i) => {
+      const o = { v: 0 };
+      c.anim(o, { v: [0, 1], duration: T(280), delay: T(start + i * step), ease: 'out(3)',
+        onUpdate: () => { ch.shown[s.c] = Math.max(ch.shown[s.c], s.lvl + o.v); ch.drawBars(); } });
+    });
+  }
+  function meanIn(c, mean, d = 0) {
+    c.at(d, () => { mean.g.style.opacity = ''; });
+    utils.set(mean.line, { scaleY: 0 }); utils.set([mean.tri, mean.lbl], { opacity: 0 });
+    c.anim(mean.line, { scaleY: [0, 1], duration: T(500), delay: T(d), ease: 'out(3)' });
+    c.anim(mean.tri, { opacity: [0, 1], translateY: [12, 0], duration: T(400), delay: T(d + 300), ease: 'out(2)' });
+    c.anim(mean.lbl, { opacity: [0, 1], duration: T(400), delay: T(d + 450) });
+  }
+  function box(parent, x, y, w, h, cls = 'box', rx = 10) { return S('rect', { x, y, width: w, height: h, rx, class: cls }, parent); }
+  function arrowHead(parent, x, y, ang, cls, size = 16) {
+    const a = ang, s = size, w = size * 0.55;
+    const p = [[x, y], [x - s * Math.cos(a) + w * Math.sin(a), y - s * Math.sin(a) - w * Math.cos(a)], [x - s * Math.cos(a) - w * Math.sin(a), y - s * Math.sin(a) + w * Math.cos(a)]];
+    return S('polygon', { points: p.map(q => q.map(v => v.toFixed(1)).join(',')).join(' '), class: cls }, parent);
+  }
+  // Pictogramme : main, index tendu. Le groupe extérieur porte la position, l'intérieur s'anime.
+  function hand(parent, x, y, s, on = false) {
+    const outer = S('g', { transform: `translate(${x} ${y}) scale(${s / 100})` }, parent);
+    const g = S('g', { class: 'hand' }, outer);
+    const idx = S('rect', { x: 40, y: 4, width: 17, height: 56, rx: 8.5, class: on ? 'on' : '' }, g);
+    S('rect', { x: 56, y: 40, width: 15, height: 26, rx: 7.5 }, g);
+    S('rect', { x: 69, y: 44, width: 14, height: 24, rx: 7 }, g);
+    S('rect', { x: 14, y: 52, width: 16, height: 34, rx: 8, transform: 'rotate(-28 22 68)' }, g);
+    S('rect', { x: 28, y: 50, width: 56, height: 46, rx: 16 }, g);
+    return { outer, g, idx };
+  }
+
+
+  /* ==========================================================
+     LA CLOCHE DU TEST (diapos 4 à 7 et 9 à 11)
+     La courbe des mₑ sous H₀ (centrée sur μ = 72,5 mm, écart-type σ/√N = 0,866 mm), ses queues α (rouge),
+     l'intervalle de pari (crochets gris pleins), notre mₑ = 70,4 (orange, rouge s'il tombe dans une queue),
+     et pour la diapo β la vraie courbe (μ = 70 mm, pointillés gris) avec la zone β hachurée en vert.
+     Un état → un dessin : pose() règle l'état, play() l'anime, draw() redessine tout.
+       st.zt   borne bilatérale (en écarts réduits) · st.uni 0 → 1 : la queue droite passe à gauche (seuil st.zu)
+       st.ax   graduation : 0 = mm, 1 = centrée (mₑ − μ), 2 = réduite (ε) ; continue pendant le morphing
+       st.trueC, st.trueAmp : la vraie courbe (0 = absente)
+     ========================================================== */
+  const TA = { x0: 160, x1: 1760, d0: 67, d1: 76, base: 680, peak: 330 };
+  const tX = mm => TA.x0 + (mm - TA.d0) * (TA.x1 - TA.x0) / (TA.d1 - TA.d0);
+  const bY = (z, amp = 1) => TA.base - TA.peak * amp * Math.exp(-z * z / 2);
+  const IPY = TA.base + 86;
+  const clamp01 = v => Math.max(0, Math.min(1, v));
+  function bellPath(c, z1, z2, amp = 1) {
+    let d = '';
+    for (let i = 0; i <= 140; i++) { const z = z1 + (z2 - z1) * i / 140; d += (i ? 'L' : 'M') + tX(c + z * SEM).toFixed(1) + ' ' + bY(z, amp).toFixed(1); }
+    return d;
+  }
+  const bellArea = (c, z1, z2, amp = 1) => z2 - z1 < 1e-4 ? '' : bellPath(c, z1, z2, amp) + `L${tX(c + z2 * SEM).toFixed(1)} ${TA.base}L${tX(c + z1 * SEM).toFixed(1)} ${TA.base}Z`;
+  const KNOWN_Z = [[Z90, '1,645'], [Z95, '1,96'], [Z98, '2,326'], [Z99, '2,576']];
+  const zTxt = z => { const k = KNOWN_Z.find(([v]) => Math.abs(v - z) < 1e-6); return k ? k[1] : fr(z, 2); };
+  const sgn = (v, s) => (v < 0 ? '−' : '+') + s;
+  // the 20 means of the bet (cours 1, aide IP4): the one at 2,35 lands in a tail
+  const BET_PTS = [-1.5, 0.1, -0.4, 0.6, -0.9, 0.3, 1.2, -0.2, 0.7, -0.6, 0.0, 1.6, -1.1, 0.45, -0.3, 0.9, 2.35, -0.75, 0.2, 1.35];
+
+  function buildBell(svg, key, o = {}) {
+    const m = { st: { amp: 1, zt: Z95, uni: 0, zu: Z98, ax: 0, trueC: MU_TRUE, trueAmp: 0 } };
+    const defs = S('defs', {}, svg);
+    const pat = S('pattern', { id: 'hb-' + key, patternUnits: 'userSpaceOnUse', width: 13, height: 13, patternTransform: 'rotate(45)' }, defs);
+    S('rect', { width: 13, height: 13, class: 'beta-bg' }, pat);
+    S('line', { x1: 2, y1: 0, x2: 2, y2: 13, class: 'beta-hatch' }, pat);
+    // μ of H₀: grey, solid (supposed known); drawn under the area, so only its top and its foot show
+    m.mu = S('g', {}, svg);
+    S('line', { x1: tX(MU0), x2: tX(MU0), y1: TA.base + 14, y2: TA.base - TA.peak - 30, class: 'ic-musolid grow' }, m.mu);
+    m.muLab = tx(m.mu, tX(MU0), TA.base - TA.peak - 46, FM('{P:~μ~ = 72,5 mm} {p:(H₀)}'), { 'text-anchor': 'middle', 'font-size': 32, class: 'halo' });
+    m.area = S('path', { class: 'ic-area-k' }, svg);
+    m.tailL = S('path', { class: 'ic-tail' }, svg);
+    m.tailR = S('path', { class: 'ic-tail' }, svg);
+    m.beta = S('path', { fill: `url(#hb-${key})`, class: 'beta-area' }, svg);
+    m.trueCurve = S('path', { class: 'tb-true' }, svg);
+    m.curve = S('path', { class: 'ic-curve-k' }, svg);
+    // axis and its three graduations
+    m.axis = S('line', { x1: TA.x0 - 20, x2: TA.x1 + 20, y1: TA.base, y2: TA.base, class: 'axl' }, svg);
+    m.tmm = S('g', {}, svg);
+    m.mmTicks = range(67, 76, 1).map(v => ({ v, l: S('line', { class: 'axl' }, m.tmm), t: tx(m.tmm, 0, 0, String(v), { class: 't-tick', 'text-anchor': 'middle' }) }));
+    m.tcz = S('g', {}, svg);
+    m.czTicks = range(-5, 3, 1).map(v => ({ v, l: S('line', { class: 'axl' }, m.tcz), t: tx(m.tcz, 0, 0, v < 0 ? '−' + (-v) : String(v), { class: 't-tick', 'text-anchor': 'middle' }) }));
+    m.axT = ['~m~_e (mm)', '~m~_e − ~μ~ (mm)', '~ε~'].map(s => tx(svg, TA.x1 + 28, TA.base + 10, FM(s), { 'font-size': 30, 'font-weight': 600, class: 't-or' }));
+    // the true mean (cours 1): dotted grey
+    m.tmu = S('g', {}, svg);
+    m.tmuL = S('line', { y1: TA.base, y2: 268, class: 'pop' }, m.tmu);
+    m.tmuT = tx(m.tmu, 0, 252, FM('{P:en vrai : ~μ~ = 70 mm}'), { 'text-anchor': 'middle', 'font-size': 30, class: 'halo' });
+    // levels
+    m.pct = tx(svg, tX(MU0), TA.base - 150, '95 %', { 'text-anchor': 'middle', 'font-size': 64, 'font-weight': 700, class: 'halo' });
+    m.aval = tx(svg, tX(MU0), TA.base - 92, '', { 'text-anchor': 'middle', 'font-size': 36, 'font-weight': 700, class: 't-red halo' });
+    m.aL = tx(svg, 0, TA.base - 34, FM('~α~/2'), { 'text-anchor': 'middle', 'font-size': 34, 'font-weight': 700, class: 't-red halo' });
+    m.aR = tx(svg, 0, TA.base - 34, FM('~α~/2'), { 'text-anchor': 'middle', 'font-size': 34, 'font-weight': 700, class: 't-red halo' });
+    m.aU = tx(svg, 0, TA.base - 34, FM('~α~'), { 'text-anchor': 'middle', 'font-size': 34, 'font-weight': 700, class: 't-red halo' });
+    // the interval of the bet around μ (grey brackets), its two bounds
+    m.ip = S('g', {}, svg);
+    m.ipSeg = S('line', { y1: IPY, y2: IPY, class: 'ic-seg p' }, m.ip);
+    m.ipBr = [-1, 1].map(() => S('path', { class: 'ic-br p' }, m.ip));
+    m.ipLo = tx(m.ip, 0, IPY + 56, '', { 'text-anchor': 'middle', 'font-size': 32, 'font-weight': 600, class: 't-pop' });
+    m.ipHi = tx(m.ip, 0, IPY + 56, '', { 'text-anchor': 'middle', 'font-size': 32, 'font-weight': 600, class: 't-pop' });
+    m.ipTag = tx(m.ip, 0, IPY + 10, 'IP', { 'text-anchor': 'end', 'font-size': 34, 'font-weight': 700, class: 't-pop' });
+    // our sample's mean
+    m.me = S('g', {}, svg);
+    m.meDot = S('circle', { cx: tX(ME), cy: TA.base, r: 11, class: 'ic-pt' }, m.me);
+    m.meLead = S('line', { x1: tX(ME) - 14, y1: TA.base - 84, x2: tX(ME) - 4, y2: TA.base - 15, class: 'thin' }, m.me);
+    m.meLab = tx(m.me, tX(ME) - 14, TA.base - 94, '', { 'text-anchor': 'end', 'font-size': 32, 'font-weight': 700, class: 't-or halo' });
+    m.meAt = y => { m.meDot.setAttribute('cy', y); };
+    // β legend (top right)
+    m.leg = S('g', {}, svg);
+    m.legB = tx(m.leg, 1430, 250, '', { 'font-size': 46, 'font-weight': 700, class: 't-green' });
+    m.legP = tx(m.leg, 1430, 300, '', { 'font-size': 30, 'font-weight': 600, class: 't-pop' });
+    // falling means (diapo α)
+    const placed = [];
+    m.pts = BET_PTS.map(z => {
+      const x = tX(MU0 + z * SEM); let lv = 0;
+      while (placed.some(p => p.lv === lv && Math.abs(p.x - x) < 22)) lv++;
+      placed.push({ x, lv });
+      return { z, x, y: TA.base - 12 - lv * 22, el: S('circle', { cx: x, cy: TA.base - 12 - lv * 22, r: 10, class: 'ic-pt' }, svg) };
+    });
+
+    m.bounds = () => { const s = m.st; return [lerp(s.zt, s.zu, s.uni), lerp(s.zt, ZMAX, s.uni)]; };   // [zL, zR]
+    m.betaVal = () => { const [zL, zR] = m.bounds(), lo = MU0 - zL * SEM, hi = MU0 + zR * SEM, c = m.st.trueC; return Phi((hi - c) / SEM) - Phi((lo - c) / SEM); };
+    m.draw = () => {
+      const s = m.st, [zL, zR] = m.bounds();
+      m.area.setAttribute('d', bellArea(MU0, -ZMAX, ZMAX, s.amp));
+      m.curve.setAttribute('d', bellPath(MU0, -ZMAX, ZMAX, s.amp));
+      m.tailL.setAttribute('d', bellArea(MU0, -ZMAX, -zL, s.amp));
+      m.tailR.setAttribute('d', bellArea(MU0, zR, ZMAX, s.amp));
+      // graduations
+      const a = s.ax;
+      m.mmTicks.forEach(k => { const x = tX(k.v); k.l.setAttribute('x1', x); k.l.setAttribute('x2', x); k.l.setAttribute('y1', TA.base); k.l.setAttribute('y2', TA.base + 8); k.t.setAttribute('x', x); k.t.setAttribute('y', TA.base + 36); });
+      m.tmm.setAttribute('opacity', clamp01(1 - 2 * a).toFixed(3));
+      const sc = lerp(1, SEM, clamp01(a - 1));
+      m.czTicks.forEach(k => { const x = tX(MU0 + k.v * sc); k.l.setAttribute('x1', x); k.l.setAttribute('x2', x); k.l.setAttribute('y1', TA.base); k.l.setAttribute('y2', TA.base + 8); k.t.setAttribute('x', x); k.t.setAttribute('y', TA.base + 36); });
+      m.tcz.setAttribute('opacity', clamp01(2 * a - 1).toFixed(3));
+      m.axT.forEach((t, i) => t.setAttribute('opacity', clamp01(1 - 2 * Math.abs(a - i)).toFixed(3)));
+      // interval and bounds
+      const mode = Math.round(a), xl = tX(MU0 - zL * SEM), xr = tX(MU0 + zR * SEM), xrIP = tX(MU0 + Math.min(zR, ZMAX) * SEM);
+      m.ipSeg.setAttribute('x1', xl); m.ipSeg.setAttribute('x2', xrIP);
+      m.ipBr[0].setAttribute('d', `M${xl + 16} ${IPY - 22}L${xl} ${IPY - 22}L${xl} ${IPY + 22}L${xl + 16} ${IPY + 22}`);
+      m.ipBr[1].setAttribute('d', `M${xr - 16} ${IPY - 22}L${xr} ${IPY - 22}L${xr} ${IPY + 22}L${xr - 16} ${IPY + 22}`);
+      m.ipBr[1].setAttribute('opacity', (1 - s.uni).toFixed(3));
+      const lab = (z, sg) => mode === 0 ? fr(MU0 + sg * z * SEM, 2) : mode === 1 ? sgn(sg, fr(z * SEM, 2)) : sgn(sg, zTxt(z));
+      rich(m.ipLo, lab(zL, -1)); m.ipLo.setAttribute('x', xl);
+      rich(m.ipHi, lab(zR, 1)); m.ipHi.setAttribute('x', xr); m.ipHi.setAttribute('opacity', (1 - s.uni).toFixed(3));
+      m.ipTag.setAttribute('x', xl - 26);
+      // levels
+      const alpha = 2 * (1 - Phi(s.zt));
+      rich(m.pct, pctTxt(1 - alpha)); rich(m.aval, FM('~α~ = ' + pctTxt(alpha)));
+      m.aL.setAttribute('x', tX(MU0 - Math.max(zL + 0.55, 3.0) * SEM)); m.aR.setAttribute('x', tX(MU0 + Math.max(s.zt + 0.55, 3.0) * SEM)); m.aU.setAttribute('x', m.aL.getAttribute('x'));
+      m.aL.setAttribute('opacity', (1 - s.uni).toFixed(3)); m.aR.setAttribute('opacity', (1 - s.uni).toFixed(3)); m.aU.setAttribute('opacity', s.uni.toFixed(3));
+      // our mean: red when it falls in a tail
+      const out = Z_ME < -zL - 1e-9 || Z_ME > zR + 1e-9;
+      m.meDot.classList.toggle('out', out);
+      m.meLab.classList.toggle('t-red', out); m.meLab.classList.toggle('t-or', !out);
+      rich(m.meLab, FM(mode === 0 ? '~m~_e = 70,4' : mode === 1 ? '−2,1' : '−2,42'));
+      m.pts.forEach(p => p.el.classList.toggle('out', Math.abs(p.z) > s.zt));
+      // the true curve and β
+      const c = s.trueC, xt = tX(c);
+      m.trueCurve.setAttribute('d', bellPath(c, -ZMAX, ZMAX, s.trueAmp));
+      m.tmuL.setAttribute('x1', xt); m.tmuL.setAttribute('x2', xt); m.tmuT.setAttribute('x', xt);
+      rich(m.tmuT, FM('{P:en vrai : ~μ~ = ' + fr(c, c % 1 ? 1 : 0) + ' mm}'));
+      const lo = MU0 - zL * SEM, hi = MU0 + zR * SEM;
+      const z1 = Math.max(-ZMAX, (lo - c) / SEM), z2 = Math.min(ZMAX, (hi - c) / SEM);
+      m.beta.setAttribute('d', bellArea(c, z1, z2, s.trueAmp));
+      const b = m.betaVal();
+      rich(m.legB, FM('~β~ = ' + pctTxt(b, 0)));
+      rich(m.legP, FM('puissance 1 − ~β~ = ' + pctTxt(1 - b, 0)));
+    };
+    m.parts = { all: [m.area, m.tailL, m.tailR, m.beta, m.trueCurve, m.curve, m.axis, m.tmm, m.tcz, m.axT, m.mu, m.tmu, m.pct, m.aval, m.aL, m.aR, m.aU, m.ip, m.me, m.leg, m.pts.map(p => p.el)] };
+    return m;
+  }
+  // the H₀ bell rises from the axis: axis, then the curve and its area, then μ
+  function bellIntro(c, m, d = 0) {
+    vis([m.axis, m.tmm, m.axT[0]], true); utils.set(m.axis, { scaleX: 0 });
+    c.anim(m.axis, { scaleX: [0, 1], duration: T(700), delay: T(d), ease: 'inOut(2)' });
+    fadeIn(c, [m.tmm, m.axT[0]], d + 400, 500);
+    vis([m.area, m.curve], true); m.st.amp = 0; m.draw();
+    tweenT(c, 1200, d + 600, t => { m.st.amp = t; m.draw(); }, 'out(3)');
+    const ln = m.mu.querySelector('line');
+    vis(m.mu, true); utils.set(ln, { scaleY: 0 }); m.muLab.style.opacity = 0;
+    c.at(d + 1500, () => c.anim(ln, { scaleY: [0, 1], duration: T(600), ease: 'out(3)' }));
+    fadeIn(c, m.muLab, d + 1900, 500);
+    return d + 2400;
+  }
+  // grey interval grows under the axis
+  function ipIn(c, m, d = 0) {
+    vis(m.ip, true);
+    const kids = [m.ipSeg, ...m.ipBr, m.ipLo, m.ipHi, m.ipTag];
+    kids.forEach(e => { e.style.opacity = 0; });
+    c.at(d, () => { m.ipSeg.style.opacity = ''; c.anim(m.ipSeg, { scaleX: [0, 1], duration: T(700), ease: 'inOut(2)' }); });
+    fadeIn(c, [m.ipBr, m.ipTag], d + 600, 300);
+    fadeIn(c, [m.ipLo, m.ipHi], d + 800, 400);
+    return d + 1300;
+  }
+  // our mean falls onto the axis
+  function meFall(c, m, d = 0) {
+    vis(m.me, true); m.meLab.style.opacity = 0; m.meLead.style.opacity = 0;
+    m.meAt(150);
+    c.at(d, () => tweenT(c, 800, 0, t => m.meAt(lerp(150, TA.base, t)), 'outBounce'));
+    fadeIn(c, [m.meLab, m.meLead], d + 700, 400);
+    return d + 1200;
+  }
+
+  /* ---------- petites briques communes aux diapos ---------- */
+  // une légende sur une ou deux lignes, centrée en haut de la diapo ; une seule visible à la fois
+  function captions(svg, list, y = 158, size = 32) {
+    return list.map(lines => {
+      const g = S('g', {}, svg);
+      [].concat(lines).forEach((l, i) => ftx(g, 960, y + i * (size + 12), l, { 'text-anchor': 'middle', 'font-size': size, 'font-weight': 500 }));
+      return g;
+    });
+  }
+  function showCap(caps, k) { caps.forEach((g, i) => vis(g, i === k)); }
+  function swapCap(c, caps, k) { if (caps[k - 1]) fadeOut(c, caps[k - 1], 0, 250); if (caps[k]) fadeIn(c, caps[k], 200, 500); }
+  // an annotation box: lines of markup inside a rounded rectangle
+  function noteBox(parent, x, y, w, lines, o = {}) {
+    const g = S('g', {}, parent), size = o.size || 30, lh = o.lh || size * 1.35, pad = o.pad || 24;
+    const h = o.h || pad * 2 + lh * lines.length - (lh - size);
+    card(g, x, y, w, h, o.cls || 'box', 12);
+    lines.forEach((l, i) => ftx(g, o.center ? x + w / 2 : x + pad, y + pad + size * 0.82 + i * lh, l, Object.assign({ 'font-size': size, 'font-weight': o.w || 500 }, o.center ? { 'text-anchor': 'middle' } : {})));
+    g.h = h;
+    return g;
+  }
+  function arrowLine(parent, x1, y1, x2, y2, cls = 'est-arr', hcls = 'est-arr-h', size = 14) {
+    const g = S('g', {}, parent), a = Math.atan2(y2 - y1, x2 - x1);
+    S('line', { x1, y1, x2: x2 - Math.cos(a) * size * 0.6, y2: y2 - Math.sin(a) * size * 0.6, class: cls }, g);
+    arrowHead(g, x2, y2, a, hcls, size);
+    return g;
+  }
+  function hatchDefs(svg, key, light) {
+    const defs = S('defs', {}, svg);
+    const pat = S('pattern', { id: 'hb-' + key, patternUnits: 'userSpaceOnUse', width: 13, height: 13, patternTransform: 'rotate(45)' }, defs);
+    S('rect', { width: 13, height: 13, class: 'beta-bg' }, pat);
+    S('line', { x1: 2, y1: 0, x2: 2, y2: 13, class: 'beta-hatch' + (light ? ' light' : '') }, pat);
+    return `url(#hb-${key})`;
+  }
+
+  /* ======================= DIAPO 1 · TITRE ======================= */
+  stepped('titre', {
+    labels: ['titre'],
+    build(svg) {
+      const m = {};
+      m.title = tx(svg, 960, 430, 'Statistiques probabilistes 2', { 'text-anchor': 'middle', 'font-size': 104, 'font-weight': 700, 'letter-spacing': '-2' });
+      m.sub = tx(svg, 960, 535, 'Tests d\'hypothèses', { 'text-anchor': 'middle', 'font-size': 64, 'font-weight': 500 });
+      // emblem: the bell of H₀, its two red tails and a mean fallen in one of them
+      const g = m.emb = S('g', {}, svg), X = z => 960 + z * 70, Y = z => 790 - 150 * Math.exp(-z * z / 2);
+      const P = (a, b) => { let d = ''; for (let i = 0; i <= 80; i++) { const z = a + (b - a) * i / 80; d += (i ? 'L' : 'M') + X(z).toFixed(1) + ' ' + Y(z).toFixed(1); } return d; };
+      const A = (a, b) => P(a, b) + `L${X(b)} 790L${X(a)} 790Z`;
+      S('path', { d: A(-3.2, 3.2), class: 'ic-area-k' }, g);
+      S('path', { d: A(-3.2, -1.96), class: 'ic-tail' }, g);
+      S('path', { d: A(1.96, 3.2), class: 'ic-tail' }, g);
+      S('path', { d: P(-3.2, 3.2), class: 'ic-curve-k' }, g);
+      S('line', { x1: X(-3.5), x2: X(3.5), y1: 790, y2: 790, class: 'axl' }, g);
+      S('circle', { cx: X(-2.42), cy: 790, r: 10, class: 'ic-pt out' }, g);
+      m.foot = tx(svg, 960, 930, 'Tutorat PASS · UE4 Biostatistiques - Esteban Mora', { 'text-anchor': 'middle', 'font-size': 26, class: 't-pop' });
+      return m;
+    },
+    pose(m, k) { clean(m.svg); vis([m.title, m.sub, m.emb, m.foot], k >= 0); },
+    play(m, k, c) {
+      c.anim(m.title, { opacity: [0, 1], translateY: [40, 0], duration: T(900), ease: 'out(3)' });
+      fadeIn(c, m.sub, 500, 700);
+      fadeIn(c, m.emb, 900, 700);
+      fadeIn(c, m.foot, 1300, 600);
+      return 2000;
+    }
+  });
+
+  /* ======================= DIAPO 2 · LA QUESTION =======================
+     Q1 G1 du cours 1 : 30 étudiants, mₑ = 70,4 mm · Q2 la fiche du fabricant : 72,5 mm
+     Q3 l'écart de 2,1 mm et la question du test */
+  const XR = { x0: 150, x1: 1690, d0: 56, d1: 84 };
+  const BIG = { ...XR, base: 800, unit: 600 / YMAX };
+  stepped('question', {
+    labels: ['Q1', 'Q2', 'Q3'],
+    build(svg) {
+      const m = {};
+      m.t = tx(svg, 60, 90, FM('Notre échantillon : G1 du cours 1 ({b:~N~ = 30})'), { class: 't-title' });
+      m.ch = makeChart(svg, G1, { seed: 11, yTitle: true, ext: false });
+      m.ch.layout(BIG, { mean: 'below', cart: [BIG.x0 + 60, BIG.base - YMAX * BIG.unit + 30] });
+      m.axis = makeAxis(svg, range(56, 84, 2), () => true, 'Largeur de la main (mm)');
+      m.axis.layout(geoX(BIG), BIG.base, { ldy: 56, tdy: 100 });
+      const X = geoX(BIG), xf = X(MU0), xm = X(ME), top = BIG.base - YMAX * BIG.unit;
+      m.fab = S('g', {}, svg);
+      S('line', { x1: xf, x2: xf, y1: BIG.base, y2: top - 26, class: 'ic-musolid grow' }, m.fab);
+      tx(m.fab, xf + 12, top - 34, FM('{P:72,5 mm}'), { 'font-size': 30 });
+      m.card = S('g', {}, svg);
+      card(m.card, 1290, 228, 560, 178, 'popcard', 14);
+      tx(m.card, 1318, 278, 'Fiche du fabricant de gants de TP', { 'font-size': 26, 'font-weight': 600, class: 't-pop' });
+      tx(m.card, 1318, 336, FM('largeur moyenne de main :'), { 'font-size': 30 });
+      tx(m.card, 1318, 384, FM('{P:72,5 mm}'), { 'font-size': 40 });
+      m.gap = S('g', {}, svg);
+      const ya = top + 70;
+      S('line', { x1: xm + 8, x2: xf - 8, y1: ya, y2: ya, class: 'est-arr' }, m.gap);
+      arrowHead(m.gap, xm + 2, ya, Math.PI, 'est-arr-h', 13); arrowHead(m.gap, xf - 2, ya, 0, 'est-arr-h', 13);
+      tx(m.gap, (xm + xf) / 2, ya - 14, '2,1 mm', { 'text-anchor': 'middle', 'font-size': 30, 'font-weight': 700, class: 'halo' });
+      m.q = tx(svg, 960, 1010, FM('Hasard de l\'échantillonnage, ou le fabricant se trompe ?'), { 'text-anchor': 'middle', 'font-size': 42, 'font-weight': 700 });
+      return m;
+    },
+    pose(m, k) {
+      clean(m.svg);
+      m.ch.shown = m.ch.counts.slice(); m.ch.drawBars();
+      vis([m.t, m.ch.frame, m.ch.cart, m.ch.bars, m.axis.g, m.ch.mean.g], k >= 0);
+      vis([m.fab, m.card], k >= 1);
+      vis([m.gap, m.q], k >= 2);
+    },
+    play(m, k, c) {
+      if (k === 0) {
+        fadeIn(c, [m.t, m.ch.frame, m.ch.cart, m.axis.g], 0, 500);
+        growBars(c, m.ch, 400, 45);
+        meanIn(c, m.ch.mean, 400 + NIND * 45 + 200);
+        return 400 + NIND * 45 + 1100;
+      }
+      if (k === 1) {
+        fadeIn(c, m.card, 0, 500);
+        const ln = m.fab.querySelector('line'), lb = m.fab.querySelector('text');
+        vis(m.fab, true); utils.set(ln, { scaleY: 0 }); lb.style.opacity = 0;
+        c.at(500, () => c.anim(ln, { scaleY: [0, 1], duration: T(700), ease: 'out(3)' }));
+        fadeIn(c, lb, 1000, 400);
+        return 1500;
+      }
+      fadeIn(c, m.gap, 0, 500);
+      popIn(c, m.q, 500);
+      return 1200;
+    }
+  });
+
+  /* ======================= DIAPO 3 · H₀ ET H₁ ======================= */
+  stepped('hypo', {
+    labels: ['H1', 'H2'],
+    build(svg) {
+      const m = {};
+      tx(svg, 60, 90, 'Deux hypothèses', { class: 't-title' });
+      m.h0 = S('g', {}, svg);
+      card(m.h0, 80, 160, 840, 760, 'card', 18);
+      ftx(m.h0, 120, 250, '{P:H₀} · hypothèse nulle', { 'font-size': 44 });
+      ftx(m.h0, 120, 340, '« ~m~_e est conforme à ~μ~ = 72,5 mm »', { 'font-size': 36, 'font-weight': 600 });
+      ftx(m.h0, 120, 420, 'Le fabricant a raison : les 2,1 mm d\'écart', { 'font-size': 30 });
+      ftx(m.h0, 120, 462, 'viennent du hasard de l\'échantillonnage.', { 'font-size': 30 });
+      ftx(m.h0, 120, 560, '~Souvent, H₀ dit que « rien ne se passe » :~', { 'font-size': 27, class: 't-pop' });
+      ftx(m.h0, 120, 598, '~les données collent aux anciennes.~', { 'font-size': 27, class: 't-pop' });
+      ftx(m.h0, 120, 700, 'On la {b:suppose vraie} pendant tout le test.', { 'font-size': 30 });
+      card(m.h0, 120, 790, 240, 70, 'chip-pop', 35);
+      ftx(m.h0, 240, 836, '{b:une seule}', { 'font-size': 30, 'text-anchor': 'middle' });
+      m.h1 = S('g', {}, svg);
+      card(m.h1, 1000, 160, 840, 760, 'card', 18);
+      ftx(m.h1, 1040, 250, '{P:H₁} · hypothèse alternative', { 'font-size': 44 });
+      const rows = [['~μ~ ≠ 72,5 mm', 'les mains sont différentes', 'both', 360], ['~μ~ < 72,5 mm', 'les mains sont plus petites', 'left', 500], ['~μ~ > 72,5 mm', 'les mains sont plus grandes', 'right', 640]];
+      rows.forEach(([t, sub, dir, y]) => {
+        const g = S('g', {}, m.h1);
+        ftx(g, 1040, y, t, { 'font-size': 36, 'font-weight': 600 });
+        ftx(g, 1040, y + 40, sub, { 'font-size': 26, class: 't-pop' });
+        const x0 = 1500, x1 = 1790, xc = 1645, yl = y - 12;
+        S('line', { x1: x0, x2: x1, y1: yl, y2: yl, class: 'axl' }, g);
+        S('line', { x1: xc, x2: xc, y1: yl - 16, y2: yl + 16, class: 'ic-musolid' }, g);
+        tx(g, xc, yl + 44, '72,5', { 'text-anchor': 'middle', 'font-size': 22, class: 't-pop' });
+        if (dir !== 'right') { S('line', { x1: xc - 14, x2: x0 + 14, y1: yl - 26, y2: yl - 26, class: 'h1-arr' }, g); arrowHead(g, x0, yl - 26, Math.PI, 'h1-arr-h', 14); }
+        if (dir !== 'left') { S('line', { x1: xc + 14, x2: x1 - 14, y1: yl - 26, y2: yl - 26, class: 'h1-arr' }, g); arrowHead(g, x1, yl - 26, 0, 'h1-arr-h', 14); }
+      });
+      card(m.h1, 1040, 790, 340, 70, 'chip-pop', 35);
+      ftx(m.h1, 1210, 836, '{b:une ou plusieurs}', { 'font-size': 30, 'text-anchor': 'middle' });
+      return m;
+    },
+    pose(m, k) { clean(m.svg); vis(m.h0, k >= 0); vis(m.h1, k >= 1); },
+    play(m, k, c) { return stagger(c, k === 0 ? m.h0 : m.h1, 0, 160, 450); }
+  });
+
+  /* ======================= DIAPO 4 · LE RAISONNEMENT =======================
+     R1 on suppose H₀ vraie : la courbe des mₑ autour de 72,5 · R2 α = 5 % : queues, IP [70,80 ; 74,20]
+     R3 mₑ = 70,4 tombe dans une queue : on rejette H₀ · R4 les deux issues */
+  stepped('raison', {
+    labels: ['R1', 'R2', 'R3', 'R4'],
+    build(svg) {
+      const m = {};
+      tx(svg, 60, 90, 'On suppose H₀ vraie', { class: 't-title' });
+      m.b = buildBell(svg, 'RAISON');
+      m.caps = captions(svg, [
+        'Si H₀ est vraie, les ~m~_e des échantillons de 30 se répartissent autour de {P:72,5 mm}.',
+        'On fixe ~α~ = 5 % : l\'intervalle de pari ({P:IP}) contient 95 % des ~m~_e.',
+      ]);
+      m.sd = ftx(svg, 1760, 252, 'écart-type : {p:~σ~}/√~N~ = 4,74/√30 = 0,866 mm', { 'text-anchor': 'end', 'font-size': 26, class: 't-pop' });
+      m.verdict = noteBox(svg, 170, 330, 600, ['~m~_e est hors de l\'IP :', 'données {b:improbables} sous H₀', '→ on {R:rejette H₀} (test {b:significatif})'], { size: 30 });
+      m.vArr = arrowLine(svg, 470, 330 + m.verdict.h + 6, tX(ME) - 120, TA.base - 132);
+      m.out = S('g', {}, svg);
+      noteBox(m.out, 160, 890, 790, ['~m~_e {b:dans} l\'IP : données probables sous H₀', '→ on {b:accepte} H₀, faute d\'argument pour la rejeter'], { size: 28 });
+      noteBox(m.out, 970, 890, 790, ['~m~_e {b:hors} de l\'IP : données improbables sous H₀', '→ on {R:rejette} H₀ : une alternative H₁ est réalisée'], { size: 28 });
+      return m;
+    },
+    pose(m, k) {
+      clean(m.svg);
+      const b = m.b;
+      Object.assign(b.st, { amp: 1, zt: Z95, uni: 0, ax: 0, trueAmp: 0 }); b.meAt(TA.base); b.draw();
+      vis(b.parts.all, false);
+      vis([b.axis, b.tmm, b.axT[0], b.area, b.curve, b.mu, m.sd], k >= 0);
+      vis([b.tailL, b.tailR, b.pct, b.aval, b.aL, b.aR, b.ip], k >= 1);
+      vis([b.me, m.verdict, m.vArr], k >= 2);
+      vis(m.out, k >= 3);
+      showCap(m.caps, Math.min(k, 1));
+    },
+    play(m, k, c) {
+      const b = m.b;
+      swapCap(c, m.caps, k);
+      if (k === 0) { const e = bellIntro(c, b, 300); fadeIn(c, m.sd, e - 300, 500); return e + 300; }
+      if (k === 1) {
+        vis([b.tailL, b.tailR], true); b.st.zt = ZMAX; b.draw();
+        tweenT(c, 1100, 300, t => { b.st.zt = lerp(ZMAX, Z95, t); b.draw(); });
+        [b.pct, b.aval].forEach((e, i) => popIn(c, e, 600 + i * 250, 500));
+        fadeIn(c, [b.aL, b.aR], 1200, 400);
+        return ipIn(c, b, 1500) + 200;
+      }
+      if (k === 2) {
+        b.meDot.classList.remove('out'); b.meLab.classList.remove('t-red');
+        const e = meFall(c, b, 0);
+        c.at(800, () => { b.meDot.classList.add('out'); b.meLab.classList.add('t-red'); c.anim(b.meDot, { scale: [1.7, 1], duration: T(500), ease: 'out(3)' }); });
+        fadeIn(c, [m.verdict, m.vArr], e, 500);
+        return e + 700;
+      }
+      return stagger(c, m.out, 0, 300, 500);
+    }
+  });
+
+  /* ======================= DIAPO 5 · LE RISQUE α =======================
+     A1 sous H₀, 20 échantillons : 19 mₑ dans l'IP, 1 dans une queue · A2 rejeter H₀ à tort = α */
+  stepped('alpha', {
+    labels: ['A1', 'A2'],
+    build(svg) {
+      const m = {};
+      tx(svg, 60, 90, 'Et si H₀ était vraie quand même ?', { class: 't-title' });
+      m.b = buildBell(svg, 'ALPHA');
+      m.caps = captions(svg, ['Sous H₀, tirons 20 échantillons de 30 : 19 ~m~_e tombent dans l\'IP, 1 tombe dans une queue.']);
+      const red = m.b.pts.find(p => Math.abs(p.z) > Z95);
+      m.box = noteBox(svg, 1290, 318, 570, ['Si notre échantillon était celui-là,', 'on rejetterait H₀…', '{b:alors qu\'elle est vraie.}'], { size: 28 });
+      m.bArr = arrowLine(svg, 1560, 318 + m.box.h + 6, red.x + 6, red.y - 18);
+      m.def = noteBox(svg, 160, 890, 1600, ['Rejeter H₀ alors qu\'elle est vraie : c\'est le {R:risque ~α~} (risque de {b:1ʳᵉ espèce}).', 'On le fixe {b:avant} le test ; ici, 1 échantillon sur 20 (5 %) nous tromperait.'], { size: 30 });
+      return m;
+    },
+    pose(m, k) {
+      clean(m.svg);
+      const b = m.b;
+      Object.assign(b.st, { amp: 1, zt: Z95, uni: 0, ax: 0, trueAmp: 0 }); b.draw();
+      b.pts.forEach(p => { p.el.setAttribute('cy', p.y); });
+      vis(b.parts.all, false);
+      vis([b.axis, b.tmm, b.axT[0], b.area, b.curve, b.mu, b.tailL, b.tailR, b.pct, b.aval, b.aL, b.aR, b.ip], k >= 0);
+      vis(b.pts.map(p => p.el), k >= 0);
+      vis([m.box, m.bArr, m.def], k >= 1);
+      showCap(m.caps, k >= 0 ? 0 : -1);
+    },
+    play(m, k, c) {
+      const b = m.b;
+      if (k === 0) {
+        const base = [b.axis, b.tmm, b.axT[0], b.area, b.curve, b.mu, b.tailL, b.tailR, b.pct, b.aval, b.aL, b.aR, b.ip];
+        fadeIn(c, base, 0, 500);
+        fadeIn(c, m.caps[0], 300, 500);
+        b.pts.forEach((p, i) => {
+          p.el.setAttribute('cy', 120); p.el.style.opacity = 0; p.el.classList.remove('out');
+          c.at(700 + i * 230, () => {
+            p.el.style.opacity = '';
+            tweenT(c, 700, 0, t => p.el.setAttribute('cy', lerp(120, p.y, t)), 'outBounce');
+            if (Math.abs(p.z) > Z95) c.at(560, () => { p.el.classList.add('out'); c.anim(p.el, { scale: [1.8, 1], duration: T(500), ease: 'out(3)' }); });
+          });
+        });
+        return 700 + 19 * 230 + 900;
+      }
+      fadeIn(c, [m.box, m.bArr], 0, 500);
+      fadeIn(c, m.def, 600, 600);
+      return 1300;
+    }
+  });
+
+  /* ======================= DIAPO 6 · ET À 1 % ? ======================= */
+  stepped('alpha1', {
+    labels: ['U1', 'U2'],
+    build(svg) {
+      const m = {};
+      tx(svg, 60, 90, FM('Et à ~α~ = 1 % ?'), { class: 't-title' });
+      m.b = buildBell(svg, 'ALPHA1');
+      m.caps = captions(svg, ['À ~α~ = 1 %, les queues rétrécissent : l\'IP s\'élargit et devient [70,27 ; 74,73].']);
+      m.verdict = noteBox(svg, 170, 330, 600, ['~m~_e = 70,4 est maintenant {b:dans} l\'IP', '→ on {b:accepte} H₀'], { size: 30 });
+      m.vArr = arrowLine(svg, 470, 330 + m.verdict.h + 6, tX(ME) - 120, TA.base - 132);
+      m.msg = noteBox(svg, 160, 890, 1600, ['Même échantillon, autre conclusion : tout dépend de ~α~.', 'C\'est pour ça qu\'on choisit ~α~ {b:avant} de regarder les données.'], { size: 32, center: true });
+      return m;
+    },
+    pose(m, k) {
+      clean(m.svg);
+      const b = m.b;
+      Object.assign(b.st, { amp: 1, zt: k >= 0 ? Z99 : Z95, uni: 0, ax: 0, trueAmp: 0 }); b.meAt(TA.base); b.draw();
+      vis(b.parts.all, false);
+      vis([b.axis, b.tmm, b.axT[0], b.area, b.curve, b.mu, b.tailL, b.tailR, b.pct, b.aval, b.aL, b.aR, b.ip, b.me], k >= 0);
+      vis([m.verdict, m.vArr], k >= 0);
+      vis(m.msg, k >= 1);
+      showCap(m.caps, k >= 0 ? 0 : -1);
+    },
+    play(m, k, c) {
+      const b = m.b;
+      if (k === 0) {
+        b.st.zt = Z95; b.draw();
+        fadeIn(c, [b.axis, b.tmm, b.axT[0], b.area, b.curve, b.mu, b.tailL, b.tailR, b.pct, b.aval, b.aL, b.aR, b.ip, b.me], 0, 400);
+        fadeIn(c, m.caps[0], 300, 500);
+        tweenT(c, 1600, 900, t => { b.st.zt = lerp(Z95, Z99, t); b.draw(); });
+        c.at(1900, () => c.anim(b.meDot, { scale: [1.6, 1], duration: T(500), ease: 'out(3)' }));
+        fadeIn(c, [m.verdict, m.vArr], 2600, 500);
+        return 3200;
+      }
+      fadeIn(c, m.msg, 0, 600);
+      return 700;
+    }
+  });
+
+  /* ======================= DIAPO 7 · LE RISQUE β =======================
+     B1 en vrai μ = 70 (cours 1) : la vraie courbe · B2 la zone β (hachures vertes) et la puissance
+     B3 retour à α = 5 % : β baisse · B4 la vraie valeur glisse : autant de β que de H₁ */
+  stepped('beta', {
+    labels: ['B1', 'B2', 'B3', 'B4'],
+    build(svg) {
+      const m = {};
+      tx(svg, 60, 90, 'Et si H₀ était fausse ?', { class: 't-title' });
+      m.b = buildBell(svg, 'BETA');
+      m.caps = captions(svg, [
+        'En vrai, {P:~μ~ = 70 mm} (cours 1) : H₀ est fausse, mais à 1 % on l\'a acceptée.',
+        ['Les échantillons de la vraie courbe qui tombent dans l\'IP font accepter H₀ à tort :', 'c\'est le {G:risque ~β~} (risque de {b:2ᵉ espèce}).'],
+        'Retour à ~α~ = 5 % : l\'IP se resserre et ~β~ descend. Baisser ~α~ fait monter ~β~.',
+        '~β~ dépend de la vraie valeur : il y a autant de ~β~ que d\'hypothèses H₁.',
+      ], 150, 30);
+      // B4 · β for three true values (α = 5 %)
+      m.tbl = S('g', {}, svg);
+      card(m.tbl, 1180, 860, 680, 170, 'box', 12);
+      ftx(m.tbl, 1210, 906, '{b:à ~α~ = 5 %, si en vrai…}', { 'font-size': 26, class: 't-pop' });
+      [[71.5, 'mains proches de H₀'], [70, ''], [69, 'loin de H₀']].forEach(([mu, note], i) => {
+        const lo = MU0 - Z95 * SEM, hi = MU0 + Z95 * SEM, b = Phi((hi - mu) / SEM) - Phi((lo - mu) / SEM), x = 1210 + i * 220;
+        ftx(m.tbl, x, 958, '~μ~ = ' + fr(mu, mu % 1 ? 1 : 0), { 'font-size': 28, class: 't-pop' });
+        ftx(m.tbl, x, 1004, '{G:~β~ = ' + pctTxt(b, 0) + '}', { 'font-size': 34 });
+      });
+      return m;
+    },
+    pose(m, k) {
+      clean(m.svg);
+      vis(m.tbl, k >= 3);
+      const b = m.b;
+      Object.assign(b.st, { amp: 1, zt: k >= 2 ? Z95 : Z99, uni: 0, ax: 0, trueC: MU_TRUE, trueAmp: k >= 0 ? 1 : 0 }); b.meAt(TA.base); b.draw();
+      vis(b.parts.all, false);
+      vis([b.axis, b.tmm, b.axT[0], b.area, b.curve, b.mu, b.tailL, b.tailR, b.pct, b.aval, b.aL, b.aR, b.ip, b.me], k >= -1 && k >= 0);
+      vis([b.trueCurve, b.tmu], k >= 0);
+      vis([b.beta, b.leg], k >= 1);
+      showCap(m.caps, k);
+    },
+    play(m, k, c) {
+      const b = m.b;
+      swapCap(c, m.caps, k);
+      switch (k) {
+        case 0: {
+          fadeIn(c, [b.axis, b.tmm, b.axT[0], b.area, b.curve, b.mu, b.tailL, b.tailR, b.pct, b.aval, b.aL, b.aR, b.ip, b.me], 0, 400);
+          b.st.trueAmp = 0; b.draw(); vis(b.trueCurve, true);
+          tweenT(c, 1300, 600, t => { b.st.trueAmp = t; b.draw(); }, 'out(3)');
+          const ln = b.tmuL; vis(b.tmu, true); utils.set(ln, { scaleY: 0 }); b.tmuT.style.opacity = 0;
+          c.at(1400, () => c.anim(ln, { scaleY: [0, 1], duration: T(600), ease: 'out(3)' }));
+          fadeIn(c, b.tmuT, 1800, 400);
+          return 2400;
+        }
+        case 1: fadeIn(c, b.beta, 300, 800); fadeIn(c, b.leg, 900, 500); return 1500;
+        case 2: tweenT(c, 1600, 400, t => { b.st.zt = lerp(Z99, Z95, t); b.draw(); }); return 2100;
+        case 3: {
+          const path = [[MU_TRUE, 71.5, 1500], [71.5, 69, 2200], [69, MU_TRUE, 1300]];
+          let t0 = 300;
+          path.forEach(([a, z, dur]) => { tweenT(c, dur, t0, t => { b.st.trueC = lerp(a, z, t); b.draw(); }, 'inOut(2)'); t0 += dur + 500; });
+          fadeIn(c, m.tbl, t0 - 300, 600);
+          return t0 + 400;
+        }
+      }
+    }
+  });
+
+  /* ======================= DIAPO 8 · LES DEUX ERREURS ======================= */
+  stepped('erreurs', {
+    labels: ['E1', 'E2', 'E3'],
+    build(svg) {
+      const m = {};
+      tx(svg, 60, 90, 'Deux façons de se tromper', { class: 't-title' });
+      const hatch = hatchDefs(svg, 'ERREURS', true);
+      const C = [[600, 1180], [1220, 1800]], R = [[360, 560], [580, 780]];
+      m.frame = S('g', {}, svg);
+      ftx(m.frame, 1200, 214, '{b:En réalité…}', { 'text-anchor': 'middle', 'font-size': 30, class: 't-pop' });
+      ftx(m.frame, (C[0][0] + C[0][1]) / 2, 300, '{P:H₀ est vraie}', { 'text-anchor': 'middle', 'font-size': 36 });
+      ftx(m.frame, (C[1][0] + C[1][1]) / 2, 300, '{P:H₀ est fausse}', { 'text-anchor': 'middle', 'font-size': 36 });
+      ftx(m.frame, 160, (R[0][0] + R[0][1]) / 2 + 12, '{b:On accepte H₀}', { 'font-size': 36 });
+      ftx(m.frame, 160, (R[1][0] + R[1][1]) / 2 + 12, '{b:On rejette H₀}', { 'font-size': 36 });
+      ftx(m.frame, 160, 300, '~Décision ↓~', { 'font-size': 26, class: 't-pop' });
+      const cell = (ci, ri, cls, fill, lines) => {
+        const g = S('g', {}, svg), [x0, x1] = C[ci], [y0, y1] = R[ri];
+        S('rect', { x: x0, y: y0, width: x1 - x0, height: y1 - y0, rx: 14, class: cls, ...(fill ? { fill } : {}) }, g);
+        lines.forEach(([t, size], i) => ftx(g, (x0 + x1) / 2, (y0 + y1) / 2 - 8 + (i - (lines.length - 1) / 2) * 62 + size * 0.34, t, { 'text-anchor': 'middle', 'font-size': size, class: 'halo' }));
+        return g;
+      };
+      m.cA = cell(0, 1, 'cell-a', null, [['{R:erreur de 1ʳᵉ espèce}', 34], ['risque ~α~', 40]]);
+      m.cB = cell(1, 0, 'cell-b', hatch, [['{G:erreur de 2ᵉ espèce}', 34], ['risque ~β~', 40]]);
+      m.cOK = [cell(0, 0, 'cell-ok', null, [['{b:bonne décision}', 34], ['probabilité 1 − ~α~', 32]]), cell(1, 1, 'cell-ok', null, [['{b:bonne décision}', 34], ['{b:puissance} 1 − ~β~', 36]])];
+      m.note = S('g', {}, svg);
+      ftx(m.note, 160, 880, '{R:~α~} : fixé {b:avant} le test, par nous.', { 'font-size': 32 });
+      ftx(m.note, 160, 934, '{G:~β~} : dépend de H₁ ; on ne peut le calculer qu\'en connaissant H₁.', { 'font-size': 32 });
+      return m;
+    },
+    pose(m, k) { clean(m.svg); vis([m.frame, m.cA], k >= 0); vis(m.cB, k >= 1); vis([m.cOK, m.note], k >= 2); },
+    play(m, k, c) {
+      if (k === 0) { fadeIn(c, m.frame, 0, 500); popIn(c, m.cA, 600); return 1200; }
+      if (k === 1) { popIn(c, m.cB, 0); return 700; }
+      m.cOK.forEach((g, i) => popIn(c, g, i * 250)); stagger(c, m.note, 700, 300, 500); return 1700;
+    }
+  });
+
+  /* ---------- input ---------- */
+  function next() { if (!busy && cur < stations.length - 1) goto(cur + 1); }
+  // From the last step, going back lands on the previous station's LAST step.
+  function prev() { if (!busy && cur > 0) goto(cur - 1, { fromEnd: true }); }
+  // ONE step dispatch for arrows AND swipes: a stepped scene consumes the click while it
+  // still has steps in that direction; past its ends, the camera flies to the next station.
+  function step(dir) {
+    const s = stations[cur], sc = sceneOf(s);
+    if (!busy && !overview && sc && sc.labels && s.mounted && (dir > 0 ? sc.forward(s.el) : sc.back(s.el))) return;
+    dir > 0 ? next() : prev();
+  }
+  function replay() {
+    const s = stations[cur], sc = sceneOf(s);
+    if (sc && sc.labels && s.mounted && !overview) sc.go(s.el, s.el._at || 0); else goto(cur);
+  }
+  stepHud = () => {
+    const s = stations[cur], sc = sceneOf(s), el = document.getElementById('stepl');
+    if (el) el.textContent = sc && sc.labels && s.mounted && !overview ? '  ·  étape ' + sc.labels[s.el._at || 0] : '';
+  };
+
+  function toggleFullscreen() {
+    const fsEl = document.fullscreenElement || document.webkitFullscreenElement;
+    if (!fsEl) {
+      const el = document.documentElement, req = el.requestFullscreen || el.webkitRequestFullscreen;
+      if (req) { try { const p = req.call(el); if (p && p.catch) p.catch(() => {}); } catch (e) {} }
+    } else {
+      const exit = document.exitFullscreen || document.webkitExitFullscreen;
+      if (exit) exit.call(document);
+    }
+  }
+  const fsbtn = document.getElementById('fsbtn');
+  fsbtn.addEventListener('click', () => { toggleFullscreen(); fsbtn.blur(); });
+  ['fullscreenchange', 'webkitfullscreenchange'].forEach(ev => document.addEventListener(ev, () => {
+    document.body.classList.toggle('is-fullscreen', !!(document.fullscreenElement || document.webkitFullscreenElement));
+  }));
+  if (!(document.documentElement.requestFullscreen || document.documentElement.webkitRequestFullscreen)) {
+    document.body.classList.add('no-fullscreen');
+    fsbtn.style.display = 'none';
+  }
+
+  window.addEventListener('keydown', e => {
+    if (e.target.closest && e.target.closest('input, textarea, select, [contenteditable="true"], [contenteditable=""]')) return;
+    if (e.key === 'ArrowRight' || e.key === ' ' || e.key === 'PageDown') { e.preventDefault(); step(1); }
+    else if (e.key === 'ArrowLeft' || e.key === 'PageUp') { e.preventDefault(); step(-1); }
+    else if (e.key === 'o' || e.key === 'O' || e.key === 'ArrowUp') { e.preventDefault(); if (!busy) toOverview(); }
+    else if (e.key === 'f' || e.key === 'F') { e.preventDefault(); toggleFullscreen(); }
+    else if (e.key === 'ArrowDown' || e.key === 'Escape') { e.preventDefault(); if (!busy) replay(); }
+  });
+
+  let swipeHint = null;
+  function removeSwipeHint() { if (swipeHint) { swipeHint.remove(); swipeHint = null; } }
+  if (TOUCH && !STILL) {
+    swipeHint = document.createElement('div');
+    swipeHint.id = 'swipehint'; swipeHint.textContent = 'Balayez pour avancer';
+    document.body.appendChild(swipeHint);
+    swipeHint.addEventListener('animationend', removeSwipeHint);
+  }
+  function requestDeckFullscreen(lockLandscape) {
+    const el = document.documentElement, req = el.requestFullscreen || el.webkitRequestFullscreen;
+    if (!req || document.fullscreenElement || document.webkitFullscreenElement) return;
+    try {
+      const p = req.call(el);
+      if (p && p.catch) p.catch(() => {});
+      if (lockLandscape && screen.orientation && screen.orientation.lock)
+        Promise.resolve(p).then(() => screen.orientation.lock('landscape')).catch(() => {});
+    } catch (e) {}
+  }
+  let fsAuto = false, touch = null;
+  window.addEventListener('touchstart', e => {
+    touch = e.touches.length === 1 ? { x: e.touches[0].clientX, y: e.touches[0].clientY } : null;
+  }, { passive: true });
+  window.addEventListener('touchcancel', () => { touch = null; }, { passive: true });
+  window.addEventListener('touchend', e => {
+    if (!touch || e.touches.length || document.body.classList.contains('editing')) { touch = null; return; }
+    const dx = e.changedTouches[0].clientX - touch.x, dy = e.changedTouches[0].clientY - touch.y;
+    touch = null;
+    if (window.visualViewport && window.visualViewport.scale > 1.05) return;
+    const ax = Math.abs(dx), ay = Math.abs(dy);
+    if (Math.max(ax, ay) < 48) return;
+    if (TOUCH && !fsAuto) { fsAuto = true; requestDeckFullscreen(false); }
+    removeSwipeHint();
+    step((ax >= ay ? dx : dy) < 0 ? 1 : -1);
+  }, { passive: true });
+  document.getElementById('rotatehint').addEventListener('click', () => {
+    fsAuto = true;
+    requestDeckFullscreen(true);
+    document.body.classList.add('rh-dismissed');
+  });
+
+  stations.forEach((s, i) => s.el.addEventListener('click', () => { if (overview && !busy) goto(i); }));
+
+  function refit() {
+    stations.forEach(s => { s.w = s.el.offsetWidth; s.h = s.el.offsetHeight; s.cx = s.x + s.w / 2; s.cy = s.y + s.h / 2; });
+    railWindow(cur);
+    if (overview) toOverview();
+    else { const s = stations[cur]; cam.x = s.cx; cam.y = s.cy; cam.zoom = fitZoom(s); render(); maskToStation(s); }
+  }
+  window.addEventListener('resize', refit);
+
+  /* ---------- control-layer hooks ---------- */
+  window.Deckadence = {
+    version: 1,
+    cam, stations, world, viewport: viewportEl,
+    current: () => cur, isBusy: () => busy, isOverview: () => overview, still: STILL,
+    goto, toOverview, render, fitZoom, primeStation, revealStation, splitLines, fitHeading, releaseClips,
+    mountStation, setLive, setSource, isLive: i => !!(stations[i] && stations[i].live), liveSpan: LIVE_SPAN,
+    setInset(px) { insetLeft = Math.max(0, +px || 0); refit(); },
+    // steps of the current station: labels, and jump to one (by label or index), posed at its final state
+    steps: () => { const sc = sceneOf(stations[cur]); return sc && sc.labels ? sc.labels.slice() : []; },
+    setStep(k) { const s = stations[cur], sc = sceneOf(s); if (!sc || !sc.labels) return false; const i = typeof k === 'number' ? k : sc.labels.indexOf(k); if (i < 0) return false; sc.set(s.el, i); return true; },
+    isPresenting: () => !!(document.fullscreenElement || document.webkitFullscreenElement),
+  };
+
+  let hashRetry = 0;
+  function followHash() {
+    clearTimeout(hashRetry);
+    const i = stationFromHash(location.hash);
+    if (i < 0 || (i === cur && !overview)) return;
+    if (busy) { hashRetry = setTimeout(followHash, 120); return; }
+    goto(i);
+  }
+  window.addEventListener('hashchange', followHash);
+
+  /* ---------- boot ---------- */
+  const hashIdx = stationFromHash(location.hash);
+  const start = hashIdx >= 0 ? hashIdx : 0;
+  if (hashIdx >= 0 && !STILL) syncHash(start);
+  cur = start;
+  stations.forEach((s, k) => { if (!liveAll && !near(k, start, LIVE_SPAN)) unmountStation(s); });
+  document.body.classList.add('deck-ready');
+  const bootMount = new Promise(r => document.readyState === 'loading'
+    ? document.addEventListener('DOMContentLoaded', () => r(mountStation(stations[start])), { once: true })
+    : r(mountStation(stations[start])));
+  cam.x = stations[start].cx; cam.y = stations[start].cy; cam.zoom = fitZoom(stations[start]);
+  render();
+  maskToStation(stations[start]);
+  setHud(start);
+  setTone(start);
+  updateCulling();
+  stations[start].el.style.visibility = 'hidden';
+  Promise.all([document.fonts.ready, new Promise(r => setTimeout(r, 240)), bootMount]).then(() => {
+    const st = stations[start];
+    updateCulling();
+    railWindow(cur);
+    if (cur !== start) { st.el.style.visibility = ''; return; }
+    primeStation(st);
+    st.el.style.visibility = '';
+    revealStation(st);
+    settleLive(start);
+  });
+})();
+</script>

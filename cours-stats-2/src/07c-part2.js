@@ -1,0 +1,404 @@
+
+  /* ---------- petites briques communes aux diapos ---------- */
+  // une légende sur une ou deux lignes, centrée en haut de la diapo ; une seule visible à la fois
+  function captions(svg, list, y = 158, size = 32) {
+    return list.map(lines => {
+      const g = S('g', {}, svg);
+      [].concat(lines).forEach((l, i) => ftx(g, 960, y + i * (size + 12), l, { 'text-anchor': 'middle', 'font-size': size, 'font-weight': 500 }));
+      return g;
+    });
+  }
+  function showCap(caps, k) { caps.forEach((g, i) => vis(g, i === k)); }
+  function swapCap(c, caps, k) { if (caps[k - 1]) fadeOut(c, caps[k - 1], 0, 250); if (caps[k]) fadeIn(c, caps[k], 200, 500); }
+  // an annotation box: lines of markup inside a rounded rectangle
+  function noteBox(parent, x, y, w, lines, o = {}) {
+    const g = S('g', {}, parent), size = o.size || 30, lh = o.lh || size * 1.35, pad = o.pad || 24;
+    const h = o.h || pad * 2 + lh * lines.length - (lh - size);
+    card(g, x, y, w, h, o.cls || 'box', 12);
+    lines.forEach((l, i) => ftx(g, o.center ? x + w / 2 : x + pad, y + pad + size * 0.82 + i * lh, l, Object.assign({ 'font-size': size, 'font-weight': o.w || 500 }, o.center ? { 'text-anchor': 'middle' } : {})));
+    g.h = h;
+    return g;
+  }
+  function arrowLine(parent, x1, y1, x2, y2, cls = 'est-arr', hcls = 'est-arr-h', size = 14) {
+    const g = S('g', {}, parent), a = Math.atan2(y2 - y1, x2 - x1);
+    S('line', { x1, y1, x2: x2 - Math.cos(a) * size * 0.6, y2: y2 - Math.sin(a) * size * 0.6, class: cls }, g);
+    arrowHead(g, x2, y2, a, hcls, size);
+    return g;
+  }
+  function hatchDefs(svg, key, light) {
+    const defs = S('defs', {}, svg);
+    const pat = S('pattern', { id: 'hb-' + key, patternUnits: 'userSpaceOnUse', width: 13, height: 13, patternTransform: 'rotate(45)' }, defs);
+    S('rect', { width: 13, height: 13, class: 'beta-bg' }, pat);
+    S('line', { x1: 2, y1: 0, x2: 2, y2: 13, class: 'beta-hatch' + (light ? ' light' : '') }, pat);
+    return `url(#hb-${key})`;
+  }
+
+  /* ======================= DIAPO 1 · TITRE ======================= */
+  stepped('titre', {
+    labels: ['titre'],
+    build(svg) {
+      const m = {};
+      m.title = tx(svg, 960, 430, 'Statistiques probabilistes 2', { 'text-anchor': 'middle', 'font-size': 104, 'font-weight': 700, 'letter-spacing': '-2' });
+      m.sub = tx(svg, 960, 535, 'Tests d\'hypothèses', { 'text-anchor': 'middle', 'font-size': 64, 'font-weight': 500 });
+      // emblem: the bell of H₀, its two red tails and a mean fallen in one of them
+      const g = m.emb = S('g', {}, svg), X = z => 960 + z * 70, Y = z => 790 - 150 * Math.exp(-z * z / 2);
+      const P = (a, b) => { let d = ''; for (let i = 0; i <= 80; i++) { const z = a + (b - a) * i / 80; d += (i ? 'L' : 'M') + X(z).toFixed(1) + ' ' + Y(z).toFixed(1); } return d; };
+      const A = (a, b) => P(a, b) + `L${X(b)} 790L${X(a)} 790Z`;
+      S('path', { d: A(-3.2, 3.2), class: 'ic-area-k' }, g);
+      S('path', { d: A(-3.2, -1.96), class: 'ic-tail' }, g);
+      S('path', { d: A(1.96, 3.2), class: 'ic-tail' }, g);
+      S('path', { d: P(-3.2, 3.2), class: 'ic-curve-k' }, g);
+      S('line', { x1: X(-3.5), x2: X(3.5), y1: 790, y2: 790, class: 'axl' }, g);
+      S('circle', { cx: X(-2.42), cy: 790, r: 10, class: 'ic-pt out' }, g);
+      m.foot = tx(svg, 960, 930, 'Tutorat PASS · UE4 Biostatistiques - Esteban Mora', { 'text-anchor': 'middle', 'font-size': 26, class: 't-pop' });
+      return m;
+    },
+    pose(m, k) { clean(m.svg); vis([m.title, m.sub, m.emb, m.foot], k >= 0); },
+    play(m, k, c) {
+      c.anim(m.title, { opacity: [0, 1], translateY: [40, 0], duration: T(900), ease: 'out(3)' });
+      fadeIn(c, m.sub, 500, 700);
+      fadeIn(c, m.emb, 900, 700);
+      fadeIn(c, m.foot, 1300, 600);
+      return 2000;
+    }
+  });
+
+  /* ======================= DIAPO 2 · LA QUESTION =======================
+     Q1 G1 du cours 1 : 30 étudiants, mₑ = 70,4 mm · Q2 la fiche du fabricant : 72,5 mm
+     Q3 l'écart de 2,1 mm et la question du test */
+  const XR = { x0: 150, x1: 1690, d0: 56, d1: 84 };
+  const BIG = { ...XR, base: 800, unit: 600 / YMAX };
+  stepped('question', {
+    labels: ['Q1', 'Q2', 'Q3'],
+    build(svg) {
+      const m = {};
+      m.t = tx(svg, 60, 90, FM('Notre échantillon : G1 du cours 1 ({b:~N~ = 30})'), { class: 't-title' });
+      m.ch = makeChart(svg, G1, { seed: 11, yTitle: true, ext: false });
+      m.ch.layout(BIG, { mean: 'below', cart: [BIG.x0 + 60, BIG.base - YMAX * BIG.unit + 30] });
+      m.axis = makeAxis(svg, range(56, 84, 2), () => true, 'Largeur de la main (mm)');
+      m.axis.layout(geoX(BIG), BIG.base, { ldy: 56, tdy: 100 });
+      const X = geoX(BIG), xf = X(MU0), xm = X(ME), top = BIG.base - YMAX * BIG.unit;
+      m.fab = S('g', {}, svg);
+      S('line', { x1: xf, x2: xf, y1: BIG.base, y2: top - 26, class: 'ic-musolid grow' }, m.fab);
+      tx(m.fab, xf + 12, top - 34, FM('{P:72,5 mm}'), { 'font-size': 30 });
+      m.card = S('g', {}, svg);
+      card(m.card, 1290, 228, 560, 178, 'popcard', 14);
+      tx(m.card, 1318, 278, 'Fiche du fabricant de gants de TP', { 'font-size': 26, 'font-weight': 600, class: 't-pop' });
+      tx(m.card, 1318, 336, FM('largeur moyenne de main :'), { 'font-size': 30 });
+      tx(m.card, 1318, 384, FM('{P:72,5 mm}'), { 'font-size': 40 });
+      m.gap = S('g', {}, svg);
+      const ya = top + 70;
+      S('line', { x1: xm + 8, x2: xf - 8, y1: ya, y2: ya, class: 'est-arr' }, m.gap);
+      arrowHead(m.gap, xm + 2, ya, Math.PI, 'est-arr-h', 13); arrowHead(m.gap, xf - 2, ya, 0, 'est-arr-h', 13);
+      tx(m.gap, (xm + xf) / 2, ya - 14, '2,1 mm', { 'text-anchor': 'middle', 'font-size': 30, 'font-weight': 700, class: 'halo' });
+      m.q = tx(svg, 960, 1010, FM('Hasard de l\'échantillonnage, ou le fabricant se trompe ?'), { 'text-anchor': 'middle', 'font-size': 42, 'font-weight': 700 });
+      return m;
+    },
+    pose(m, k) {
+      clean(m.svg);
+      m.ch.shown = m.ch.counts.slice(); m.ch.drawBars();
+      vis([m.t, m.ch.frame, m.ch.cart, m.ch.bars, m.axis.g, m.ch.mean.g], k >= 0);
+      vis([m.fab, m.card], k >= 1);
+      vis([m.gap, m.q], k >= 2);
+    },
+    play(m, k, c) {
+      if (k === 0) {
+        fadeIn(c, [m.t, m.ch.frame, m.ch.cart, m.axis.g], 0, 500);
+        growBars(c, m.ch, 400, 45);
+        meanIn(c, m.ch.mean, 400 + NIND * 45 + 200);
+        return 400 + NIND * 45 + 1100;
+      }
+      if (k === 1) {
+        fadeIn(c, m.card, 0, 500);
+        const ln = m.fab.querySelector('line'), lb = m.fab.querySelector('text');
+        vis(m.fab, true); utils.set(ln, { scaleY: 0 }); lb.style.opacity = 0;
+        c.at(500, () => c.anim(ln, { scaleY: [0, 1], duration: T(700), ease: 'out(3)' }));
+        fadeIn(c, lb, 1000, 400);
+        return 1500;
+      }
+      fadeIn(c, m.gap, 0, 500);
+      popIn(c, m.q, 500);
+      return 1200;
+    }
+  });
+
+  /* ======================= DIAPO 3 · H₀ ET H₁ ======================= */
+  stepped('hypo', {
+    labels: ['H1', 'H2'],
+    build(svg) {
+      const m = {};
+      tx(svg, 60, 90, 'Deux hypothèses', { class: 't-title' });
+      m.h0 = S('g', {}, svg);
+      card(m.h0, 80, 160, 840, 760, 'card', 18);
+      ftx(m.h0, 120, 250, '{P:H₀} · hypothèse nulle', { 'font-size': 44 });
+      ftx(m.h0, 120, 340, '« ~m~_e est conforme à ~μ~ = 72,5 mm »', { 'font-size': 36, 'font-weight': 600 });
+      ftx(m.h0, 120, 420, 'Le fabricant a raison : les 2,1 mm d\'écart', { 'font-size': 30 });
+      ftx(m.h0, 120, 462, 'viennent du hasard de l\'échantillonnage.', { 'font-size': 30 });
+      ftx(m.h0, 120, 560, '~Souvent, H₀ dit que « rien ne se passe » :~', { 'font-size': 27, class: 't-pop' });
+      ftx(m.h0, 120, 598, '~les données collent aux anciennes.~', { 'font-size': 27, class: 't-pop' });
+      ftx(m.h0, 120, 700, 'On la {b:suppose vraie} pendant tout le test.', { 'font-size': 30 });
+      card(m.h0, 120, 790, 240, 70, 'chip-pop', 35);
+      ftx(m.h0, 240, 836, '{b:une seule}', { 'font-size': 30, 'text-anchor': 'middle' });
+      m.h1 = S('g', {}, svg);
+      card(m.h1, 1000, 160, 840, 760, 'card', 18);
+      ftx(m.h1, 1040, 250, '{P:H₁} · hypothèse alternative', { 'font-size': 44 });
+      const rows = [['~μ~ ≠ 72,5 mm', 'les mains sont différentes', 'both', 360], ['~μ~ < 72,5 mm', 'les mains sont plus petites', 'left', 500], ['~μ~ > 72,5 mm', 'les mains sont plus grandes', 'right', 640]];
+      rows.forEach(([t, sub, dir, y]) => {
+        const g = S('g', {}, m.h1);
+        ftx(g, 1040, y, t, { 'font-size': 36, 'font-weight': 600 });
+        ftx(g, 1040, y + 40, sub, { 'font-size': 26, class: 't-pop' });
+        const x0 = 1500, x1 = 1790, xc = 1645, yl = y - 12;
+        S('line', { x1: x0, x2: x1, y1: yl, y2: yl, class: 'axl' }, g);
+        S('line', { x1: xc, x2: xc, y1: yl - 16, y2: yl + 16, class: 'ic-musolid' }, g);
+        tx(g, xc, yl + 44, '72,5', { 'text-anchor': 'middle', 'font-size': 22, class: 't-pop' });
+        if (dir !== 'right') { S('line', { x1: xc - 14, x2: x0 + 14, y1: yl - 26, y2: yl - 26, class: 'h1-arr' }, g); arrowHead(g, x0, yl - 26, Math.PI, 'h1-arr-h', 14); }
+        if (dir !== 'left') { S('line', { x1: xc + 14, x2: x1 - 14, y1: yl - 26, y2: yl - 26, class: 'h1-arr' }, g); arrowHead(g, x1, yl - 26, 0, 'h1-arr-h', 14); }
+      });
+      card(m.h1, 1040, 790, 340, 70, 'chip-pop', 35);
+      ftx(m.h1, 1210, 836, '{b:une ou plusieurs}', { 'font-size': 30, 'text-anchor': 'middle' });
+      return m;
+    },
+    pose(m, k) { clean(m.svg); vis(m.h0, k >= 0); vis(m.h1, k >= 1); },
+    play(m, k, c) { return stagger(c, k === 0 ? m.h0 : m.h1, 0, 160, 450); }
+  });
+
+  /* ======================= DIAPO 4 · LE RAISONNEMENT =======================
+     R1 on suppose H₀ vraie : la courbe des mₑ autour de 72,5 · R2 α = 5 % : queues, IP [70,80 ; 74,20]
+     R3 mₑ = 70,4 tombe dans une queue : on rejette H₀ · R4 les deux issues */
+  stepped('raison', {
+    labels: ['R1', 'R2', 'R3', 'R4'],
+    build(svg) {
+      const m = {};
+      tx(svg, 60, 90, 'On suppose H₀ vraie', { class: 't-title' });
+      m.b = buildBell(svg, 'RAISON');
+      m.caps = captions(svg, [
+        'Si H₀ est vraie, les ~m~_e des échantillons de 30 se répartissent autour de {P:72,5 mm}.',
+        'On fixe ~α~ = 5 % : l\'intervalle de pari ({P:IP}) contient 95 % des ~m~_e.',
+      ]);
+      m.sd = ftx(svg, 1760, 252, 'écart-type : {p:~σ~}/√~N~ = 4,74/√30 = 0,866 mm', { 'text-anchor': 'end', 'font-size': 26, class: 't-pop' });
+      m.verdict = noteBox(svg, 170, 330, 600, ['~m~_e est hors de l\'IP :', 'données {b:improbables} sous H₀', '→ on {R:rejette H₀} (test {b:significatif})'], { size: 30 });
+      m.vArr = arrowLine(svg, 470, 330 + m.verdict.h + 6, tX(ME) - 120, TA.base - 132);
+      m.out = S('g', {}, svg);
+      noteBox(m.out, 160, 890, 790, ['~m~_e {b:dans} l\'IP : données probables sous H₀', '→ on {b:accepte} H₀, faute d\'argument pour la rejeter'], { size: 28 });
+      noteBox(m.out, 970, 890, 790, ['~m~_e {b:hors} de l\'IP : données improbables sous H₀', '→ on {R:rejette} H₀ : une alternative H₁ est réalisée'], { size: 28 });
+      return m;
+    },
+    pose(m, k) {
+      clean(m.svg);
+      const b = m.b;
+      Object.assign(b.st, { amp: 1, zt: Z95, uni: 0, ax: 0, trueAmp: 0 }); b.meAt(TA.base); b.draw();
+      vis(b.parts.all, false);
+      vis([b.axis, b.tmm, b.axT[0], b.area, b.curve, b.mu, m.sd], k >= 0);
+      vis([b.tailL, b.tailR, b.pct, b.aval, b.aL, b.aR, b.ip], k >= 1);
+      vis([b.me, m.verdict, m.vArr], k >= 2);
+      vis(m.out, k >= 3);
+      showCap(m.caps, Math.min(k, 1));
+    },
+    play(m, k, c) {
+      const b = m.b;
+      swapCap(c, m.caps, k);
+      if (k === 0) { const e = bellIntro(c, b, 300); fadeIn(c, m.sd, e - 300, 500); return e + 300; }
+      if (k === 1) {
+        vis([b.tailL, b.tailR], true); b.st.zt = ZMAX; b.draw();
+        tweenT(c, 1100, 300, t => { b.st.zt = lerp(ZMAX, Z95, t); b.draw(); });
+        [b.pct, b.aval].forEach((e, i) => popIn(c, e, 600 + i * 250, 500));
+        fadeIn(c, [b.aL, b.aR], 1200, 400);
+        return ipIn(c, b, 1500) + 200;
+      }
+      if (k === 2) {
+        b.meDot.classList.remove('out'); b.meLab.classList.remove('t-red');
+        const e = meFall(c, b, 0);
+        c.at(800, () => { b.meDot.classList.add('out'); b.meLab.classList.add('t-red'); c.anim(b.meDot, { scale: [1.7, 1], duration: T(500), ease: 'out(3)' }); });
+        fadeIn(c, [m.verdict, m.vArr], e, 500);
+        return e + 700;
+      }
+      return stagger(c, m.out, 0, 300, 500);
+    }
+  });
+
+  /* ======================= DIAPO 5 · LE RISQUE α =======================
+     A1 sous H₀, 20 échantillons : 19 mₑ dans l'IP, 1 dans une queue · A2 rejeter H₀ à tort = α */
+  stepped('alpha', {
+    labels: ['A1', 'A2'],
+    build(svg) {
+      const m = {};
+      tx(svg, 60, 90, 'Et si H₀ était vraie quand même ?', { class: 't-title' });
+      m.b = buildBell(svg, 'ALPHA');
+      m.caps = captions(svg, ['Sous H₀, tirons 20 échantillons de 30 : 19 ~m~_e tombent dans l\'IP, 1 tombe dans une queue.']);
+      const red = m.b.pts.find(p => Math.abs(p.z) > Z95);
+      m.box = noteBox(svg, 1290, 318, 570, ['Si notre échantillon était celui-là,', 'on rejetterait H₀…', '{b:alors qu\'elle est vraie.}'], { size: 28 });
+      m.bArr = arrowLine(svg, 1560, 318 + m.box.h + 6, red.x + 6, red.y - 18);
+      m.def = noteBox(svg, 160, 890, 1600, ['Rejeter H₀ alors qu\'elle est vraie : c\'est le {R:risque ~α~} (risque de {b:1ʳᵉ espèce}).', 'On le fixe {b:avant} le test ; ici, 1 échantillon sur 20 (5 %) nous tromperait.'], { size: 30 });
+      return m;
+    },
+    pose(m, k) {
+      clean(m.svg);
+      const b = m.b;
+      Object.assign(b.st, { amp: 1, zt: Z95, uni: 0, ax: 0, trueAmp: 0 }); b.draw();
+      b.pts.forEach(p => { p.el.setAttribute('cy', p.y); });
+      vis(b.parts.all, false);
+      vis([b.axis, b.tmm, b.axT[0], b.area, b.curve, b.mu, b.tailL, b.tailR, b.pct, b.aval, b.aL, b.aR, b.ip], k >= 0);
+      vis(b.pts.map(p => p.el), k >= 0);
+      vis([m.box, m.bArr, m.def], k >= 1);
+      showCap(m.caps, k >= 0 ? 0 : -1);
+    },
+    play(m, k, c) {
+      const b = m.b;
+      if (k === 0) {
+        const base = [b.axis, b.tmm, b.axT[0], b.area, b.curve, b.mu, b.tailL, b.tailR, b.pct, b.aval, b.aL, b.aR, b.ip];
+        fadeIn(c, base, 0, 500);
+        fadeIn(c, m.caps[0], 300, 500);
+        b.pts.forEach((p, i) => {
+          p.el.setAttribute('cy', 120); p.el.style.opacity = 0; p.el.classList.remove('out');
+          c.at(700 + i * 230, () => {
+            p.el.style.opacity = '';
+            tweenT(c, 700, 0, t => p.el.setAttribute('cy', lerp(120, p.y, t)), 'outBounce');
+            if (Math.abs(p.z) > Z95) c.at(560, () => { p.el.classList.add('out'); c.anim(p.el, { scale: [1.8, 1], duration: T(500), ease: 'out(3)' }); });
+          });
+        });
+        return 700 + 19 * 230 + 900;
+      }
+      fadeIn(c, [m.box, m.bArr], 0, 500);
+      fadeIn(c, m.def, 600, 600);
+      return 1300;
+    }
+  });
+
+  /* ======================= DIAPO 6 · ET À 1 % ? ======================= */
+  stepped('alpha1', {
+    labels: ['U1', 'U2'],
+    build(svg) {
+      const m = {};
+      tx(svg, 60, 90, FM('Et à ~α~ = 1 % ?'), { class: 't-title' });
+      m.b = buildBell(svg, 'ALPHA1');
+      m.caps = captions(svg, ['À ~α~ = 1 %, les queues rétrécissent : l\'IP s\'élargit et devient [70,27 ; 74,73].']);
+      m.verdict = noteBox(svg, 170, 330, 600, ['~m~_e = 70,4 est maintenant {b:dans} l\'IP', '→ on {b:accepte} H₀'], { size: 30 });
+      m.vArr = arrowLine(svg, 470, 330 + m.verdict.h + 6, tX(ME) - 120, TA.base - 132);
+      m.msg = noteBox(svg, 160, 890, 1600, ['Même échantillon, autre conclusion : tout dépend de ~α~.', 'C\'est pour ça qu\'on choisit ~α~ {b:avant} de regarder les données.'], { size: 32, center: true });
+      return m;
+    },
+    pose(m, k) {
+      clean(m.svg);
+      const b = m.b;
+      Object.assign(b.st, { amp: 1, zt: k >= 0 ? Z99 : Z95, uni: 0, ax: 0, trueAmp: 0 }); b.meAt(TA.base); b.draw();
+      vis(b.parts.all, false);
+      vis([b.axis, b.tmm, b.axT[0], b.area, b.curve, b.mu, b.tailL, b.tailR, b.pct, b.aval, b.aL, b.aR, b.ip, b.me], k >= 0);
+      vis([m.verdict, m.vArr], k >= 0);
+      vis(m.msg, k >= 1);
+      showCap(m.caps, k >= 0 ? 0 : -1);
+    },
+    play(m, k, c) {
+      const b = m.b;
+      if (k === 0) {
+        b.st.zt = Z95; b.draw();
+        fadeIn(c, [b.axis, b.tmm, b.axT[0], b.area, b.curve, b.mu, b.tailL, b.tailR, b.pct, b.aval, b.aL, b.aR, b.ip, b.me], 0, 400);
+        fadeIn(c, m.caps[0], 300, 500);
+        tweenT(c, 1600, 900, t => { b.st.zt = lerp(Z95, Z99, t); b.draw(); });
+        c.at(1900, () => c.anim(b.meDot, { scale: [1.6, 1], duration: T(500), ease: 'out(3)' }));
+        fadeIn(c, [m.verdict, m.vArr], 2600, 500);
+        return 3200;
+      }
+      fadeIn(c, m.msg, 0, 600);
+      return 700;
+    }
+  });
+
+  /* ======================= DIAPO 7 · LE RISQUE β =======================
+     B1 en vrai μ = 70 (cours 1) : la vraie courbe · B2 la zone β (hachures vertes) et la puissance
+     B3 retour à α = 5 % : β baisse · B4 la vraie valeur glisse : autant de β que de H₁ */
+  stepped('beta', {
+    labels: ['B1', 'B2', 'B3', 'B4'],
+    build(svg) {
+      const m = {};
+      tx(svg, 60, 90, 'Et si H₀ était fausse ?', { class: 't-title' });
+      m.b = buildBell(svg, 'BETA');
+      m.caps = captions(svg, [
+        'En vrai, {P:~μ~ = 70 mm} (cours 1) : H₀ est fausse, mais à 1 % on l\'a acceptée.',
+        ['Les échantillons de la vraie courbe qui tombent dans l\'IP font accepter H₀ à tort :', 'c\'est le {G:risque ~β~} (risque de {b:2ᵉ espèce}).'],
+        'Retour à ~α~ = 5 % : l\'IP se resserre et ~β~ descend. Baisser ~α~ fait monter ~β~.',
+        '~β~ dépend de la vraie valeur : il y a autant de ~β~ que d\'hypothèses H₁.',
+      ], 150, 30);
+      // B4 · β for three true values (α = 5 %)
+      m.tbl = S('g', {}, svg);
+      card(m.tbl, 1180, 860, 680, 170, 'box', 12);
+      ftx(m.tbl, 1210, 906, '{b:à ~α~ = 5 %, si en vrai…}', { 'font-size': 26, class: 't-pop' });
+      [[71.5, 'mains proches de H₀'], [70, ''], [69, 'loin de H₀']].forEach(([mu, note], i) => {
+        const lo = MU0 - Z95 * SEM, hi = MU0 + Z95 * SEM, b = Phi((hi - mu) / SEM) - Phi((lo - mu) / SEM), x = 1210 + i * 220;
+        ftx(m.tbl, x, 958, '~μ~ = ' + fr(mu, mu % 1 ? 1 : 0), { 'font-size': 28, class: 't-pop' });
+        ftx(m.tbl, x, 1004, '{G:~β~ = ' + pctTxt(b, 0) + '}', { 'font-size': 34 });
+      });
+      return m;
+    },
+    pose(m, k) {
+      clean(m.svg);
+      vis(m.tbl, k >= 3);
+      const b = m.b;
+      Object.assign(b.st, { amp: 1, zt: k >= 2 ? Z95 : Z99, uni: 0, ax: 0, trueC: MU_TRUE, trueAmp: k >= 0 ? 1 : 0 }); b.meAt(TA.base); b.draw();
+      vis(b.parts.all, false);
+      vis([b.axis, b.tmm, b.axT[0], b.area, b.curve, b.mu, b.tailL, b.tailR, b.pct, b.aval, b.aL, b.aR, b.ip, b.me], k >= -1 && k >= 0);
+      vis([b.trueCurve, b.tmu], k >= 0);
+      vis([b.beta, b.leg], k >= 1);
+      showCap(m.caps, k);
+    },
+    play(m, k, c) {
+      const b = m.b;
+      swapCap(c, m.caps, k);
+      switch (k) {
+        case 0: {
+          fadeIn(c, [b.axis, b.tmm, b.axT[0], b.area, b.curve, b.mu, b.tailL, b.tailR, b.pct, b.aval, b.aL, b.aR, b.ip, b.me], 0, 400);
+          b.st.trueAmp = 0; b.draw(); vis(b.trueCurve, true);
+          tweenT(c, 1300, 600, t => { b.st.trueAmp = t; b.draw(); }, 'out(3)');
+          const ln = b.tmuL; vis(b.tmu, true); utils.set(ln, { scaleY: 0 }); b.tmuT.style.opacity = 0;
+          c.at(1400, () => c.anim(ln, { scaleY: [0, 1], duration: T(600), ease: 'out(3)' }));
+          fadeIn(c, b.tmuT, 1800, 400);
+          return 2400;
+        }
+        case 1: fadeIn(c, b.beta, 300, 800); fadeIn(c, b.leg, 900, 500); return 1500;
+        case 2: tweenT(c, 1600, 400, t => { b.st.zt = lerp(Z99, Z95, t); b.draw(); }); return 2100;
+        case 3: {
+          const path = [[MU_TRUE, 71.5, 1500], [71.5, 69, 2200], [69, MU_TRUE, 1300]];
+          let t0 = 300;
+          path.forEach(([a, z, dur]) => { tweenT(c, dur, t0, t => { b.st.trueC = lerp(a, z, t); b.draw(); }, 'inOut(2)'); t0 += dur + 500; });
+          fadeIn(c, m.tbl, t0 - 300, 600);
+          return t0 + 400;
+        }
+      }
+    }
+  });
+
+  /* ======================= DIAPO 8 · LES DEUX ERREURS ======================= */
+  stepped('erreurs', {
+    labels: ['E1', 'E2', 'E3'],
+    build(svg) {
+      const m = {};
+      tx(svg, 60, 90, 'Deux façons de se tromper', { class: 't-title' });
+      const hatch = hatchDefs(svg, 'ERREURS', true);
+      const C = [[600, 1180], [1220, 1800]], R = [[360, 560], [580, 780]];
+      m.frame = S('g', {}, svg);
+      ftx(m.frame, 1200, 214, '{b:En réalité…}', { 'text-anchor': 'middle', 'font-size': 30, class: 't-pop' });
+      ftx(m.frame, (C[0][0] + C[0][1]) / 2, 300, '{P:H₀ est vraie}', { 'text-anchor': 'middle', 'font-size': 36 });
+      ftx(m.frame, (C[1][0] + C[1][1]) / 2, 300, '{P:H₀ est fausse}', { 'text-anchor': 'middle', 'font-size': 36 });
+      ftx(m.frame, 160, (R[0][0] + R[0][1]) / 2 + 12, '{b:On accepte H₀}', { 'font-size': 36 });
+      ftx(m.frame, 160, (R[1][0] + R[1][1]) / 2 + 12, '{b:On rejette H₀}', { 'font-size': 36 });
+      ftx(m.frame, 160, 300, '~Décision ↓~', { 'font-size': 26, class: 't-pop' });
+      const cell = (ci, ri, cls, fill, lines) => {
+        const g = S('g', {}, svg), [x0, x1] = C[ci], [y0, y1] = R[ri];
+        S('rect', { x: x0, y: y0, width: x1 - x0, height: y1 - y0, rx: 14, class: cls, ...(fill ? { fill } : {}) }, g);
+        lines.forEach(([t, size], i) => ftx(g, (x0 + x1) / 2, (y0 + y1) / 2 - 8 + (i - (lines.length - 1) / 2) * 62 + size * 0.34, t, { 'text-anchor': 'middle', 'font-size': size, class: 'halo' }));
+        return g;
+      };
+      m.cA = cell(0, 1, 'cell-a', null, [['{R:erreur de 1ʳᵉ espèce}', 34], ['risque ~α~', 40]]);
+      m.cB = cell(1, 0, 'cell-b', hatch, [['{G:erreur de 2ᵉ espèce}', 34], ['risque ~β~', 40]]);
+      m.cOK = [cell(0, 0, 'cell-ok', null, [['{b:bonne décision}', 34], ['probabilité 1 − ~α~', 32]]), cell(1, 1, 'cell-ok', null, [['{b:bonne décision}', 34], ['{b:puissance} 1 − ~β~', 36]])];
+      m.note = S('g', {}, svg);
+      ftx(m.note, 160, 880, '{R:~α~} : fixé {b:avant} le test, par nous.', { 'font-size': 32 });
+      ftx(m.note, 160, 934, '{G:~β~} : dépend de H₁ ; on ne peut le calculer qu\'en connaissant H₁.', { 'font-size': 32 });
+      return m;
+    },
+    pose(m, k) { clean(m.svg); vis([m.frame, m.cA], k >= 0); vis(m.cB, k >= 1); vis([m.cOK, m.note], k >= 2); },
+    play(m, k, c) {
+      if (k === 0) { fadeIn(c, m.frame, 0, 500); popIn(c, m.cA, 600); return 1200; }
+      if (k === 1) { popIn(c, m.cB, 0); return 700; }
+      m.cOK.forEach((g, i) => popIn(c, g, i * 250)); stagger(c, m.note, 700, 300, 500); return 1700;
+    }
+  });
