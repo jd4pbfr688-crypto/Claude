@@ -14,6 +14,7 @@ OUT = HERE / 'statistiques-probabilistes-2.html'
 # (clé, nom, scène, rangée) — une rangée = une partie du cours ; dans une rangée, on va vers la droite
 STATIONS = [
     ('TITRE', 'Titre', 'titre', 0),
+    ('PIECE', 'La pièce truquée ?', 'piece', 0),
     ('QUESTION', 'La question du fabricant', 'question', 0),
     ('HYPO', 'H₀ et H₁', 'hypo', 0),
     ('RAISON', 'Le raisonnement', 'raison', 0),

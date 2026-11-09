@@ -65,7 +65,116 @@
     }
   });
 
-  /* ======================= DIAPO 2 · LA QUESTION =======================
+  /* ======================= DIAPO 2 · LA PIÈCE TRUQUÉE ? =======================
+     Avant les gants, l'idée du test avec une pièce lancée 10 fois.
+     P1 la question · P2 6 piles : c'est normal, on ne peut rien conclure
+     P3 10 piles : si la pièce était normale, 1 fois sur 1 000 (1/1024) → on rejette ; la loi B(10 ; 0,5) apparaît
+     P4 8 piles : la salle hésite → où mettre la limite ? · P5 α = 5 % : la zone de rejet 0, 1, 9, 10 piles (2,1 %) */
+  const BIN10 = [1, 10, 45, 120, 210, 252, 210, 120, 45, 10, 1];   // /1024 : loi binomiale B(10 ; 0,5)
+  const COIN_SETS = [null, [1, 0, 1, 1, 0, 1, 0, 1, 1, 0], [1, 1, 1, 1, 1, 1, 1, 1, 1, 1], [1, 1, 0, 1, 1, 1, 1, 0, 1, 1]];   // 1 = pile
+  const PB = { x0: 360, dx: 120, w: 72, base: 940, h: 280 };
+  const pbX = k => PB.x0 + k * PB.dx;
+  stepped('piece', {
+    labels: ['P1', 'P2', 'P3', 'P4', 'P5'],
+    build(svg) {
+      const m = {};
+      m.t = tx(svg, 960, 110, 'Je lance une pièce 10 fois. Est-ce qu\'elle est truquée ?', { 'text-anchor': 'middle', 'font-size': 52, 'font-weight': 700 });
+      m.coins = range(0, 9, 1).map(i => {
+        const g = S('g', { transform: `translate(${(960 + (i - 4.5) * 108).toFixed(1)} 240)` }, svg);
+        const inner = S('g', {}, g);
+        const c = S('circle', { cx: 0, cy: 0, r: 44, class: 'coin' }, inner);
+        const t = tx(inner, 0, 14, '?', { 'text-anchor': 'middle', 'font-size': 40, 'font-weight': 700 });
+        return { g, inner, c, t };
+      });
+      m.setCoin = (i, v) => {
+        const o = m.coins[i];
+        o.c.setAttribute('class', v == null ? 'coin' : v ? 'coin pile' : 'coin face');
+        rich(o.t, v == null ? '?' : v ? 'P' : 'F');
+        o.t.setAttribute('class', v ? 't-white' : v === 0 ? 't-blue' : 't-pop');
+      };
+      m.count = tx(svg, 960, 380, '', { 'text-anchor': 'middle', 'font-size': 50, 'font-weight': 700, class: 't-or' });
+      m.say = [
+        null,
+        ['Tout le monde dit non, c\'est normal.', '→ On ne peut rien conclure.'],
+        ['Tout le monde dit oui. Pourquoi ?', 'Si la pièce était normale, ça n\'arriverait qu\'{b:une fois sur 1 000} (1 sur 1 024).', '→ On {R:rejette} l\'idée « la pièce est normale ».'],
+        ['La salle hésite : avec une pièce normale, 8 piles arrive environ 4 fois sur 100.', '→ Où mettre la limite ? {b:C\'est le choix de ~α~.}'],
+        ['~α~ = 5 % : on rejette pour 0, 1, 9 ou 10 piles (2,1 % des cas avec une pièce normale).', '8 piles n\'y est pas : on ne peut rien conclure. Avec ~α~ = 20 %, on aurait rejeté.', '{p:On choisit ~α~ avant de lancer la pièce.}'],
+      ].map(lines => {
+        if (!lines) return null;
+        const g = S('g', {}, svg);
+        lines.forEach((l, i) => ftx(g, 960, 456 + i * 48, l, { 'text-anchor': 'middle', 'font-size': i === 0 ? 34 : 32, 'font-weight': i === lines.length - 1 && lines.length > 1 ? 600 : 500 }));
+        return g;
+      });
+      // the law of the number of heads if the coin is fair: B(10 ; 0,5)
+      m.chart = S('g', {}, svg);
+      S('line', { x1: pbX(0) - 60, x2: pbX(10) + 60, y1: PB.base, y2: PB.base, class: 'axl' }, m.chart);
+      m.bars = BIN10.map((n, k) => {
+        const h = n / 252 * PB.h;
+        const r = S('rect', { x: pbX(k) - PB.w / 2, y: PB.base - h, width: PB.w, height: Math.max(h, 2), class: 'bin grow' }, m.chart);
+        const l = tx(m.chart, pbX(k), PB.base - h - 12, fr(100 * n / 1024, 1) + ' %', { 'text-anchor': 'middle', 'font-size': 22, class: 't-pop' });
+        tx(m.chart, pbX(k), PB.base + 36, String(k), { 'text-anchor': 'middle', class: 't-tick' });
+        return { r, l };
+      });
+      // the observed result in orange (bar and label), the rejection zone in red
+      m.paint = (hi, zone) => m.bars.forEach(({ r, l }, j) => {
+        const z = zone && (j <= 1 || j >= 9);
+        r.setAttribute('class', 'grow ' + (j === hi ? 'sqo' : z ? 'bin-r' : 'bin'));
+        l.setAttribute('class', j === hi ? 't-or' : z ? 't-red' : 't-pop'); l.setAttribute('font-weight', j === hi || z ? 700 : 400); l.setAttribute('font-size', j === hi ? 28 : 22);
+      });
+      ftx(m.chart, 960, 1030, 'Si la pièce est normale : probabilité d\'obtenir ~k~ piles sur 10 lancers', { 'text-anchor': 'middle', 'font-size': 26, class: 't-ax' });
+      m.zone = S('g', {}, svg);
+      [1.5, 8.5].forEach(k => S('line', { x1: pbX(k), x2: pbX(k), y1: PB.base + 10, y2: PB.base - 250, class: 'zone-l' }, m.zone));
+      ftx(m.zone, (pbX(0) + pbX(1)) / 2, PB.base - 210, '{R:rejet}', { 'text-anchor': 'middle', 'font-size': 28 });
+      ftx(m.zone, (pbX(9) + pbX(10)) / 2, PB.base - 210, '{R:rejet}', { 'text-anchor': 'middle', 'font-size': 28 });
+      return m;
+    },
+    pose(m, k) {
+      clean(m.svg);
+      const set = COIN_SETS[Math.min(Math.max(k, 0), 3)];
+      m.coins.forEach((o, i) => m.setCoin(i, set ? set[i] : null));
+      vis(m.t, k >= 0); vis(m.coins.map(o => o.g), k >= 0);
+      vis(m.count, k >= 1);
+      if (k >= 1) rich(m.count, set.reduce((a, b) => a + b, 0) + ' piles sur 10');
+      m.say.forEach((g, i) => { if (g) vis(g, i === k); });
+      vis(m.chart, k >= 2); vis(m.zone, k >= 4);
+      m.paint(k === 2 ? 10 : k >= 3 ? 8 : -1, k >= 4);
+    },
+    play(m, k, c) {
+      if (k === 0) {
+        fadeIn(c, m.t, 0, 600);
+        m.coins.forEach((o, i) => popIn(c, o.g, 500 + i * 70, 400));
+        return 1400;
+      }
+      const flip = (set, d) => m.coins.forEach((o, i) => {
+        c.at(d + i * 90, () => c.anim(o.inner, { scaleX: [1, 0], duration: T(140), ease: 'in(2)', onComplete: () => { m.setCoin(i, set[i]); c.anim(o.inner, { scaleX: [0, 1], duration: T(140), ease: 'out(2)' }); } }));
+      });
+      if (k <= 3) {
+        const prev = COIN_SETS[k - 1] || null;
+        m.coins.forEach((o, i) => m.setCoin(i, prev ? prev[i] : null));
+        flip(COIN_SETS[k], 0);
+        const d = 10 * 90 + 300;
+        popIn(c, m.count, d, 500);
+        if (m.say[k - 1]) fadeOut(c, m.say[k - 1], 0, 300);
+        const e = stagger(c, m.say[k], d + 400, 450, 500);
+        if (k === 2) {
+          vis(m.chart, true);
+          m.paint(-1, false);
+          m.bars.forEach(({ r, l }, j) => { l.style.opacity = 0; utils.set(r, { scaleY: 0 }); c.at(e + j * 60, () => c.anim(r, { scaleY: [0, 1], duration: T(500), ease: 'out(3)' })); });
+          fadeIn(c, m.bars.map(b => b.l), e + 700, 500);
+          c.at(e + 1300, () => m.paint(10, false));
+          return e + 1600;
+        }
+        if (k === 3) c.at(d, () => m.paint(8, false));
+        return e + 200;
+      }
+      fadeOut(c, m.say[3], 0, 300);
+      c.at(300, () => m.paint(8, true));
+      fadeIn(c, m.zone, 500, 600);
+      return stagger(c, m.say[4], 900, 450, 500);
+    }
+  });
+
+  /* ======================= DIAPO 3 · LA QUESTION =======================
      Q1 G1 du cours 1 : 30 étudiants, mₑ = 70,4 mm · Q2 la fiche du fabricant : 72,5 mm
      Q3 l'écart de 2,1 mm et la question du test */
   const XR = { x0: 150, x1: 1690, d0: 56, d1: 84 };
@@ -137,7 +246,7 @@
       ftx(m.h0, 120, 420, 'Le fabricant a raison : les 2,1 mm d\'écart', { 'font-size': 30 });
       ftx(m.h0, 120, 462, 'viennent du hasard de l\'échantillonnage.', { 'font-size': 30 });
       ftx(m.h0, 120, 560, '~Souvent, H₀ dit que « rien ne se passe » :~', { 'font-size': 27, class: 't-pop' });
-      ftx(m.h0, 120, 598, '~les données collent aux anciennes.~', { 'font-size': 27, class: 't-pop' });
+      ftx(m.h0, 120, 598, '~la pièce est normale, les données collent aux anciennes.~', { 'font-size': 27, class: 't-pop' });
       ftx(m.h0, 120, 700, 'On la {b:suppose vraie} pendant tout le test.', { 'font-size': 30 });
       card(m.h0, 120, 790, 240, 70, 'chip-pop', 35);
       ftx(m.h0, 240, 836, '{b:une seule}', { 'font-size': 30, 'text-anchor': 'middle' });

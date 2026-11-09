@@ -29,3 +29,10 @@
   .chapter .ch-title { font-size: 120px; font-weight: 700; line-height: 1.05; letter-spacing: -.02em; margin-top: 10px; }
   .chapter .ch-sub   { font-size: 52px; font-weight: 500; color: var(--pop); margin-top: 24px; }
   .stage .beta-hatch.light { stroke-opacity: .3; }
+  .stage .coin      { fill: var(--bg); stroke: var(--pop); stroke-width: 3; }
+  .stage .coin.pile { fill: var(--blue); stroke: var(--blue-dk); }
+  .stage .coin.face { fill: var(--bg); stroke: var(--blue-dk); }
+  .stage .t-white   { fill: var(--bg); }
+  .stage .bin       { fill: var(--grid); stroke: var(--pop); stroke-width: 1.5; }
+  .stage .bin-r     { fill: var(--red); fill-opacity: .7; stroke: var(--red); stroke-width: 1.5; }
+  .stage .zone-l    { stroke: var(--red); stroke-width: 2.5; stroke-dasharray: 8 6; }
