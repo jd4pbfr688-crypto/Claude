@@ -3285,43 +3285,50 @@
   });
 
   /* ======================= DIAPO 17 · DEUX FRÉQUENCES ======================= */
+  // F1 les deux fréquences · F2 le numérateur : sous H₀ on attend 0 · F3 les variances s'additionnent
+  // F4 ϕ inconnu → estimation conjointe f · F5 ε = combien d'écarts-types · F6 données appariées
   stepped('hfreq', {
-    labels: ['F1', 'F2', 'F3', 'F4'],
+    labels: ['F1', 'F2', 'F3', 'F4', 'F5', 'F6'],
     build(svg) {
       const m = {};
       tx(svg, 60, 90, 'Homogénéité de deux fréquences', { class: 't-title' });
       m.ch = twoCharts(svg, { hl: true, b1: 400, b2: 700, unit: 40 });
       m.f = S('g', {}, svg);
-      ftx(m.f, 1000, 200, '{O:~f~_1 = 11/30 = 0,367}  (G1)', { 'font-size': 34 });
-      ftx(m.f, 1000, 250, '{O:~f~_2 = 23/30 = 0,767}  (H)', { 'font-size': 34 });
+      ftx(m.f, 1000, 190, '{O:~f~_1 = 11/30 = 0,367}  (G1)', { 'font-size': 32 });
+      ftx(m.f, 1000, 236, '{O:~f~_2 = 23/30 = 0,767}  (H)', { 'font-size': 32 });
+      m.num = S('g', {}, svg);
+      ftx(m.num, 1000, 300, '{b:1. En haut} : sous H₀ (une seule population), on attend ~f~_1 − ~f~_2 = 0.', { 'font-size': 27 });
+      ftx(m.num, 1000, 340, 'On observe |~f~_1 − ~f~_2| = {b:0,400} : c\'est l\'écart à ce qu\'on attend.', { 'font-size': 27 });
+      m.var = S('g', {}, svg);
+      ftx(m.var, 1000, 400, '{b:2. En bas} : l\'écart-type de la différence. Les variances {b:s\'additionnent} :', { 'font-size': 27 });
+      ftx(m.var, 1000, 444, 'Var(~F~_1 − ~F~_2) = {p:~ϕ~(1 − ~ϕ~)}/~n~_1 + {p:~ϕ~(1 − ~ϕ~)}/~n~_2 = {p:~ϕ~(1 − ~ϕ~)}(1/~n~_1 + 1/~n~_2)', { 'font-size': 27 });
       m.pool = S('g', {}, svg);
-      ftx(m.pool, 1000, 320, 'Sous H₀, il n\'y a qu\'une fréquence : on l\'estime avec les 60.', { 'font-size': 27, class: 't-pop' });
-      fracLine(m.pool, 1250, 405, '~f~ =', '~n~_1~f~_1 + ~n~_2~f~_2', '~n~_1 + ~n~_2', 250, '= {b:0,567}', 34);
-      ftx(m.pool, 1000, 510, 'Conditions : 11, 19, 23 et 7 sont tous > 5 ✓', { 'font-size': 26 });
+      ftx(m.pool, 1000, 504, '{b:3. ~ϕ~ est inconnu} : sous H₀, les 60 viennent de la même population,', { 'font-size': 27 });
+      ftx(m.pool, 1000, 540, 'donc on les réunit pour l\'estimer (estimation conjointe) :', { 'font-size': 27 });
+      fracLine(m.pool, 1250, 604, '~f~ =', '~n~_1~f~_1 + ~n~_2~f~_2', '~n~_1 + ~n~_2', 250, '= {b:0,567}', 32);
+      ftx(m.pool, 1000, 690, '{p:Conditions : 11, 19, 23 et 7 sont tous > 5 ✓ → loi de Gauss}', { 'font-size': 24 });
       m.eps = S('g', {}, svg);
-      fracLine(m.eps, 1350, 610, '~ε~ =', '|~f~_1 − ~f~_2|', '√( ~f~(1 − ~f~)(1/~n~_1 + 1/~n~_2) )', 440, '', 36);
-      ftx(m.eps, 1430, 740, '~ε~ = {b:3,13}', { 'text-anchor': 'middle', 'font-size': 48 });
-      ftx(m.eps, 1430, 810, '3,13 > 1,96 → {R:non homogènes} : on rejette H₀', { 'text-anchor': 'middle', 'font-size': 32, 'font-weight': 600 });
+      fracLine(m.eps, 1300, 770, '~ε~ =', '|~f~_1 − ~f~_2|', '√( ~f~(1 − ~f~)(1/~n~_1 + 1/~n~_2) )', 430, '', 32);
+      ftx(m.eps, 1000, 884, '= 0,400 / 0,128 = {b:3,13} écarts-types : trop pour du hasard.', { 'font-size': 30 });
+      ftx(m.eps, 1000, 934, '3,13 > 1,96 → {R:non homogènes} : on rejette H₀', { 'font-size': 32, 'font-weight': 600 });
       m.pair = S('g', {}, svg);
-      card(m.pair, 120, 860, 1740, 170, 'box-or', 14);
-      ftx(m.pair, 150, 912, '{b:⚠ Données appariées} : les mêmes individus, par exemple la main droite et la main gauche', { 'font-size': 28 });
-      ftx(m.pair, 150, 956, 'des 30 étudiants de G1. Ces formules ne marchent pas : on calcule la fréquence des discordances', { 'font-size': 28 });
-      ftx(m.pair, 150, 1000, 'et on la teste à la conformité.', { 'font-size': 28 });
-      const px = 1560;
-      for (let i = 0; i < 4; i++) { const y = 905 + i * 30; S('circle', { cx: px, cy: y, r: 8, class: 'dot' }, m.pair); S('line', { x1: px + 10, x2: px + 150, y1: y, y2: y, class: 'thin' }, m.pair); S('circle', { cx: px + 160, cy: y, r: 8, class: 'dot' }, m.pair); }
-      ftx(m.pair, px, 892 - 6, 'D', { 'text-anchor': 'middle', 'font-size': 20, class: 't-pop' }); ftx(m.pair, px + 160, 886, 'G', { 'text-anchor': 'middle', 'font-size': 20, class: 't-pop' });
+      card(m.pair, 100, 830, 840, 210, 'box-or', 14);
+      ftx(m.pair, 126, 878, '{b:⚠ Données appariées} : les mêmes individus', { 'font-size': 27 });
+      ftx(m.pair, 126, 916, '(main droite et main gauche des 30 de G1).', { 'font-size': 27 });
+      ftx(m.pair, 126, 954, 'Ces formules ne marchent pas : on teste', { 'font-size': 27 });
+      ftx(m.pair, 126, 992, 'la fréquence des discordances (conformité).', { 'font-size': 27 });
+      const px = 760;
+      for (let i = 0; i < 4; i++) { const y = 880 + i * 30; S('circle', { cx: px, cy: y, r: 8, class: 'dot' }, m.pair); S('line', { x1: px + 10, x2: px + 110, y1: y, y2: y, class: 'thin' }, m.pair); S('circle', { cx: px + 120, cy: y, r: 8, class: 'dot' }, m.pair); }
       return m;
     },
     pose(m, k) {
       clean(m.svg); m.ch.full();
       vis(m.ch.all(), k >= 0); m.ch.c.forEach(ch => vis(ch.mean.g, false));
-      vis(m.f, k >= 0); vis(m.pool, k >= 1); vis(m.eps, k >= 2); vis(m.pair, k >= 3);
+      vis(m.f, k >= 0); vis(m.num, k >= 1); vis(m.var, k >= 2); vis(m.pool, k >= 3); vis(m.eps, k >= 4); vis(m.pair, k >= 5);
     },
     play(m, k, c) {
       if (k === 0) { const e = m.ch.grow(c, 0, 25); return stagger(c, m.f, e - 400, 400, 500); }
-      if (k === 1) return stagger(c, m.pool, 0, 350, 500);
-      if (k === 2) return stagger(c, m.eps, 0, 400, 500);
-      return stagger(c, m.pair, 0, 120, 450);
+      return stagger(c, [null, m.num, m.var, m.pool, m.eps, m.pair][k], 0, k === 5 ? 120 : 400, 500);
     }
   });
 
