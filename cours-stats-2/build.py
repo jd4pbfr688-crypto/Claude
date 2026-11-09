@@ -32,6 +32,7 @@ STATIONS = [
     ('ERREURS', 'Les deux erreurs', 'erreurs', 1),
     ('CENTRE', 'Centrer et réduire', 'centre', 2),
     ('EPS', 'Le raccourci ε', 'eps', 2),
+    ('COTES', 'Bilatéral, gauche ou droit ?', 'cotes', 2),
     ('UNI', 'Le test unilatéral', 'uni', 2),
     ('PVAL', 'Le degré de signification p', 'pval', 2),
     ('METHODE', 'La méthode', 'methode', 2),
