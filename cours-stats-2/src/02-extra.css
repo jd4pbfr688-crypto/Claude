@@ -36,3 +36,8 @@
   .stage .bin       { fill: var(--grid); stroke: var(--pop); stroke-width: 1.5; }
   .stage .bin-r     { fill: var(--red); fill-opacity: .7; stroke: var(--red); stroke-width: 1.5; }
   .stage .zone-l    { stroke: var(--red); stroke-width: 2.5; stroke-dasharray: 8 6; }
+  :root { --hl: #FDE68A; }
+  .stage .hl-mult   { fill: var(--hl); }
+  .stage .gt-line   { fill: var(--hl); fill-opacity: .35; }
+  .stage .mult-mid  { fill: var(--green); fill-opacity: .14; }
+  .stage .hl-top .hl-mult { mix-blend-mode: multiply; }

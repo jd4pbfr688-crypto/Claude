@@ -25,8 +25,9 @@
   // mini balisage des formules : {p:…} gris, {g:…} vert, {o:…} orange, {b:…} gras, {r:…} rouge,
   // majuscule = la même couleur en gras ; ~…~ italique, _x indice (comme dans le cours 1)
   const FMA = { p: { class: 't-pop' }, g: { class: 't-green' }, o: { class: 't-or' }, b: { 'font-weight': 700 }, r: { class: 't-red' }, u: { class: 't-blue' },
+    k: { class: 't-mult', 'font-weight': 700 },
     P: { class: 't-pop', 'font-weight': 700 }, G: { class: 't-green', 'font-weight': 700 }, O: { class: 't-or', 'font-weight': 700 }, R: { class: 't-red', 'font-weight': 700 }, U: { class: 't-blue', 'font-weight': 700 } };
-  const FM = s => s.split(/(\{[pgobruPGORU]:[^}]*\})/).filter(Boolean).map(t => { const q = t.match(/^\{([pgobruPGORU]):([^}]*)\}$/); return q ? [q[2], FMA[q[1]]] : [t]; });
+  const FM = s => s.split(/(\{[pgobrukPGORU]:[^}]*\})/).filter(Boolean).map(t => { const q = t.match(/^\{([pgobrukPGORU]):([^}]*)\}$/); return q ? [q[2], FMA[q[1]]] : [t]; });
   const ftx = (parent, x, y, s, attrs) => tx(parent, x, y, FM(s), attrs);
   // une fraction : numérateur, barre, dénominateur, centrés sur cx ; y = hauteur de la barre
   function frac(parent, cx, y, num, den, w, size = 40, cls = '') {
