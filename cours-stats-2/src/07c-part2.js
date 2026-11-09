@@ -108,8 +108,8 @@
       // the sample and its frequency
       m.coins = range(0, 9, 1).map(i => makeCoin(svg, 1040 + i * 72, 300, 30));
       m.fr = S('g', {}, svg);
-      ftx(m.fr, 1000, 412, '{b:Rappel} : ~f~_e = nombre d\'issues de la modalité / ~N~ total', { 'font-size': 30 });
-      ftx(m.fr, 1000, 490, '6 faces sur 10 → {O:~f~_e = 6/10 = 0,6}', { 'font-size': 42 });
+      fracLine(m.fr, 1480, 420, '{b:Rappel} : ~f~_e =', 'nombre d\'issues avec une modalité donnée', '~N~ total', 600, '', 26);
+      fracLine(m.fr, 1440, 515, '6 faces sur 10 →  {O:~f~_e} =', '6', '10', 60, '= {O:0,6}', 40);
       // can we say it is loaded?
       m.q = S('g', {}, svg);
       ftx(m.q, 960, 612, 'Est-ce qu\'on peut pour autant dire que la pièce est truquée ? {b:Non.}', { 'text-anchor': 'middle', 'font-size': 36 });

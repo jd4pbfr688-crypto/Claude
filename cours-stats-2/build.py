@@ -29,6 +29,7 @@ STATIONS = [
     ('ALPHA1', 'Et à 1 % ?', 'alpha1', 1),
     ('BETA', 'Le risque β', 'beta', 1),
     ('ERREURS', 'Les deux erreurs', 'erreurs', 1),
+    ('CENTRE', 'Centrer et réduire', 'centre', 2),
     ('EPS', 'Le raccourci ε', 'eps', 2),
     ('UNI', 'Le test unilatéral', 'uni', 2),
     ('PVAL', 'Le degré de signification p', 'pval', 2),

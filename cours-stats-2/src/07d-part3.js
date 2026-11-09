@@ -1,4 +1,100 @@
 
+  /* ======================= CENTRER ET RÉDUIRE (juste avant le raccourci ε) =======================
+     C1 trois variables, trois unités, des moyennes sans rapport : un écart de 100, c'est beaucoup ?
+     C2 on centre : on enlève la moyenne, chaque graphique glisse dans l'échelle jusqu'à 0
+     C3 on réduit : on divise par l'écart-type, les trois courbes deviennent la même
+     C4 maintenant on compare : 100 € = 0,2 σ, 100 kg = 8,3 σ, 100 mm = 21 σ ; z = (x − μ)/σ */
+  const CR_VARS = [
+    { name: 'Salaire', unit: '€', mu: 2000, sd: 500, base: 380, sub: '~μ~ = 2 000 €, ~σ~ = 500 €' },
+    { name: 'Poids', unit: 'kg', mu: 65, sd: 12, base: 610, sub: '~μ~ = 65 kg, ~σ~ = 12 kg' },
+    { name: 'Main', unit: 'mm', mu: 70, sd: 4.74, base: 840, sub: '~μ~ = 70 mm, ~σ~ = 4,74 mm' },
+  ];
+  const CR = { cx: 1050, k0: 1500 / 3600, c0: 1500, kz: 200, H: 140 };
+  const crK = (v, s) => Math.exp(lerp(Math.log(CR.k0), Math.log(CR.kz / v.sd), s));
+  const crX = (v, x, t, s) => CR.cx + (x - t * v.mu - (1 - t) * CR.c0) * crK(v, s);
+  stepped('centre', {
+    labels: ['C1', 'C2', 'C3', 'C4'],
+    build(svg) {
+      const m = { t: 0, s: 0 };
+      tx(svg, 60, 90, 'Centrer et réduire', { class: 't-title' });
+      m.caps = captions(svg, [
+        'Trois variables, trois unités, des moyennes sans rapport. Un écart de 100, c\'est beaucoup ou pas ?',
+        'On {b:centre} : on enlève la moyenne. Chaque graphique glisse dans l\'échelle jusqu\'à 0.',
+        'On {b:réduit} : on divise par l\'écart-type. Les trois courbes deviennent la même.',
+        'Maintenant on peut comparer : tout est compté en écarts-types.',
+      ], 150, 32);
+      const defs = S('defs', {}, svg), cp = S('clipPath', { id: 'cr-clip' }, defs);
+      S('rect', { x: 290, y: 180, width: 1540, height: 760 }, cp);
+      m.rows = CR_VARS.map(v => {
+        const r = { v };
+        ftx(svg, 60, v.base - 70, '{b:' + v.name + ' (' + v.unit + ')}', { 'font-size': 30 });
+        ftx(svg, 60, v.base - 32, v.sub, { 'font-size': 22, class: 't-pop' });
+        S('line', { x1: 300, x2: 1810, y1: v.base, y2: v.base, class: 'axl' }, svg);
+        const g = S('g', { 'clip-path': 'url(#cr-clip)' }, svg);
+        r.area = S('path', { class: 'ic-area-k' }, g); r.curve = S('path', { class: 'ic-curve-k' }, g);
+        r.mu = S('line', { y1: v.base, y2: v.base - CR.H - 12, class: 'ic-musolid' }, g);
+        r.raw = range(0, 3000, 500).map(x => ({ x, l: S('line', { y1: v.base, y2: v.base + 8, class: 'axl' }, g), t: tx(g, 0, v.base + 32, x ? fr(x, 0) : '0', { 'text-anchor': 'middle', class: 't-tick' }) }));
+        r.cen = range(-1500, 1500, 500).map(x => ({ x, l: S('line', { y1: v.base, y2: v.base + 8, class: 'axl' }, g), t: tx(g, 0, v.base + 32, x < 0 ? '−' + (-x) : String(x), { 'text-anchor': 'middle', class: 't-tick' }) }));
+        r.z = range(-3, 3, 1).map(x => ({ x, l: S('line', { y1: v.base, y2: v.base + 8, class: 'axl' }, g), t: tx(g, 0, v.base + 32, x < 0 ? '−' + (-x) : String(x), { 'text-anchor': 'middle', class: 't-tick' }) }));
+        r.arr = S('g', {}, g);
+        r.arrL = S('line', { y1: v.base - CR.H - 14, y2: v.base - CR.H - 14, class: 'est-arr' }, r.arr);
+        r.arrH = S('polygon', { class: 'est-arr-h' }, r.arr);
+        r.arrT = tx(r.arr, 0, v.base - CR.H - 5, '+100 ' + v.unit, { 'font-size': 26, 'font-weight': 700, class: 'halo' });
+        r.cmp = ftx(svg, 1400, v.base - 70, '', { 'font-size': 30, 'font-weight': 600, class: 'halo' });
+        return r;
+      });
+      m.axT = ['~x~', '~x~ − ~μ~', '~z~'].map(s => ftx(svg, 1830, CR_VARS[2].base + 46, s, { 'font-size': 28, 'font-weight': 600, 'text-anchor': 'end' }));
+      m.f = S('g', {}, svg);
+      card(m.f, 360, 910, 1200, 130, 'box', 14);
+      fracLine(m.f, 760, 968, '~z~ =', '~x~ − ~μ~', '~σ~', 140, '', 40);
+      ftx(m.f, 920, 982, 'c\'est ce que fait {k:~ε~} = |~m~ − ~μ~| / ({p:~σ~}/√~N~)', { 'font-size': 32 });
+      m.hl = S('g', {}, m.f); m.f.insertBefore(m.hl, m.f.children[1]);
+      m.draw = () => {
+        const { t, s } = m;
+        m.rows.forEach(r => {
+          const v = r.v, X = x => crX(v, x, t, s), Y = x => v.base - CR.H * Math.exp(-(((x - v.mu) / v.sd) ** 2) / 2);
+          let d = '';
+          for (let i = 0; i <= 160; i++) { const x = v.mu + (-3.6 + 7.2 * i / 160) * v.sd; d += (i ? 'L' : 'M') + X(x).toFixed(1) + ' ' + Y(x).toFixed(1); }
+          r.curve.setAttribute('d', d);
+          r.area.setAttribute('d', d + `L${X(v.mu + 3.6 * v.sd).toFixed(1)} ${v.base}L${X(v.mu - 3.6 * v.sd).toFixed(1)} ${v.base}Z`);
+          const xm = X(v.mu); r.mu.setAttribute('x1', xm); r.mu.setAttribute('x2', xm);
+          const put = (ticks, px, op) => ticks.forEach(k => { const x = px(k.x); [k.l].forEach(l => { l.setAttribute('x1', x); l.setAttribute('x2', x); }); k.t.setAttribute('x', x); k.l.setAttribute('opacity', op); k.t.setAttribute('opacity', op); });
+          put(r.raw, x => X(x), clamp01(1 - 2 * t).toFixed(3));
+          put(r.cen, x => CR.cx + x * crK(v, s), (clamp01(2 * t - 1) * clamp01(1 - 2 * s)).toFixed(3));
+          put(r.z, x => CR.cx + x * CR.kz, clamp01(2 * s - 1).toFixed(3));
+          const x0 = X(v.mu), x1 = Math.min(X(v.mu + 100), 1800), y = v.base - CR.H - 14;
+          r.arrL.setAttribute('x1', x0); r.arrL.setAttribute('x2', x1 - 8);
+          r.arrH.setAttribute('points', `${x1},${y} ${x1 - 13},${y - 7} ${x1 - 13},${y + 7}`);
+          r.arrT.setAttribute('x', x1 + 10);
+        });
+        m.axT.forEach((e, i) => e.setAttribute('opacity', (i === 0 ? clamp01(1 - 2 * t) : i === 1 ? clamp01(2 * t - 1) * clamp01(1 - 2 * s) : clamp01(2 * s - 1)).toFixed(3)));
+      };
+      return m;
+    },
+    pose(m, k) {
+      clean(m.svg);
+      m.t = k >= 1 ? 1 : 0; m.s = k >= 2 ? 1 : 0; m.draw();
+      showCap(m.caps, k);
+      m.rows.forEach((r, i) => {
+        vis(r.arr, k === 0);
+        const z = 100 / r.v.sd;
+        rich(r.cmp, FM('100 ' + r.v.unit + ' = {b:' + (z < 1 ? fr(z, 1) : fr(z, z < 10 ? 1 : 0)) + ' ~σ~}' + ['  : presque rien', '  : énorme', '  : impossible'][i]));
+        vis(r.cmp, k >= 3);
+      });
+      vis(m.f, k >= 3);
+      m.hl.replaceChildren(); if (k >= 3) markMult(m.f, m.hl);
+    },
+    play(m, k, c) {
+      swapCap(c, m.caps, k);
+      if (k === 0) { const kids = [...m.svg.children].filter(e => e.tagName !== 'defs' && !m.caps.includes(e) && e !== m.f && !m.rows.some(r => r.cmp === e) && !e.classList.contains('t-title')); fadeIn(c, kids, 0, 700); return 900; }
+      if (k === 1) { fadeOut(c, m.rows.map(r => r.arr), 0, 300); tweenT(c, 2000, 400, u => { m.t = u; m.draw(); }, 'inOut(2)'); return 2600; }
+      if (k === 2) { tweenT(c, 2200, 400, u => { m.s = u; m.draw(); }, 'inOut(2)'); return 2800; }
+      m.rows.forEach((r, i) => fadeIn(c, r.cmp, i * 300, 500));
+      fadeIn(c, m.f, 1000, 500); c.at(1000, () => markMult(m.f, m.hl));
+      return 1700;
+    }
+  });
+
   /* ======================= DIAPO 9 · LE RACCOURCI ε =======================
      Z1 la cloche à 5 % et mₑ · Z2 on centre (− 72,5) puis on réduit (÷ 0,866) : seules les graduations bougent
      Z3 ε = 2,42 > 1,96 : rejet · Z4 à 1 % : ε(α) = 2,576, acceptation */
