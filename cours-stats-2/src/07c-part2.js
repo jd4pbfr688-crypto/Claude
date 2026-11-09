@@ -65,112 +65,206 @@
     }
   });
 
-  /* ======================= DIAPO 2 · LA PIÈCE TRUQUÉE ? =======================
-     Avant les gants, l'idée du test avec une pièce lancée 10 fois.
-     P1 la question · P2 6 piles : c'est normal, on ne peut rien conclure
-     P3 10 piles : si la pièce était normale, 1 fois sur 1 000 (1/1024) → on rejette ; la loi B(10 ; 0,5) apparaît
-     P4 8 piles : la salle hésite → où mettre la limite ? · P5 α = 5 % : la zone de rejet 0, 1, 9, 10 piles (2,1 %) */
+  /* ======================= LA PIÈCE (deux diapos, avant les gants) =======================
+     PIECE0 on pose H₀ « la pièce est normale » ; face = succès, pile = échec ; ϕ = 0,5 ; N = 10 ;
+            rappel de la fréquence ; 6 faces → fₑ = 0,6 ; fluctuation d'échantillonnage ; l'IP à 5 % = [0,19 ; 0,81]
+     PIECE  les tirages : l'histogramme de B(10 ; 0,5) avec la courbe de Gauss superposée, l'IP dessous et la formule
+            en bas (comme au cours 1) ; 6, 10 puis 8 faces ; le choix de α ; 5 faces : on accepte H₀ faute de preuves ;
+            les 2 possibilités (texte du poly) */
   const BIN10 = [1, 10, 45, 120, 210, 252, 210, 120, 45, 10, 1];   // /1024 : loi binomiale B(10 ; 0,5)
-  const COIN_SETS = [null, [1, 0, 1, 1, 0, 1, 0, 1, 1, 0], [1, 1, 1, 1, 1, 1, 1, 1, 1, 1], [1, 1, 0, 1, 1, 1, 1, 0, 1, 1]];   // 1 = pile
-  const PB = { x0: 360, dx: 120, w: 72, base: 940, h: 280 };
-  const pbX = k => PB.x0 + k * PB.dx;
-  stepped('piece', {
-    labels: ['P1', 'P2', 'P3', 'P4', 'P5'],
+  const SD10 = Math.sqrt(0.25 / 10);                                // 0,158
+  const FACES = { 6: [1, 0, 1, 1, 0, 1, 0, 1, 1, 0], 10: [1, 1, 1, 1, 1, 1, 1, 1, 1, 1], 8: [1, 1, 0, 1, 1, 1, 1, 0, 1, 1], 5: [1, 0, 0, 1, 1, 0, 1, 0, 1, 0] };   // 1 = face (succès)
+  function makeCoin(parent, x, y, r) {
+    const g = S('g', { transform: `translate(${x.toFixed(1)} ${y})` }, parent), inner = S('g', {}, g);
+    const c = S('circle', { cx: 0, cy: 0, r, class: 'coin' }, inner);
+    const t = tx(inner, 0, r * 0.32, '?', { 'text-anchor': 'middle', 'font-size': r * 0.95, 'font-weight': 700 });
+    const o = { g, inner, c, t };
+    o.set = v => {   // 1 = face (succès), 0 = pile (échec), null = pas encore lancée
+      c.setAttribute('class', v == null ? 'coin' : v ? 'coin pile' : 'coin face');
+      rich(t, v == null ? '?' : v ? 'F' : 'P');
+      t.setAttribute('class', v ? 't-white' : v === 0 ? 't-blue' : 't-pop');
+    };
+    return o;
+  }
+  function flipCoins(c, coins, set, d = 0, gap = 90) {
+    coins.forEach((o, i) => c.at(d + i * gap, () => c.anim(o.inner, { scaleX: [1, 0], duration: T(140), ease: 'in(2)', onComplete: () => { o.set(set[i]); c.anim(o.inner, { scaleX: [0, 1], duration: T(140), ease: 'out(2)' }); } })));
+    return d + coins.length * gap + 300;
+  }
+
+  stepped('piece0', {
+    labels: ['H1', 'H2', 'H3', 'H4', 'H5'],
     build(svg) {
       const m = {};
-      m.t = tx(svg, 960, 110, 'Je lance une pièce 10 fois. Est-ce qu\'elle est truquée ?', { 'text-anchor': 'middle', 'font-size': 52, 'font-weight': 700 });
-      m.coins = range(0, 9, 1).map(i => {
-        const g = S('g', { transform: `translate(${(960 + (i - 4.5) * 108).toFixed(1)} 240)` }, svg);
-        const inner = S('g', {}, g);
-        const c = S('circle', { cx: 0, cy: 0, r: 44, class: 'coin' }, inner);
-        const t = tx(inner, 0, 14, '?', { 'text-anchor': 'middle', 'font-size': 40, 'font-weight': 700 });
-        return { g, inner, c, t };
+      m.t = tx(svg, 960, 100, 'Je lance une pièce 10 fois. Est-ce qu\'elle est truquée ?', { 'text-anchor': 'middle', 'font-size': 52, 'font-weight': 700 });
+      m.h0 = S('g', {}, svg);
+      card(m.h0, 520, 146, 880, 84, 'popbox', 14);
+      ftx(m.h0, 960, 202, 'On pose {P:H₀ : « la pièce est normale »}', { 'text-anchor': 'middle', 'font-size': 38 });
+      // definitions
+      m.def = S('g', {}, svg);
+      makeCoin(m.def, 200, 300, 30).set(1); ftx(m.def, 250, 312, 'face = {b:succès}', { 'font-size': 34 });
+      makeCoin(m.def, 200, 376, 30).set(0); ftx(m.def, 250, 388, 'pile = échec', { 'font-size': 34 });
+      ftx(m.def, 170, 466, 'Sous H₀ : {P:~ϕ~ = 0,5}  {p:(la probabilité de face)}', { 'font-size': 34 });
+      ftx(m.def, 170, 528, 'Notre échantillon : {b:~N~ = 10} lancers', { 'font-size': 34 });
+      // the sample and its frequency
+      m.coins = range(0, 9, 1).map(i => makeCoin(svg, 1040 + i * 72, 300, 30));
+      m.fr = S('g', {}, svg);
+      ftx(m.fr, 1000, 412, '{b:Rappel} : ~f~_e = nombre d\'issues de la modalité / ~N~ total', { 'font-size': 30 });
+      ftx(m.fr, 1000, 490, '6 faces sur 10 → {O:~f~_e = 6/10 = 0,6}', { 'font-size': 42 });
+      // can we say it is loaded?
+      m.q = S('g', {}, svg);
+      ftx(m.q, 960, 612, 'Est-ce qu\'on peut pour autant dire que la pièce est truquée ? {b:Non.}', { 'text-anchor': 'middle', 'font-size': 36 });
+      ftx(m.q, 960, 662, 'Il y a une {b:fluctuation d\'échantillonnage} : d\'autres séries de 10 lancers d\'une pièce normale donnent', { 'text-anchor': 'middle', 'font-size': 28, class: 't-pop' });
+      [0.4, 0.7, 0.5, 0.3, 0.6, 0.5].forEach((v, i) => {
+        const g = S('g', { transform: `translate(${(960 + (i - 2.5) * 110).toFixed(1)} 718)` }, m.q);
+        S('rect', { x: -40, y: -22, width: 80, height: 44, rx: 22, class: 'chip' }, g);
+        tx(g, 0, 9, fr(v, 1), { 'text-anchor': 'middle', 'font-size': 26, 'font-weight': 700, class: 't-or' });
       });
-      m.setCoin = (i, v) => {
-        const o = m.coins[i];
-        o.c.setAttribute('class', v == null ? 'coin' : v ? 'coin pile' : 'coin face');
-        rich(o.t, v == null ? '?' : v ? 'P' : 'F');
-        o.t.setAttribute('class', v ? 't-white' : v === 0 ? 't-blue' : 't-pop');
-      };
-      m.count = tx(svg, 960, 380, '', { 'text-anchor': 'middle', 'font-size': 50, 'font-weight': 700, class: 't-or' });
-      m.say = [
-        null,
-        ['Tout le monde dit non, c\'est normal.', '→ On ne peut rien conclure.'],
-        ['Tout le monde dit oui. Pourquoi ?', 'Si la pièce était normale, ça n\'arriverait qu\'{b:une fois sur 1 000} (1 sur 1 024).', '→ On {R:rejette} l\'idée « la pièce est normale ».'],
-        ['La salle hésite : avec une pièce normale, 8 piles arrive environ 4 fois sur 100.', '→ Où mettre la limite ? {b:C\'est le choix de ~α~.}'],
-        ['~α~ = 5 % : on rejette pour 0, 1, 9 ou 10 piles (2,1 % des cas avec une pièce normale).', '8 piles n\'y est pas : on ne peut rien conclure. Avec ~α~ = 20 %, on aurait rejeté.', '{p:On choisit ~α~ avant de lancer la pièce.}'],
-      ].map(lines => {
-        if (!lines) return null;
-        const g = S('g', {}, svg);
-        lines.forEach((l, i) => ftx(g, 960, 456 + i * 48, l, { 'text-anchor': 'middle', 'font-size': i === 0 ? 34 : 32, 'font-weight': i === lines.length - 1 && lines.length > 1 ? 600 : 500 }));
-        return g;
-      });
-      // the law of the number of heads if the coin is fair: B(10 ; 0,5)
-      m.chart = S('g', {}, svg);
-      S('line', { x1: pbX(0) - 60, x2: pbX(10) + 60, y1: PB.base, y2: PB.base, class: 'axl' }, m.chart);
-      m.bars = BIN10.map((n, k) => {
-        const h = n / 252 * PB.h;
-        const r = S('rect', { x: pbX(k) - PB.w / 2, y: PB.base - h, width: PB.w, height: Math.max(h, 2), class: 'bin grow' }, m.chart);
-        const l = tx(m.chart, pbX(k), PB.base - h - 12, fr(100 * n / 1024, 1) + ' %', { 'text-anchor': 'middle', 'font-size': 22, class: 't-pop' });
-        tx(m.chart, pbX(k), PB.base + 36, String(k), { 'text-anchor': 'middle', class: 't-tick' });
-        return { r, l };
-      });
-      // the observed result in orange (bar and label), the rejection zone in red
-      m.paint = (hi, zone) => m.bars.forEach(({ r, l }, j) => {
-        const z = zone && (j <= 1 || j >= 9);
-        r.setAttribute('class', 'grow ' + (j === hi ? 'sqo' : z ? 'bin-r' : 'bin'));
-        l.setAttribute('class', j === hi ? 't-or' : z ? 't-red' : 't-pop'); l.setAttribute('font-weight', j === hi || z ? 700 : 400); l.setAttribute('font-size', j === hi ? 28 : 22);
-      });
-      ftx(m.chart, 960, 1030, 'Si la pièce est normale : probabilité d\'obtenir ~k~ piles sur 10 lancers', { 'text-anchor': 'middle', 'font-size': 26, class: 't-ax' });
-      m.zone = S('g', {}, svg);
-      [1.5, 8.5].forEach(k => S('line', { x1: pbX(k), x2: pbX(k), y1: PB.base + 10, y2: PB.base - 250, class: 'zone-l' }, m.zone));
-      ftx(m.zone, (pbX(0) + pbX(1)) / 2, PB.base - 210, '{R:rejet}', { 'text-anchor': 'middle', 'font-size': 28 });
-      ftx(m.zone, (pbX(9) + pbX(10)) / 2, PB.base - 210, '{R:rejet}', { 'text-anchor': 'middle', 'font-size': 28 });
+      // so: an interval of the bet
+      m.ip = S('g', {}, svg);
+      card(m.ip, 160, 786, 1600, 262, 'box', 14);
+      m.hl = S('g', {}, m.ip);
+      ftx(m.ip, 960, 840, 'Comment faire ? On détermine un {b:intervalle de pari}.', { 'text-anchor': 'middle', 'font-size': 32 });
+      ftx(m.ip, 960, 912, 'IP = {P:~ϕ~} ± {k:~ε~(~α~)}·√({p:~ϕ~(1 − ~ϕ~)}/~N~)', { 'text-anchor': 'middle', 'font-size': 40, 'font-weight': 600 });
+      ftx(m.ip, 960, 972, 'à ~α~ = 5 % : 0,5 ± {k:1,96} × √(0,5 × 0,5 / 10) = 0,5 ± 1,96 × 0,158 = {b:[0,19 ; 0,81]}', { 'text-anchor': 'middle', 'font-size': 30 });
+      ftx(m.ip, 960, 1020, '{p:Conditions : ~N~~ϕ~ = ~N~(1 − ~ϕ~) = 5, juste à la limite (le poly demande > 5) : on fait comme si, pour l\'exemple.}', { 'text-anchor': 'middle', 'font-size': 22 });
       return m;
     },
     pose(m, k) {
       clean(m.svg);
-      const set = COIN_SETS[Math.min(Math.max(k, 0), 3)];
-      m.coins.forEach((o, i) => m.setCoin(i, set ? set[i] : null));
-      vis(m.t, k >= 0); vis(m.coins.map(o => o.g), k >= 0);
-      vis(m.count, k >= 1);
-      if (k >= 1) rich(m.count, set.reduce((a, b) => a + b, 0) + ' piles sur 10');
-      m.say.forEach((g, i) => { if (g) vis(g, i === k); });
-      vis(m.chart, k >= 2); vis(m.zone, k >= 4);
-      m.paint(k === 2 ? 10 : k >= 3 ? 8 : -1, k >= 4);
+      m.coins.forEach((o, i) => o.set(k >= 2 ? FACES[6][i] : null));
+      vis([m.t, m.h0], k >= 0); vis(m.def, k >= 1); vis([m.coins.map(o => o.g), m.fr], k >= 2); vis(m.q, k >= 3); vis(m.ip, k >= 4);
+      m.hl.replaceChildren(); if (k >= 4) markMult(m.ip, m.hl);
     },
     play(m, k, c) {
-      if (k === 0) {
-        fadeIn(c, m.t, 0, 600);
-        m.coins.forEach((o, i) => popIn(c, o.g, 500 + i * 70, 400));
-        return 1400;
-      }
-      const flip = (set, d) => m.coins.forEach((o, i) => {
-        c.at(d + i * 90, () => c.anim(o.inner, { scaleX: [1, 0], duration: T(140), ease: 'in(2)', onComplete: () => { m.setCoin(i, set[i]); c.anim(o.inner, { scaleX: [0, 1], duration: T(140), ease: 'out(2)' }); } }));
-      });
-      if (k <= 3) {
-        const prev = COIN_SETS[k - 1] || null;
-        m.coins.forEach((o, i) => m.setCoin(i, prev ? prev[i] : null));
-        flip(COIN_SETS[k], 0);
-        const d = 10 * 90 + 300;
-        popIn(c, m.count, d, 500);
-        if (m.say[k - 1]) fadeOut(c, m.say[k - 1], 0, 300);
-        const e = stagger(c, m.say[k], d + 400, 450, 500);
-        if (k === 2) {
-          vis(m.chart, true);
-          m.paint(-1, false);
-          m.bars.forEach(({ r, l }, j) => { l.style.opacity = 0; utils.set(r, { scaleY: 0 }); c.at(e + j * 60, () => c.anim(r, { scaleY: [0, 1], duration: T(500), ease: 'out(3)' })); });
-          fadeIn(c, m.bars.map(b => b.l), e + 700, 500);
-          c.at(e + 1300, () => m.paint(10, false));
-          return e + 1600;
+      switch (k) {
+        case 0: fadeIn(c, m.t, 0, 600); popIn(c, m.h0, 600, 600); return 1300;
+        case 1: return stagger(c, m.def, 0, 220, 450);
+        case 2: {
+          m.coins.forEach((o, i) => { o.set(null); popIn(c, o.g, i * 60, 350); });
+          const e = flipCoins(c, m.coins, FACES[6], 800, 80);
+          return stagger(c, m.fr, e, 500, 500);
         }
-        if (k === 3) c.at(d, () => m.paint(8, false));
-        return e + 200;
+        case 3: return stagger(c, m.q, 0, 160, 450);
+        case 4: { const e = stagger(c, m.ip, 0, 350, 500); c.at(e - 300, () => markMult(m.ip, m.hl)); return e; }
       }
-      fadeOut(c, m.say[3], 0, 300);
-      c.at(300, () => m.paint(8, true));
-      fadeIn(c, m.zone, 500, 600);
-      return stagger(c, m.say[4], 900, 450, 500);
+    }
+  });
+
+  // the bars of B(10 ; 0,5) on the axis of fₑ, the Gauss curve that approaches them, the IP under the axis
+  const PC = { x0: 360, w: 1200, base: 790, h: 250, bw: 70 };
+  const pcX = f => PC.x0 + f * PC.w;
+  const gaussBin = f => Math.exp(-((f - 0.5) ** 2) / (2 * SD10 * SD10)) / (SD10 * Math.sqrt(2 * Math.PI)) * 0.1;   // per 0,1 class
+  const PMAX = gaussBin(0.5);
+  const pcY = p => PC.base - p / PMAX * PC.h;
+  const TIRAGES = [null, 6, 10, 8, 8, 5, 5];   // faces shown at each step
+  stepped('piece', {
+    labels: ['T1', 'T2', 'T3', 'T4', 'T5', 'T6', 'T7'],
+    build(svg) {
+      const m = { z: Z95 };
+      tx(svg, 60, 90, FM('Tirages au sort, sous H₀ : {P:~ϕ~ = 0,5}'), { class: 't-title' });
+      m.coins = range(0, 9, 1).map(i => makeCoin(svg, 960 + (i - 4.5) * 88, 180, 34));
+      m.res = tx(svg, 960, 282, '', { 'text-anchor': 'middle', 'font-size': 44, 'font-weight': 700, class: 't-or' });
+      m.say = [
+        ['Avec une pièce normale, 95 % des ~f~_e tombent dans l\'IP [0,19 ; 0,81].'],
+        ['Tout le monde dit non, c\'est normal.', '0,6 est dans l\'IP → on ne peut rien conclure.'],
+        ['Tout le monde dit oui. Pourquoi ? Si la pièce était normale, ça n\'arriverait qu\'{b:une fois sur 1 000}.', '1 est hors de l\'IP → on {R:rejette H₀}.'],
+        ['La salle hésite : 0,8 est juste dans l\'IP [0,19 ; 0,81].', '→ Où mettre la limite ? {b:C\'est le choix de ~α~.}'],
+        ['Avec ~α~ = 10 %, l\'IP se resserre : [0,24 ; 0,76], et 0,8 serait rejeté.', '{p:On choisit ~α~ avant de lancer la pièce.}'],
+        ['Ce n\'est pas parce que j\'ai 5 faces sur 10 que la pièce n\'est forcément pas truquée.', 'Donc j\'{b:accepte H₀} en manque de preuves pour la rejeter.'],
+      ].map(lines => { const g = S('g', {}, svg); lines.forEach((l, i) => ftx(g, 960, 344 + i * 46, l, { 'text-anchor': 'middle', 'font-size': i ? 32 : 34, 'font-weight': i ? 600 : 500 })); return g; });
+      // the chart
+      m.chart = S('g', {}, svg);
+      m.tailL = S('path', { class: 'ic-tail' }, m.chart); m.tailR = S('path', { class: 'ic-tail' }, m.chart);
+      m.bars = BIN10.map((n, k) => {
+        const p = n / 1024, f = k / 10;
+        const r = S('rect', { x: pcX(f) - PC.bw / 2, y: pcY(p), width: PC.bw, height: Math.max(PC.base - pcY(p), 2), class: 'bin grow' }, m.chart);
+        const l = tx(m.chart, pcX(f), Math.min(pcY(p), pcY(gaussBin(f))) - 10, fr(100 * p, 1) + ' %', { 'text-anchor': 'middle', 'font-size': 20, class: 't-pop halo' });
+        return { r, l, f };
+      });
+      let d = '';
+      for (let i = 0; i <= 160; i++) { const f = -0.06 + 1.12 * i / 160; d += (i ? 'L' : 'M') + pcX(f).toFixed(1) + ' ' + pcY(gaussBin(f)).toFixed(1); }
+      m.curve = S('path', { d, class: 'ic-curve-k' }, m.chart);
+      S('line', { x1: pcX(-0.08), x2: pcX(1.08), y1: PC.base, y2: PC.base, class: 'axl' }, m.chart);
+      range(0, 10, 1).forEach(k => { S('line', { x1: pcX(k / 10), x2: pcX(k / 10), y1: PC.base, y2: PC.base + 8, class: 'axl' }, m.chart); tx(m.chart, pcX(k / 10), PC.base + 34, k % 10 ? fr(k / 10, 1) : String(k / 10), { 'text-anchor': 'middle', class: 't-tick' }); });
+      ftx(m.chart, pcX(1.08) + 14, PC.base + 10, '{O:~f~_e}', { 'font-size': 32 });
+      ftx(m.chart, pcX(-0.08) - 14, PC.base + 10, '{p:B(10 ; 0,5)}', { 'font-size': 22, 'text-anchor': 'end' });
+      // the interval of the bet, under the axis
+      m.ipG = S('g', {}, m.chart);
+      m.seg = S('line', { y1: 862, y2: 862, class: 'ic-seg p' }, m.ipG);
+      m.br = [-1, 1].map(() => S('path', { class: 'ic-br p' }, m.ipG));
+      m.lo = tx(m.ipG, 0, 872, '', { 'text-anchor': 'end', 'font-size': 28, 'font-weight': 600, class: 't-pop' });
+      m.hi = tx(m.ipG, 0, 872, '', { 'text-anchor': 'start', 'font-size': 28, 'font-weight': 600, class: 't-pop' });
+      tx(m.ipG, pcX(0.5), 906, 'IP', { 'text-anchor': 'middle', 'font-size': 28, 'font-weight': 700, class: 't-pop' });
+      // the formula, at the bottom (as in course 1)
+      m.fbox = S('g', {}, svg);
+      card(m.fbox, 260, 940, 1400, 90, 'box', 12);
+      m.hl = S('g', {}, m.fbox);
+      m.formula = tx(m.fbox, 960, 998, '', { 'text-anchor': 'middle', 'font-size': 34, 'font-weight': 600 });
+      // the 2 possibilities (poly, II.A.2)
+      m.two = S('g', {}, svg);
+      card(m.two, 160, 460, 1600, 560, 'box-pop', 16);
+      ftx(m.two, 200, 530, '{b:2 possibilités :}', { 'font-size': 38 });
+      const bul = (y, lines, ex) => { S('circle', { cx: 222, cy: y - 11, r: 7, class: 'f-bullet' }, m.two); lines.forEach((l, i) => ftx(m.two, 250, y + i * 46, l, { 'font-size': 32 })); ftx(m.two, 250, y + lines.length * 46 + 4, ex, { 'font-size': 24, class: 't-pop' }); };
+      bul(610, ['Les données sont {R:improbables sous H₀} (trop éloignées des valeurs attendues) et', 'on choisit de dire que {b:H₀ n\'est pas réalisée}, mais qu\'une {b:alternative H₁} (une autre', 'situation) est réalisée.'], '~exemple : 10 faces sur 10~');
+      bul(850, ['Les données sont {b:probables sous H₀} (proches des valeurs attendues) et on', '{b:accepte l\'hypothèse H₀}, faute d\'argument pour la rejeter.'], '~exemple : 6 ou 5 faces sur 10~');
+      m.draw = (hiK) => {
+        const z = m.z, lo = 0.5 - z * SD10, hi = 0.5 + z * SD10;
+        const area = (a, b) => { let p = ''; for (let i = 0; i <= 60; i++) { const f = a + (b - a) * i / 60; p += (i ? 'L' : 'M') + pcX(f).toFixed(1) + ' ' + pcY(gaussBin(f)).toFixed(1); } return p + `L${pcX(b).toFixed(1)} ${PC.base}L${pcX(a).toFixed(1)} ${PC.base}Z`; };
+        m.tailL.setAttribute('d', area(-0.06, lo)); m.tailR.setAttribute('d', area(hi, 1.06));
+        m.seg.setAttribute('x1', pcX(lo)); m.seg.setAttribute('x2', pcX(hi));
+        m.br[0].setAttribute('d', `M${pcX(lo) + 16} 840L${pcX(lo)} 840L${pcX(lo)} 884L${pcX(lo) + 16} 884`);
+        m.br[1].setAttribute('d', `M${pcX(hi) - 16} 840L${pcX(hi)} 840L${pcX(hi)} 884L${pcX(hi) - 16} 884`);
+        rich(m.lo, fr(lo, 2)); m.lo.setAttribute('x', pcX(lo) - 12); rich(m.hi, fr(hi, 2)); m.hi.setAttribute('x', pcX(hi) + 12);
+        m.bars.forEach(({ r, l, f }, k) => {
+          const out = f < lo - 1e-9 || f > hi + 1e-9, me = k === hiK;
+          r.setAttribute('class', 'grow ' + (me ? 'sqo' : out ? 'bin-r' : 'bin'));
+          l.setAttribute('class', (me ? 't-or' : out ? 't-red' : 't-pop') + ' halo'); l.setAttribute('font-weight', me || out ? 700 : 400); l.setAttribute('font-size', me ? 28 : 20);
+        });
+        const zs = zTxt(z), a = Math.abs(z - Z95) < 1e-6 ? '5 %' : Math.abs(z - Z90) < 1e-6 ? '10 %' : pctTxt(2 * (1 - Phi(z)));
+        rich(m.formula, FM('IP = {P:~ϕ~} ± {k:~ε~(~α~)}·√({p:~ϕ~(1 − ~ϕ~)}/~N~) = 0,5 ± {k:' + zs + '} × 0,158 = [' + fr(lo, 2) + ' ; ' + fr(hi, 2) + ']   {p:(~α~ = ' + a + ')}'));
+      };
+      return m;
+    },
+    pose(m, k) {
+      clean(m.svg);
+      const n = TIRAGES[Math.max(k, 0)];
+      m.coins.forEach((o, i) => o.set(n ? FACES[n][i] : null));
+      rich(m.res, n ? FM(n + ' faces sur 10 : ~f~_e = ' + fr(n / 10, 1).replace(/,0$/, '')) : '');
+      m.z = k === 4 ? Z90 : Z95; m.draw(n && k >= 1 ? n : -1);
+      vis(m.coins.map(o => o.g), k >= 0); vis(m.res, k >= 1);
+      m.say.forEach((g, i) => vis(g, i === Math.min(k, 5)));
+      vis([m.chart, m.fbox], k >= 0 && k <= 5); vis(m.two, k >= 6);
+      m.hl.replaceChildren(); if (k >= 0 && k <= 5) markMult(m.formula, m.hl);
+    },
+    play(m, k, c) {
+      const show = i => { if (m.say[i - 1] && i - 1 !== Math.min(k, 5)) fadeOut(c, m.say[i - 1], 0, 250); };
+      if (k === 0) {
+        fadeIn(c, m.coins.map(o => o.g), 0, 400);
+        vis(m.chart, true); const kids = [...m.chart.children]; kids.forEach(e => { e.style.opacity = 0; });
+        fadeIn(c, kids.filter(e => e !== m.curve && e !== m.tailL && e !== m.tailR && e !== m.ipG), 200, 600);
+        c.at(900, () => drawPath(c, m.curve, 1200));
+        fadeIn(c, [m.tailL, m.tailR], 2000, 500); fadeIn(c, m.ipG, 2300, 500);
+        fadeIn(c, m.fbox, 2700, 500); c.at(2700, () => { m.hl.replaceChildren(); markMult(m.formula, m.hl); });
+        fadeIn(c, m.say[0], 3100, 500);
+        return 3700;
+      }
+      if (k === 6) { fadeOut(c, [m.chart, m.fbox], 0, 400); popIn(c, m.two, 400, 600); return 1100; }
+      show(k);
+      const n = TIRAGES[k];
+      if (k === 4) {   // α = 5 % → 10 %
+        tweenT(c, 1500, 300, t => { m.z = lerp(Z95, Z90, t); m.draw(8); m.hl.replaceChildren(); }, 'inOut(2)');
+        c.at(1850, () => markMult(m.formula, m.hl));
+        fadeIn(c, m.say[4], 600, 500);
+        return 2400;
+      }
+      const prev = TIRAGES[k - 1];
+      m.coins.forEach((o, i) => o.set(prev ? FACES[prev][i] : null));
+      if (k === 5) { m.z = Z95; m.draw(8); }
+      const e = flipCoins(c, m.coins, FACES[n], 0, 80);
+      c.at(e - 200, () => { m.z = Z95; m.draw(n); m.hl.replaceChildren(); markMult(m.formula, m.hl); });
+      popIn(c, m.res, e - 200, 500);
+      c.at(e - 220, () => rich(m.res, FM(n + ' faces sur 10 : ~f~_e = ' + fr(n / 10, 1).replace(/,0$/, ''))));
+      return stagger(c, m.say[Math.min(k, 5)], e + 200, 450, 500);
     }
   });
 
