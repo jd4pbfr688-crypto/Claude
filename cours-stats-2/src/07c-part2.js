@@ -199,7 +199,7 @@
       tx(m.ipG, pcX(0.5), 906, 'IP', { 'text-anchor': 'middle', 'font-size': 28, 'font-weight': 700, class: 't-pop' });
       // the formula, at the bottom (as in course 1)
       m.fbox = S('g', {}, svg);
-      card(m.fbox, 260, 940, 1400, 90, 'box', 12);
+      card(m.fbox, 610, 940, 700, 90, 'box', 12);
       m.hl = S('g', {}, m.fbox);
       m.formula = tx(m.fbox, 960, 998, '', { 'text-anchor': 'middle', 'font-size': 34, 'font-weight': 600 });
       // the 2 possibilities (poly, II.A.2)
@@ -223,7 +223,7 @@
           l.setAttribute('class', (me ? 't-or' : out ? 't-red' : 't-pop') + ' halo'); l.setAttribute('font-weight', me || out ? 700 : 400); l.setAttribute('font-size', me ? 28 : 20);
         });
         const zs = zTxt(z), a = Math.abs(z - Z95) < 1e-6 ? '5 %' : Math.abs(z - Z90) < 1e-6 ? '10 %' : pctTxt(2 * (1 - Phi(z)));
-        rich(m.formula, FM('IP = {P:~ϕ~} ± {k:~ε~(~α~)}·√({p:~ϕ~(1 − ~ϕ~)}/~N~) = 0,5 ± {k:' + zs + '} × 0,158 = [' + fr(lo, 2) + ' ; ' + fr(hi, 2) + ']   {p:(~α~ = ' + a + ')}'));
+        rich(m.formula, FM('IP = [' + fr(lo, 2) + ' ; ' + fr(hi, 2) + ']   {p:(~α~ = ' + a + ')}'));
       };
       return m;
     },
@@ -236,7 +236,7 @@
       vis(m.coins.map(o => o.g), k >= 0); vis(m.res, k >= 1);
       m.say.forEach((g, i) => vis(g, i === Math.min(k, 5)));
       vis([m.chart, m.fbox], k >= 0 && k <= 5); vis(m.two, k >= 6);
-      m.hl.replaceChildren(); if (k >= 0 && k <= 5) markMult(m.formula, m.hl);
+      m.hl.replaceChildren(); if (k >= 0 && k <= 5) void 0;
     },
     play(m, k, c) {
       const show = i => { if (m.say[i - 1] && i - 1 !== Math.min(k, 5)) fadeOut(c, m.say[i - 1], 0, 250); };
@@ -246,7 +246,7 @@
         fadeIn(c, kids.filter(e => e !== m.curve && e !== m.tailL && e !== m.tailR && e !== m.ipG), 200, 600);
         c.at(900, () => drawPath(c, m.curve, 1200));
         fadeIn(c, [m.tailL, m.tailR], 2000, 500); fadeIn(c, m.ipG, 2300, 500);
-        fadeIn(c, m.fbox, 2700, 500); c.at(2700, () => { m.hl.replaceChildren(); markMult(m.formula, m.hl); });
+        fadeIn(c, m.fbox, 2700, 500); c.at(2700, () => { m.hl.replaceChildren(); void 0; });
         fadeIn(c, m.say[0], 3100, 500);
         return 3700;
       }
@@ -255,7 +255,7 @@
       const n = TIRAGES[k];
       if (k === 4) {   // α = 5 % → 10 %
         tweenT(c, 1500, 300, t => { m.z = lerp(Z95, Z90, t); m.draw(8); m.hl.replaceChildren(); }, 'inOut(2)');
-        c.at(1850, () => markMult(m.formula, m.hl));
+        c.at(1850, () => void 0);
         fadeIn(c, m.say[4], 600, 500);
         return 2400;
       }
@@ -263,7 +263,7 @@
       m.coins.forEach((o, i) => o.set(prev ? FACES[prev][i] : null));
       if (k === 5) { m.z = Z95; m.draw(8); }
       const e = flipCoins(c, m.coins, FACES[n], 0, 80);
-      c.at(e - 200, () => { m.z = Z95; m.draw(n); m.hl.replaceChildren(); markMult(m.formula, m.hl); });
+      c.at(e - 200, () => { m.z = Z95; m.draw(n); m.hl.replaceChildren(); void 0; });
       popIn(c, m.res, e - 200, 500);
       c.at(e - 220, () => rich(m.res, FM(n + ' faces sur 10 : ~f~_e = ' + fr(n / 10, 1).replace(/,0$/, ''))));
       return stagger(c, m.say[Math.min(k, 5)], e + 200, 450, 500);
