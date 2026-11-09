@@ -379,31 +379,34 @@
     <section class="station" id="s23" data-key="CFREQ" data-name="Conformité d'une fréquence" data-x="11500" data-y="2900" data-scene="cfreq">
       <svg class="stage" width="1920" height="1080" viewBox="0 0 1920 1080" role="img" aria-label="Conformité d'une fréquence"></svg>
     </section>
-    <section class="station" id="s24" data-key="CMOY" data-name="Conformité d'une moyenne" data-x="13800" data-y="2900" data-scene="cmoy">
+    <section class="station" id="s24" data-key="CFUNI" data-name="Fréquence : bilatéral, gauche ou droit ?" data-x="13800" data-y="2900" data-scene="cfuni">
+      <svg class="stage" width="1920" height="1080" viewBox="0 0 1920 1080" role="img" aria-label="Fréquence : bilatéral, gauche ou droit ?"></svg>
+    </section>
+    <section class="station" id="s25" data-key="CMOY" data-name="Conformité d'une moyenne" data-x="16100" data-y="2900" data-scene="cmoy">
       <svg class="stage" width="1920" height="1080" viewBox="0 0 1920 1080" role="img" aria-label="Conformité d'une moyenne"></svg>
     </section>
-    <section class="station" id="s25" data-key="CVAR" data-name="Conformité d'une variance" data-x="16100" data-y="2900" data-scene="cvar">
+    <section class="station" id="s26" data-key="CVAR" data-name="Conformité d'une variance" data-x="18400" data-y="2900" data-scene="cvar">
       <svg class="stage" width="1920" height="1080" viewBox="0 0 1920 1080" role="img" aria-label="Conformité d'une variance"></svg>
     </section>
-    <section class="station" id="s26" data-key="HOMO" data-name="Conformité ou homogénéité ?" data-x="0" data-y="4350" data-scene="homo" data-fly="dive">
+    <section class="station" id="s27" data-key="HOMO" data-name="Conformité ou homogénéité ?" data-x="0" data-y="4350" data-scene="homo" data-fly="dive">
       <svg class="stage" width="1920" height="1080" viewBox="0 0 1920 1080" role="img" aria-label="Conformité ou homogénéité ?"></svg>
     </section>
-    <section class="station" id="s27" data-key="HFREQ" data-name="Homogénéité de deux fréquences" data-x="2300" data-y="4350" data-scene="hfreq">
+    <section class="station" id="s28" data-key="HFREQ" data-name="Homogénéité de deux fréquences" data-x="2300" data-y="4350" data-scene="hfreq">
       <svg class="stage" width="1920" height="1080" viewBox="0 0 1920 1080" role="img" aria-label="Homogénéité de deux fréquences"></svg>
     </section>
-    <section class="station" id="s28" data-key="HVAR" data-name="Homogénéité de deux variances" data-x="4600" data-y="4350" data-scene="hvar">
+    <section class="station" id="s29" data-key="HVAR" data-name="Homogénéité de deux variances" data-x="4600" data-y="4350" data-scene="hvar">
       <svg class="stage" width="1920" height="1080" viewBox="0 0 1920 1080" role="img" aria-label="Homogénéité de deux variances"></svg>
     </section>
-    <section class="station" id="s29" data-key="HMOY" data-name="Homogénéité de deux moyennes" data-x="6900" data-y="4350" data-scene="hmoy">
+    <section class="station" id="s30" data-key="HMOY" data-name="Homogénéité de deux moyennes" data-x="6900" data-y="4350" data-scene="hmoy">
       <svg class="stage" width="1920" height="1080" viewBox="0 0 1920 1080" role="img" aria-label="Homogénéité de deux moyennes"></svg>
     </section>
-    <section class="station" id="s30" data-key="CHI2" data-name="Le χ² pas à pas" data-x="0" data-y="5800" data-scene="chi2" data-fly="dive">
+    <section class="station" id="s31" data-key="CHI2" data-name="Le χ² pas à pas" data-x="0" data-y="5800" data-scene="chi2" data-fly="dive">
       <svg class="stage" width="1920" height="1080" viewBox="0 0 1920 1080" role="img" aria-label="Le χ² pas à pas"></svg>
     </section>
-    <section class="station" id="s31" data-key="CHI22" data-name="χ² et homogénéité" data-x="2300" data-y="5800" data-scene="chi22">
+    <section class="station" id="s32" data-key="CHI22" data-name="χ² et homogénéité" data-x="2300" data-y="5800" data-scene="chi22">
       <svg class="stage" width="1920" height="1080" viewBox="0 0 1920 1080" role="img" aria-label="χ² et homogénéité"></svg>
     </section>
-    <section class="station" id="s32" data-key="BILAN" data-name="Bilan : quel test ?" data-x="4600" data-y="5800" data-scene="bilan">
+    <section class="station" id="s33" data-key="BILAN" data-name="Bilan : quel test ?" data-x="4600" data-y="5800" data-scene="bilan">
       <svg class="stage" width="1920" height="1080" viewBox="0 0 1920 1080" role="img" aria-label="Bilan : quel test ?"></svg>
     </section>
   </div>
@@ -2914,7 +2917,7 @@
   /* ======================= DIAPO 13 · CONFORMITÉ D'UNE FRÉQUENCE ======================= */
   const FG = { x0: 140, x1: 900, d0: 56, d1: 84, base: 600, unit: 76 };
   stepped('cfreq', {
-    labels: ['F1', 'F2', 'F3', 'F4'],
+    labels: ['F1', 'F2', 'F3'],
     build(svg) {
       const m = {};
       tx(svg, 60, 90, 'Conformité d\'une fréquence', { class: 't-title' });
@@ -2955,6 +2958,78 @@
       if (k === 1) return stagger(c, m.h0, 0, 250, 450);
       if (k === 2) { const e = stagger(c, m.f, 0, 350, 450); fadeIn(c, m.note, e, 500); return e + 600; }
       return stagger(c, m.uni, 0, 250, 450);
+    }
+  });
+
+  /* ======================= FRÉQUENCE : BILATÉRAL, GAUCHE OU DROIT ? =======================
+     Trois cloches réduites côte à côte, une par clic, bien distinctes (flèche de H₁, queue(s) rouge(s), seuil, règle) ;
+     puis on y place notre z = +2,28, et on conclut d'après la question posée. */
+  const CU = [
+    { cx: 340, name: 'Bilatéral', h1: 'H₁ : ~ϕ~ ≠ 0,20', side: 0, tails: [[-3.4, -Z95], [Z95, 3.4]], th: [[-Z95, '−1,96'], [Z95, '+1,96']], a: '~α~/2',
+      rule: ['on rejette H₀ si', '~ε~ > ~ε~(~α~) = 1,96'], verdict: '2,28 > 1,96 → {R:rejet}', out: true },
+    { cx: 960, name: 'Unilatéral gauche', h1: 'H₁ : ~ϕ~ < 0,20', side: -1, tails: [[-3.4, -Z90]], th: [[-Z90, '−1,645']], a: '~α~',
+      rule: ['on rejette H₀ si ~ε~ > ~ε~(2~α~) = 1,645', '{b:et} ~f~_e < ~ϕ~ (côté négatif)'], verdict: 'mauvais côté (~f~_e > ~ϕ~) → on {b:accepte} H₀', out: false },
+    { cx: 1580, name: 'Unilatéral droit', h1: 'H₁ : ~ϕ~ > 0,20', side: 1, tails: [[Z90, 3.4]], th: [[Z90, '+1,645']], a: '~α~',
+      rule: ['on rejette H₀ si ~ε~ > ~ε~(2~α~) = 1,645', '{b:et} ~f~_e > ~ϕ~ (côté positif)'], verdict: '2,28 > 1,645 et ~f~_e > ~ϕ~ → {R:rejet}', out: true },
+  ];
+  const CU_Z = (11 / 30 - 0.2) / Math.sqrt(0.2 * 0.8 / 30);   // +2,28
+  stepped('cfuni', {
+    labels: ['W1', 'W2', 'W3', 'W4', 'W5'],
+    build(svg) {
+      const m = {};
+      tx(svg, 60, 90, 'Fréquence : bilatéral, gauche ou droit ?', { class: 't-title' });
+      m.cap = ftx(svg, 960, 150, 'H₀ : ~ϕ~ = 0,20. Le côté du test dépend de H₁, et on le choisit {b:avant} de regarder ~f~_e.', { 'text-anchor': 'middle', 'font-size': 30 });
+      const B = 560, SX = 72, PK = 190, X = (p, z) => p.cx + z * SX, Y = z => B - PK * Math.exp(-z * z / 2);
+      const P = (p, a, b) => { let d = ''; for (let i = 0; i <= 80; i++) { const z = a + (b - a) * i / 80; d += (i ? 'L' : 'M') + X(p, z).toFixed(1) + ' ' + Y(z).toFixed(1); } return d; };
+      const A = (p, a, b) => P(p, a, b) + `L${X(p, b).toFixed(1)} ${B}L${X(p, a).toFixed(1)} ${B}Z`;
+      m.panels = CU.map(p => {
+        const g = S('g', {}, svg);
+        card(g, p.cx - 290, 190, 580, 600, 'card', 16);
+        ftx(g, p.cx, 246, '{b:' + p.name + '}', { 'text-anchor': 'middle', 'font-size': 34 });
+        ftx(g, p.cx, 290, '{P:' + p.h1 + '}', { 'text-anchor': 'middle', 'font-size': 28 });
+        // H₁ arrow(s)
+        const ya = 322;
+        if (p.side <= 0) { S('line', { x1: p.cx - 14, x2: p.cx - 150, y1: ya, y2: ya, class: 'h1-arr' }, g); arrowHead(g, p.cx - 156, ya, Math.PI, 'h1-arr-h', 14); }
+        if (p.side >= 0) { S('line', { x1: p.cx + 14, x2: p.cx + 150, y1: ya, y2: ya, class: 'h1-arr' }, g); arrowHead(g, p.cx + 156, ya, 0, 'h1-arr-h', 14); }
+        S('path', { d: A(p, -3.4, 3.4), class: 'ic-area-k' }, g);
+        p.tails.forEach(([a, b]) => S('path', { d: A(p, a, b), class: 'ic-tail' }, g));
+        S('path', { d: P(p, -3.4, 3.4), class: 'ic-curve-k' }, g);
+        S('line', { x1: X(p, -3.6), x2: X(p, 3.6), y1: B, y2: B, class: 'axl' }, g);
+        S('line', { x1: p.cx, x2: p.cx, y1: B + 8, y2: B - 8, class: 'axl' }, g);
+        tx(g, p.cx, B + 30, '0', { 'text-anchor': 'middle', class: 't-tick' });
+        p.th.forEach(([z, l]) => { S('line', { x1: X(p, z), x2: X(p, z), y1: B - 40, y2: B + 14, class: 'zone-l' }, g); tx(g, X(p, z), B + 30, l, { 'text-anchor': 'middle', 'font-size': 22, 'font-weight': 700, class: 't-red' }); });
+        p.tails.forEach(([a, b]) => ftx(g, X(p, a < 0 ? -2.75 : 2.75), B - 40, '{R:' + p.a + '}', { 'text-anchor': 'middle', 'font-size': 26 }));
+        ftx(g, X(p, 3.6) + 6, B + 8, '~z~', { 'font-size': 24, 'font-weight': 600, class: 't-or' });
+        p.rule.forEach((l, i) => ftx(g, p.cx, 640 + i * 38, l, { 'text-anchor': 'middle', 'font-size': 25 }));
+        // application: our z
+        const ap = S('g', {}, svg);
+        S('circle', { cx: X(p, CU_Z), cy: B, r: 11, class: 'ic-pt' + (p.out ? ' out' : '') }, ap);
+        ftx(ap, X(p, CU_Z), B - 70, (p.out ? '{R:' : '{O:') + '+2,28}', { 'text-anchor': 'middle', 'font-size': 26, class: 'halo' });
+        ftx(ap, p.cx, 750, p.verdict, { 'text-anchor': 'middle', 'font-size': 26, 'font-weight': 600 });
+        return { g, ap };
+      });
+      m.applyCap = ftx(svg, 960, 860, 'Notre échantillon : ~f~_e = 0,367 → ~z~ = (0,367 − 0,20) / 0,0730 = {b:+2,28}, donc ~ε~ = 2,28.', { 'text-anchor': 'middle', 'font-size': 30 });
+      m.end = noteBox(svg, 160, 900, 1600, ['Ici, la question est « le fabricant prévoit-il {b:assez} de gants L ? » : H₁ : ~ϕ~ > 0,20.', '→ {b:unilatéral droit} : on {R:rejette H₀}. Il faut plus de 20 % de gants L.'], { size: 30, center: true, cls: 'box-red' });
+      return m;
+    },
+    pose(m, k) {
+      clean(m.svg);
+      vis(m.cap, k >= 0);
+      m.panels.forEach((p, i) => { vis(p.g, k >= i); vis(p.ap, k >= 3); });
+      vis(m.applyCap, k === 3); vis(m.end, k >= 4);
+    },
+    play(m, k, c) {
+      if (k <= 2) { const g = m.panels[k].g; g.style.opacity = 0; if (k === 0) fadeIn(c, m.cap, 0, 500); c.at(k === 0 ? 400 : 0, () => { g.style.opacity = ''; c.anim(g, { opacity: [0, 1], translateY: [30, 0], duration: T(700), ease: 'out(3)' }); }); return 1200; }
+      if (k === 3) {
+        fadeIn(c, m.applyCap, 0, 500);
+        m.panels.forEach((p, i) => { vis(p.ap, true); const [dot, lab, ver] = p.ap.children; [lab, ver].forEach(e => { e.style.opacity = 0; });
+          c.at(800 + i * 900, () => { c.anim(dot, { opacity: [0, 1], scale: [2, 1], duration: T(500), ease: 'out(3)' }); });
+          fadeIn(c, lab, 900 + i * 900, 400); fadeIn(c, ver, 1200 + i * 900, 500); dot.style.opacity = 0; });
+        return 800 + 3 * 900 + 600;
+      }
+      fadeOut(c, m.applyCap, 0, 300);
+      popIn(c, m.end, 300, 600);
+      return 1000;
     }
   });
 

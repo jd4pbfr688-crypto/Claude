@@ -36,6 +36,7 @@ STATIONS = [
     ('PVAL', 'Le degré de signification p', 'pval', 2),
     ('METHODE', 'La méthode', 'methode', 2),
     ('CFREQ', 'Conformité d\'une fréquence', 'cfreq', 2),
+    ('CFUNI', 'Fréquence : bilatéral, gauche ou droit ?', 'cfuni', 2),
     ('CMOY', 'Conformité d\'une moyenne', 'cmoy', 2),
     ('CVAR', 'Conformité d\'une variance', 'cvar', 2),
     ('HOMO', 'Conformité ou homogénéité ?', 'homo', 3),
