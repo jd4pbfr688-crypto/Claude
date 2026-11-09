@@ -1,0 +1,2188 @@
+<title>Les degrés de liberté</title>
+<!--
+  ============================================================
+  LES DEGRÉS DE LIBERTÉ · Tutorat PASS · UE4 Biostatistiques
+  Deuxième cours animé, construit avec le « Guide de construction d'un cours animé »
+  et le moteur du premier cours (Statistiques probabilistes) : caméra sur un plan infini, anime.js v4.
+
+  Une STATION = un cadre 1920×1080. Une ÉTAPE = un clic :
+  → / espace avancent d'une étape, puis passent à la station suivante.
+  ← revient d'une étape. ↓ rejoue l'étape en cours. O = vue d'ensemble. E = mode édition.
+
+  Charte (guide) : bleu = individus (valeurs, écarts), orange = calculé sur l'échantillon (mₑ, S_e²),
+  vert = estimation retenue (m, s², s), gris = population (μ, σ ; pointillés si inconnu, trait plein si connu),
+  rouge = uniquement α. Pas de pictogrammes : une valeur imposée est un bâton vide (contour seul).
+
+  Données : un seul objet D (5 mains prises dans G1 du premier cours) et un seul objet ESSAI
+  (moyennes, s et seuils du document « La loi de Student, pas à pas » ; tensions individuelles fabriquées).
+  Chaque scène dessine tout son SVG dans build(), pose(k) place l'état FINAL de l'étape k
+  (aussi utilisé pour l'export PNG), et play(k) l'anime depuis k-1.
+
+  Source : cours-ddl/src (assemblé par cours-ddl/build.py).
+  AVANT LE JOUR J : copier anime.js et la police Inter à côté de ce fichier.
+  ============================================================
+-->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500&display=swap" rel="stylesheet">
+<style>
+  /* Charte du brief : la seule palette du fichier. Fond blanc, aucune autre couleur. */
+  :root {
+    color-scheme: light;
+    --bg:        #FFFFFF;
+    --ink:       #1F2937;   /* texte principal, axes */
+    --blue:      #3B82F6;   /* individus : remplissage */
+    --blue-dk:   #1E40AF;   /* individus : contour */
+    --orange:    #F28C28;   /* moyennes mₑ : remplissage */
+    --orange-dk: #C2410C;   /* moyennes mₑ : contour, texte */
+    --pop:       #4B5563;   /* population inconnue : gris foncé, pointillés 8/6 */
+    --green:     #16A34A;   /* estimation retenue */
+    --red:       #DC2626;   /* slide 5 : les queues α/2 */
+    --grid:      #E5E7EB;   /* grille, éléments estompés */
+    --guide:     #F3F4F6;   /* repères verticaux, fonds très clairs */
+    --font: "Inter", "Source Sans 3", Calibri, system-ui, -apple-system, "Segoe UI", sans-serif;
+    --ease-expo: cubic-bezier(.82,0,.18,1);
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { height: 100%; overflow: hidden; background: var(--bg); color: var(--ink); overscroll-behavior: none; }
+  body { font-family: var(--font); -webkit-font-smoothing: antialiased; }
+
+  #viewport { position: fixed; inset: 0; overflow: hidden; background: var(--bg); }
+  #world { position: absolute; top: 0; left: 0; transform-origin: 0 0; will-change: transform; }
+  body:not(.deck-ready) #world { visibility: hidden; }
+
+  .station { position: absolute; width: 1920px; height: 1080px; background: var(--bg); }
+  /* in the overview, frames need an edge on a white plane */
+  body.is-overview .station { outline: 3px solid var(--grid); }
+  .station.dormant[data-poster] { background-size: cover; background-position: center; }
+  .station-error { font-size: 28px; opacity: .6; padding: 80px; }
+
+  /* ---------- the stage: one SVG per station ---------- */
+  .stage { position: absolute; inset: 0; display: block; overflow: visible; }
+  .stage text { fill: var(--ink); font-family: var(--font); }
+  .stage * { transform-box: fill-box; transform-origin: 50% 50%; }
+  /* elements placed with an SVG transform attribute keep plain SVG transform semantics */
+  .stage [transform] { transform-box: view-box; transform-origin: 0 0; }
+  .stage .grow  { transform-origin: 50% 100%; }
+  .stage .growx { transform-origin: 0% 50%; }
+  .stage .t-title { font-size: 44px; font-weight: 700; }
+  .stage .t-ax    { font-size: 26px; }
+  .stage .t-tick  { font-size: 22px; }
+  .stage .t-ann   { font-size: 30px; }
+  .stage .t-28    { font-size: 28px; }
+  .stage .t-or    { fill: var(--orange-dk); }
+  .stage .t-pop   { fill: var(--pop); }
+  .stage .t-green { fill: var(--green); }
+  .stage .t-blue  { fill: var(--blue-dk); }
+  .stage .halo    { paint-order: stroke; stroke: var(--bg); stroke-width: 7px; stroke-linejoin: round; }
+
+  .stage .sq   { fill: var(--blue); stroke: var(--blue-dk); stroke-width: 1.5; }
+  .stage .sqg  { fill: var(--blue); fill-opacity: .25; stroke: none; }
+  .stage .sqo  { fill: var(--orange); stroke: var(--orange-dk); stroke-width: 1.5; }
+  .stage .tok  { fill: var(--orange); stroke: var(--orange-dk); stroke-width: 1.5; }
+  .stage .chip { fill: var(--bg); stroke: var(--orange); stroke-width: 1.5; }
+  .stage .gridl { stroke: var(--grid); stroke-width: 1.5; }
+  .stage .basel { stroke: var(--ink); stroke-width: 1.5; }
+  .stage .guide { stroke: var(--guide); stroke-width: 2; }
+  .stage .axl   { stroke: var(--ink); stroke-width: 2; }
+  .stage .mline { stroke: var(--orange); stroke-width: 3; }
+  .stage .mtri  { fill: var(--orange); stroke: var(--orange-dk); stroke-width: 1.5; stroke-linejoin: round; }
+  .stage .mext  { stroke: var(--orange); stroke-width: 1.5; stroke-dasharray: 6 6; }
+  /* the same mean, read as the estimate m (aide 3bis-c) */
+  .stage .est .mline, .stage .mext.est { stroke: var(--green); }
+  .stage .est .mtri { fill: var(--green); stroke: #15803D; }
+  .station:is([data-key="ECHANT"], [data-key="UN"]) .stage .t-or { fill: var(--green); }
+  .station:is([data-key="ECHANT"], [data-key="UN"]) .stage :is(.mline, .bell, .oarr) { stroke: var(--green); }
+  .station:is([data-key="ECHANT"], [data-key="UN"]) .stage .mext { stroke: var(--green); }
+  .station:is([data-key="ECHANT"], [data-key="UN"]) .stage :is(.mtri, .sqo, .tok) { fill: var(--green); stroke: #15803D; }
+  .station:is([data-key="ECHANT"], [data-key="UN"]) .stage .chip { stroke: var(--green); }
+  .station:is([data-key="ECHANT"], [data-key="UN"]) .stage .oarr-h { fill: var(--green); }
+  .station:is([data-key="ECHANT"], [data-key="UN"]) .stage .bell.mu { stroke: var(--ink); }
+  .stage .pop   { stroke: var(--pop); stroke-width: 2.5; stroke-dasharray: 8 6; fill: none; }
+  .stage .popbox { stroke: var(--pop); stroke-width: 2.5; stroke-dasharray: 8 6; fill: var(--bg); }
+  .stage .box   { fill: var(--bg); stroke: var(--grid); stroke-width: 2; }
+  .stage .nobox { display: none; }
+  .stage .card  { fill: var(--bg); stroke: var(--grid); stroke-width: 3; }
+  .stage .hl    { fill: var(--grid); }
+  .stage .dot   { fill: var(--blue); stroke: var(--blue-dk); stroke-width: 1; }
+  .stage .potato { fill: none; stroke: var(--pop); stroke-width: 3; }
+  .stage .lasso { fill: none; stroke: var(--blue-dk); stroke-width: 3; }
+  .stage .arrow { fill: none; stroke: var(--blue-dk); stroke-width: 2.5; }
+  .stage .ahead { fill: var(--blue-dk); }
+  .stage .ahead-ink { fill: var(--ink); }
+  .stage .hand rect { fill: var(--bg); stroke: var(--ink); stroke-width: 2.5; vector-effect: non-scaling-stroke; }
+  .stage .hand rect.on { fill: var(--blue); stroke: var(--blue-dk); }
+  .stage .ruler { fill: var(--bg); stroke: var(--ink); stroke-width: 2.5; }
+  .stage .rtick { stroke: var(--ink); stroke-width: 2; }
+  .stage .pile  { fill: var(--grid); stroke: var(--bg); stroke-width: 3; }
+  .stage .bell  { fill: none; stroke: var(--orange-dk); stroke-width: 3; }
+  .stage .thin  { stroke: var(--pop); stroke-width: 1.5; }
+  .stage .banner { fill: var(--guide); }
+  .stage .barr  { stroke: var(--blue); stroke-width: 3; }
+  .stage .barr-h { fill: var(--blue); }
+  .stage .oarr  { stroke: var(--orange); stroke-width: 3; }
+  .stage .oarr-h { fill: var(--orange); }
+  .stage .sw-green { fill: var(--green); }
+  .stage .row-solid { fill: none; stroke: var(--grid); stroke-width: 2; }
+  .stage .band-or { fill: var(--orange); }
+  .stage .band-gr { fill: var(--green); }
+  .stage .band-pop { stroke: var(--pop); stroke-width: 16; stroke-dasharray: 8 6; }
+  .stage .colhl { fill: var(--guide); }
+  .stage .vline { stroke: var(--ink); stroke-width: 2; }
+  .stage .t-red { fill: var(--red); }
+  .stage .ic-area-g  { fill: var(--green); fill-opacity: .14; }
+  .stage .ic-curve-g { fill: none; stroke: var(--green); stroke-width: 3; }
+  .stage .ic-area-k  { fill: var(--grid); }
+  .stage .ic-curve-k { fill: none; stroke: var(--ink); stroke-width: 3; }
+  .stage .ic-tail  { fill: var(--red); fill-opacity: .6; }
+  .stage .ic-seg   { stroke: var(--green); stroke-width: 4; }
+  .stage .ic-br    { fill: none; stroke: var(--green); stroke-width: 4; }
+  .stage .ic-seg.p, .stage .ic-br.p { stroke: var(--pop); }
+  .stage .ic-dot   { fill: var(--green); }
+  .stage .ic-box   { fill: var(--bg); stroke: var(--green); stroke-width: 2; }
+  .stage .ic-box.p { stroke: var(--pop); }
+  .stage .ic-musolid { stroke: var(--pop); stroke-width: 3; }
+  .stage .ic-me      { stroke: var(--orange-dk); stroke-width: 3; }
+  .stage .ic-msolid  { stroke: var(--green); stroke-width: 3.5; }
+  .stage .ic-pt      { fill: var(--orange); stroke: var(--orange-dk); stroke-width: 2; }
+  .stage .ic-pt.out  { fill: var(--red); stroke: #991B1B; }
+  .stage .ic-arr     { stroke: var(--ink); stroke-width: 3; }
+  .stage .est-box    { fill: var(--bg); stroke: var(--green); stroke-width: 3; }
+  .stage .est-box.o  { stroke: var(--orange); }
+  .stage .est-arr    { stroke: var(--ink); stroke-width: 2.5; }
+  .stage .est-arr-h  { fill: var(--ink); }
+  .stage .ret-seg    { stroke: var(--green); stroke-width: 3; }
+  .stage .ret-dot    { fill: var(--green); }
+  .stage .ret-seg.r  { stroke: var(--red); }
+  .stage .ret-dot.r  { fill: var(--red); }
+  .stage .est-arr2   { stroke: var(--pop); stroke-width: 2.5; stroke-dasharray: 8 6; }
+  .stage .est-arr2-h { fill: var(--pop); }
+  .stage .sqo.est    { fill: var(--green); stroke: #15803D; }
+  .stage .bell.est, .stage .mline.est { stroke: var(--green); }
+  .stage .bi-line    { fill: none; stroke-width: 3; }
+  .stage .bi-pt      { fill: var(--bg); stroke-width: 3; }
+  .stage .bi-line.o, .stage .bi-pt.o { stroke: var(--orange-dk); }
+  .stage .bi-line.g, .stage .bi-pt.g { stroke: var(--green); }
+  .stage .f-bullet   { fill: var(--pop); }
+  .stage .ip-carto   { fill: var(--bg); stroke: var(--pop); stroke-width: 2.5; }
+  .stage .ic-arr-h   { fill: var(--ink); }
+
+  /* ---------- HUD ---------- */
+  #hud {
+    position: fixed; left: 0; right: 0; bottom: 0; z-index: 50;
+    display: grid; grid-template-columns: 1fr auto 1fr; align-items: center;
+    column-gap: 28px; padding: 18px 30px; pointer-events: none;
+    font-size: 13px; letter-spacing: .08em; color: var(--ink);
+  }
+  #hud .counter { justify-self: start; min-width: 0; white-space: nowrap; font-variant-numeric: tabular-nums; opacity: .7; }
+  #hud .counter #stepl { font-weight: 700; }
+  #hud .station-name { justify-self: end; min-width: 0; max-width: 100%; text-align: right;
+                       overflow: hidden; white-space: nowrap; text-overflow: ellipsis; opacity: .55; }
+  #hud .station-key { font-weight: 700; }
+  #rail { justify-self: center; display: flex; gap: 10px; pointer-events: auto; }
+  #rail .dot { width: 8px; height: 8px; border-radius: 50%; background: currentColor; opacity: .22; cursor: pointer; transition: opacity .3s, transform .3s; }
+  #rail .dot:hover { opacity: .6; }
+  #rail .dot.active { opacity: 1; transform: scale(1.35); }
+  #rail .dot.out { display: none; }
+  #rail .dot.edge { opacity: .22; transform: scale(.62); }
+  #railtip { position: fixed; bottom: 48px; transform: translateX(-50%); z-index: 51; background: var(--ink); color: var(--bg);
+             font-size: 12px; padding: 6px 12px; border-radius: 4px; opacity: 0; pointer-events: none; transition: opacity .25s; }
+  #railtip.show { opacity: 1; }
+  .station-tag { position: absolute; top: 0; left: 0; pointer-events: none; white-space: nowrap; font-weight: 700; font-size: 84px;
+                 letter-spacing: .04em; line-height: 1; color: var(--ink); opacity: 0; transition: opacity .4s ease; }
+  .station-tag .tag-name { font-weight: 400; opacity: .45; }
+  body.is-overview .station-tag { opacity: .7; }
+  #fsbtn { position: fixed; top: 20px; right: 24px; pointer-events: auto; cursor: pointer; background: none; border: 0; padding: 8px;
+           line-height: 0; color: currentColor; opacity: .45; transition: opacity .25s, transform .25s var(--ease-expo); }
+  #fsbtn:hover, #fsbtn:focus-visible { opacity: 1; transform: scale(1.1); }
+  #fsbtn:focus-visible { outline: 2px solid currentColor; outline-offset: 2px; }
+  #fsbtn svg { width: 22px; height: 22px; display: block; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+  #fsbtn .ic-exit { display: none; }
+  body.is-fullscreen #fsbtn .ic-enter { display: none; }
+  body.is-fullscreen #fsbtn .ic-exit { display: block; }
+
+  /* ---------- edit mode ---------- */
+  [hidden] { display: none !important; }
+  #edbtn { position: fixed; top: 16px; right: 66px; pointer-events: auto; cursor: pointer; display: flex; align-items: center; gap: 8px;
+           background: var(--bg); border: 1px solid var(--grid); border-radius: 999px; padding: 7px 14px 7px 11px;
+           font: 600 13px var(--font); color: var(--ink); box-shadow: 0 2px 10px rgba(31,41,55,.08); transition: border-color .2s; }
+  #edbtn::after { content: "Éditer"; }
+  #edbtn:hover { border-color: var(--ink); }
+  #edbtn:focus-visible { outline: 2px solid var(--blue); outline-offset: 2px; }
+  #edbtn svg { width: 16px; height: 16px; display: block; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+  body.editing #edbtn { display: none; }
+  #edbar { position: fixed; top: 12px; left: 50%; transform: translateX(-50%); z-index: 70; max-width: calc(100vw - 140px);
+           display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 8px 14px; padding: 8px 12px;
+           background: var(--bg); border: 1px solid var(--grid); border-radius: 10px; box-shadow: 0 6px 24px rgba(31,41,55,.14);
+           font: 500 13px var(--font); color: var(--ink); }
+  #edbar .grp { display: flex; align-items: center; gap: 6px; }
+  #edbar button { font: inherit; color: var(--ink); background: var(--bg); border: 1px solid var(--grid); border-radius: 6px; padding: 5px 10px; cursor: pointer; }
+  #edbar button:hover { border-color: var(--ink); }
+  #edbar button:focus-visible { outline: 2px solid var(--blue); outline-offset: 1px; }
+  #edbar button.primary { background: var(--ink); color: var(--bg); border-color: var(--ink); }
+  #edbar button.armed { border-color: var(--orange-dk); color: var(--orange-dk); }
+  #edbar .sw { width: 22px; height: 22px; padding: 0; border-radius: 50%; border: 2px solid var(--bg); box-shadow: 0 0 0 1px var(--grid); }
+  #edbar .sel-only { display: none; }
+  #edbar.has-sel .sel-only { display: flex; }
+  #edbar.has-sel:not(.is-text) .text-only { display: none; }
+  #edbar .hint { flex-basis: 100%; text-align: center; font-size: 12px; font-weight: 400; color: var(--pop); }
+  #edbar .hint b { font-weight: 600; color: var(--ink); }
+  #edsel { position: fixed; z-index: 65; pointer-events: none; outline: 2px dashed var(--orange-dk); outline-offset: 4px; border-radius: 2px; }
+  #edtext { position: fixed; z-index: 75; font-family: var(--font); color: var(--ink); background: var(--bg);
+            padding: 2px 8px; border: 2px solid var(--orange-dk); border-radius: 6px; outline: none; }
+  body.editing .stage * { cursor: move; }
+  body.editing .stage text, body.editing .stage tspan { cursor: text; }
+
+  #swipehint { position: fixed; left: 50%; bottom: 64px; z-index: 60; pointer-events: none; font-weight: 600; font-size: 12px;
+               letter-spacing: .1em; text-transform: uppercase; background: var(--ink); color: var(--bg); padding: 10px 18px;
+               border-radius: 999px; opacity: 0; transform: translateX(-50%); animation: swipehint 5s ease 1.1s forwards; }
+  @keyframes swipehint { 0% { opacity: 0; transform: translate(-50%, 10px); } 12%, 78% { opacity: 1; transform: translate(-50%, 0); } 100% { opacity: 0; transform: translate(-50%, -8px); } }
+  @media (pointer: coarse) {
+    #railtip { display: none; }
+    #fsbtn svg { width: 28px; height: 28px; }
+    #fsbtn { animation: fs-nudge 1.5s ease 1.8s 3; }
+  }
+  @keyframes fs-nudge { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.4); } }
+  @media (max-width: 760px), (max-height: 500px) {
+    #hud { font-size: 10px; column-gap: 14px;
+           padding: 10px calc(14px + env(safe-area-inset-right, 0px)) calc(10px + env(safe-area-inset-bottom, 0px)) calc(14px + env(safe-area-inset-left, 0px)); }
+    #fsbtn { top: calc(12px + env(safe-area-inset-top, 0px)); right: calc(12px + env(safe-area-inset-right, 0px)); }
+    #rail { gap: 5px; }
+    #rail .dot { width: 5px; height: 5px; }
+  }
+  #rotatehint { display: none; position: fixed; inset: 0; z-index: 90; background: var(--bg); color: var(--ink);
+                flex-direction: column; align-items: center; justify-content: center; gap: 34px; text-align: center; cursor: pointer; }
+  @media (pointer: coarse) and (orientation: portrait) and (max-width: 760px) { body:not(.rh-dismissed) #rotatehint { display: flex; } }
+  #rotatehint .rh-phone { width: 60px; height: 60px; fill: none; stroke: currentColor; stroke-width: 2.6; stroke-linecap: round; stroke-linejoin: round;
+                          animation: rh-turn 2.8s var(--ease-expo) infinite; }
+  @keyframes rh-turn { 0%, 22% { transform: rotate(0); } 55%, 80% { transform: rotate(-90deg); } 100% { transform: rotate(0); } }
+  #rotatehint .rh-title { font-weight: 700; line-height: .95; letter-spacing: -.02em; font-size: 15vw; }
+  #rotatehint .rh-sub { font-weight: 500; font-size: 12px; letter-spacing: .1em; text-transform: uppercase; opacity: .6; max-width: 80vw; line-height: 1.7; }
+  #rotatehint .rh-nofs { display: none; }
+  body.no-fullscreen #rotatehint .rh-fs { display: none; }
+  body.no-fullscreen #rotatehint .rh-nofs { display: inline; }
+</style>
+<style>
+  /* Ajouts du cours sur les ddl : mêmes jetons de couleur que le premier cours, aucune couleur nouvelle. */
+  .stage .stick-h   { fill: var(--bg); stroke: var(--blue-dk); stroke-width: 3; }
+  .stage .ecart     { stroke: var(--blue-dk); stroke-width: 4; stroke-linecap: round; }
+  .stage .ecart-h   { fill: var(--blue-dk); }
+  .stage .ecart.pale { stroke: var(--grid); }
+  .stage .ecart-h.pale { fill: var(--grid); }
+  .stage .guide-v   { stroke: var(--grid); stroke-width: 2; }
+  .stage .sqr       { fill: var(--blue); fill-opacity: .16; stroke: var(--blue-dk); stroke-width: 2.5; }
+  .stage .fbar      { stroke: var(--ink); stroke-width: 4; stroke-linecap: round; }
+  .stage .gauss-ref { fill: none; stroke: var(--pop); stroke-width: 2.5; }
+  .stage .mu-solid  { stroke: var(--pop); stroke-width: 3; }
+  .stage .dbl       { stroke: var(--ink); stroke-width: 3; }
+  .stage .dbl-h     { fill: var(--ink); }
+  .stage .rowbase   { stroke: var(--ink); stroke-width: 1.5; }
+  .stage .t-ink     { fill: var(--ink); }
+</style>
+
+
+<div id="viewport">
+  <div id="world">
+    <!-- Escalier monotone : chaque station va à DROITE (+2300, 0) ou en BAS (0, +1450).
+         Un changement de partie descend d'un cran. -->
+    <section class="station" id="s1" data-key="TITRE" data-name="Titre" data-x="0" data-y="0" data-scene="titre">
+      <svg class="stage" width="1920" height="1080" viewBox="0 0 1920 1080" role="img" aria-label="Les degrés de liberté : titre"></svg>
+    </section>
+    <section class="station" id="s2" data-key="RAPPEL" data-name="Vous l'avez déjà vu" data-x="2300" data-y="0" data-scene="rappel">
+      <svg class="stage" width="1920" height="1080" viewBox="0 0 1920 1080" role="img" aria-label="Trois formules du premier cours qui contiennent N − 1"></svg>
+    </section>
+    <section class="station" id="s3" data-key="MAINS" data-name="Le jeu des 5 mains" data-x="2300" data-y="1450" data-scene="mains">
+      <svg class="stage" width="1920" height="1080" viewBox="0 0 1920 1080" role="img" aria-label="Cinq largeurs de main : quand la moyenne est imposée, la dernière valeur n'est plus libre"></svg>
+    </section>
+    <section class="station" id="s4" data-key="ECARTS" data-name="Les écarts à la moyenne" data-x="4600" data-y="1450" data-scene="ecarts">
+      <svg class="stage" width="1920" height="1080" viewBox="0 0 1920 1080" role="img" aria-label="Les écarts à la moyenne s'équilibrent : leur somme est nulle"></svg>
+    </section>
+    <section class="station" id="s5" data-key="CARRES" data-name="D'où le N − 1 de s²" data-x="6900" data-y="1450" data-scene="carres">
+      <svg class="stage" width="1920" height="1080" viewBox="0 0 1920 1080" role="img" aria-label="Les écarts mis au carré, divisés par N puis par N − 1"></svg>
+    </section>
+    <section class="station" id="s6" data-key="PONT" data-name="Les ν + 1 gaussiennes du poly" data-x="9200" data-y="1450" data-scene="pont">
+      <svg class="stage" width="1920" height="1080" viewBox="0 0 1920 1080" role="img" aria-label="Les N mesures se partagent : une en haut de la fraction, N − 1 en bas"></svg>
+    </section>
+    <section class="station" id="s7" data-key="ESSAI" data-name="Deux groupes : l'essai" data-x="9200" data-y="2900" data-scene="essai">
+      <svg class="stage" width="1920" height="1080" viewBox="0 0 1920 1080" role="img" aria-label="Deux groupes de 10 patients : 18 degrés de liberté"></svg>
+    </section>
+    <section class="station" id="s8" data-key="COURBE" data-name="ν change le seuil" data-x="11500" data-y="2900" data-scene="courbe">
+      <svg class="stage" width="1920" height="1080" viewBox="0 0 1920 1080" role="img" aria-label="La loi de Student se rapproche de Gauss quand ν augmente"></svg>
+    </section>
+    <section class="station" id="s9" data-key="REGLE" data-name="Compter les ddl" data-x="11500" data-y="4350" data-scene="regle">
+      <svg class="stage" width="1920" height="1080" viewBox="0 0 1920 1080" role="img" aria-label="La règle de comptage des degrés de liberté"></svg>
+    </section>
+  </div>
+</div>
+<div id="hud">
+  <div class="counter"><span id="idx">01</span> / <span id="total">07</span><span id="stepl"></span></div>
+  <div id="rail"></div>
+  <div class="station-name"></div>
+  <button id="edbtn" type="button" aria-label="Mode édition" title="Éditer (E)"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20h4L19 9l-4-4L4 16v4zM14 6l4 4"/></svg></button>
+  <button id="fsbtn" type="button" aria-label="Plein écran" title="Plein écran (F)">
+    <svg class="ic-enter" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 8V3h5M21 8V3h-5M3 16v5h5M21 16v5h-5"/></svg>
+    <svg class="ic-exit" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 3v5H3M16 3v5h5M8 21v-5H3M16 21v-5h5"/></svg>
+  </button>
+</div>
+
+<div id="edbar" hidden role="toolbar" aria-label="Édition">
+  <span class="grp sel-only">
+    <button type="button" class="sw" data-color="#1F2937" title="Quasi-noir" style="background:#1F2937"></button>
+    <button type="button" class="sw" data-color="#3B82F6" title="Bleu individus" style="background:#3B82F6"></button>
+    <button type="button" class="sw" data-color="#1E40AF" title="Bleu foncé" style="background:#1E40AF"></button>
+    <button type="button" class="sw" data-color="#F28C28" title="Orange moyennes" style="background:#F28C28"></button>
+    <button type="button" class="sw" data-color="#C2410C" title="Orange foncé" style="background:#C2410C"></button>
+    <button type="button" class="sw" data-color="#4B5563" title="Gris population" style="background:#4B5563"></button>
+    <button type="button" class="sw" data-color="#16A34A" title="Vert estimation" style="background:#16A34A"></button>
+  </span>
+  <span class="grp sel-only text-only">
+    <button type="button" data-act="smaller" title="Texte plus petit">A−</button>
+    <button type="button" data-act="bigger" title="Texte plus grand">A+</button>
+  </span>
+  <span class="grp sel-only"><button type="button" data-act="hide" title="Masquer (Suppr)">Masquer</button></span>
+  <span class="grp">
+    <button type="button" data-act="undo" title="Annuler (Ctrl+Z)">Annuler</button>
+    <button type="button" data-act="reset" title="Retirer toutes les modifications de ce visuel">Réinitialiser ce visuel</button>
+    <button type="button" data-act="done" class="primary">Terminer</button>
+  </span>
+  <span class="hint">Clic : sélectionner · glisser : déplacer · Maj+glisser : tout le groupe · double-clic : modifier un texte · <b id="edstat"></b></span>
+</div>
+<div id="edsel" hidden></div>
+<input id="edtext" type="text" hidden aria-label="Modifier le texte" autocomplete="off" spellcheck="false">
+
+<div id="rotatehint" role="button" aria-label="Continuer en portrait">
+  <svg class="rh-phone" viewBox="0 0 48 48" aria-hidden="true">
+    <rect x="16" y="7" width="16" height="34" rx="3.5"/>
+    <line x1="21" y1="12" x2="27" y2="12"/>
+  </svg>
+  <div class="rh-title">Tournez<br>votre<br>téléphone</div>
+  <div class="rh-sub">
+    <span class="rh-fs">Présentation en 16:9 —<br>touchez pour le plein écran, puis balayez</span>
+    <span class="rh-nofs">Présentation en 16:9 — touchez, puis balayez.<br>Vrai plein écran : Partager → Sur l'écran d'accueil</span>
+  </div>
+</div>
+
+<!-- anime.js v4 UMD. Pin the version. VENDOR THIS FILE LOCALLY before presenting. -->
+<script src="https://cdn.jsdelivr.net/npm/animejs@4.4.1/dist/bundles/anime.umd.min.js"></script>
+<script>
+(function () {
+  const { animate, utils } = anime;
+  const EASE = anime.cubicBezier ? anime.cubicBezier(.82, 0, .18, 1) : 'inOutQuart';
+  const PACE = 1;
+  const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const MOTION = (reduceMotion ? 0.6 : 1) * PACE;
+  const STILL = /[?&]still=1(&|$)/.test(location.search);
+  const TOUCH = matchMedia('(pointer: coarse)').matches;
+
+  /* ---------- collect stations ---------- */
+  const nodes = Array.from(document.querySelectorAll('.station'));
+  const stations = nodes.map(el => {
+    const x = +el.dataset.x, y = +el.dataset.y, zoom = +el.dataset.zoom || 1;
+    el.style.transform = `translate(${x}px, ${y}px)`;
+    return { el, x, y, w: el.offsetWidth, h: el.offsetHeight, zoom,
+             cx: x + el.offsetWidth / 2, cy: y + el.offsetHeight / 2,
+             name: el.dataset.name, key: el.dataset.key || '' };
+  });
+  function stationFromHash(h) {
+    let t = (h || '').replace(/^#/, '');
+    try { t = decodeURIComponent(t); } catch (e) {}
+    if (!t) return -1;
+    const byId = stations.findIndex(s => s.el.id === t);
+    if (byId >= 0) return byId;
+    const T = t.toUpperCase();
+    return stations.findIndex(s => s.key && s.key.toUpperCase() === T);
+  }
+
+  const world = document.getElementById('world');
+  const viewportEl = document.getElementById('viewport');
+  const hud = document.getElementById('hud');
+  const cam = { x: stations[0].cx, y: stations[0].cy, zoom: 1 };
+  let cur = 0, busy = false, overview = false, navToken = 0;
+
+  let insetLeft = 0;
+  function vw() { return window.innerWidth - insetLeft; }
+  function vh() { return window.innerHeight; }
+  function render() {
+    world.style.transform =
+      `translate(${insetLeft + vw() / 2 - cam.x * cam.zoom}px, ${vh() / 2 - cam.y * cam.zoom}px) scale(${cam.zoom})`;
+  }
+  function fitZoom(s) { return Math.min(vw() / s.w, vh() / s.h) * s.zoom; }
+  function maskToStation(s) {
+    const z = fitZoom(s);
+    const l = Math.max(0, (vw() - s.w * z) / 2).toFixed(1), t = Math.max(0, (vh() - s.h * z) / 2).toFixed(1);
+    viewportEl.style.clipPath = `inset(${t}px ${l}px ${t}px ${(+l + insetLeft).toFixed(1)}px)`;
+  }
+  function unmask() { viewportEl.style.clipPath = 'inset(0px 0px 0px 0px)'; }
+  function updateCulling() {
+    if (!TOUCH) return;
+    stations.forEach((s, k) => { s.el.style.visibility = (overview || Math.abs(k - cur) <= 1) ? '' : 'hidden'; });
+  }
+
+  /* ---------- live window: only stations near the camera exist in the DOM ---------- */
+  const LIVE_SPAN = TOUCH ? 1 : 2, PREFETCH_SPAN = LIVE_SPAN + 2, FETCH_MS = 10000;
+  let liveAll = (document.documentElement.dataset.live || document.body.dataset.live) === 'all';
+  stations.forEach(s => {
+    const tpl = s.el.querySelector(':scope > template[data-station]');
+    if (tpl) { s.src = tpl.innerHTML; tpl.remove(); s.live = false; }
+    else if (s.el.dataset.src) { s.src = null; s.live = false; }
+    else { s.src = s.el.innerHTML; s.live = true; }
+    if (!s.live) s.el.classList.add('dormant');
+  });
+  const sceneOf = s => { const n = s.el.dataset.scene; return n ? sceneRegistry[n] : null; };
+  function loadSrc(s) {
+    if (s.src != null) return Promise.resolve();
+    if (s.loading) return s.loading;
+    const ctl = typeof AbortController === 'function' ? new AbortController() : null;
+    const timer = ctl && setTimeout(() => ctl.abort(), FETCH_MS);
+    return (s.loading = fetch(s.el.dataset.src, ctl ? { signal: ctl.signal } : undefined)
+      .then(r => { if (!r.ok) throw new Error(r.status + ' ' + r.statusText); return r.text(); })
+      .then(t => { s.src = t; })
+      .catch(e => { console.warn('[deckadence] could not load', s.el.dataset.src, e); s.failed = true; })
+      .finally(() => { clearTimeout(timer); s.loading = null; }));
+  }
+  function mountStation(s) {
+    if (s.mounted) return true;
+    if (s.mounting) return s.mounting;
+    if (!s.live) {
+      if (s.src == null && !s.failed) return loadSrc(s).then(() => mountStation(s));
+      if (s.src == null) {
+        s.el.innerHTML = `<p class="station-error">${s.key || s.el.id} · could not load ${s.el.dataset.src}</p>`;
+        s.failed = false; s.live = s.mounted = true; s.el.classList.remove('dormant');
+        return true;
+      }
+      s.el.innerHTML = s.src; s.live = true; s.primed = false;
+      s.el.classList.remove('dormant'); s.el.style.backgroundImage = '';
+    }
+    const sc = sceneOf(s);
+    let r = null;
+    try { r = sc && sc.mount ? sc.mount(s.el) : null; } catch (e) { console.error('[deckadence] mount failed:', s.key || s.el.id, e); }
+    s.el.dispatchEvent(new CustomEvent('deck:mount', { bubbles: true, detail: { key: s.key, id: s.el.id } }));
+    if (!(r && typeof r.then === 'function')) { s.mounted = true; return true; }
+    const settle = () => { s.mounted = true; s.mounting = null; return true; };
+    return (s.mounting = r.then(settle, e => { console.error('[deckadence] mount failed:', s.key || s.el.id, e); return settle(); }));
+  }
+  function releaseMedia(el) {
+    el.querySelectorAll('img').forEach(i => { i.removeAttribute('srcset'); i.src = 'data:,'; });
+    el.querySelectorAll('video, audio').forEach(m => { try { m.pause(); m.removeAttribute('src'); m.querySelectorAll('source').forEach(x => x.remove()); m.load(); } catch (e) {} });
+    el.querySelectorAll('iframe').forEach(f => { f.src = 'about:blank'; });
+  }
+  function unmountStation(s) {
+    if (!s.live || liveAll || s.mounting) return;
+    const sc = sceneOf(s);
+    if (s.mounted && sc && sc.unmount) sc.unmount(s.el);
+    if (s.mounted) s.el.dispatchEvent(new CustomEvent('deck:unmount', { bubbles: true, detail: { key: s.key, id: s.el.id } }));
+    releaseMedia(s.el);
+    s.el.replaceChildren();
+    s.live = false; s.mounted = false; s.primed = false;
+    s.el.classList.add('dormant');
+  }
+  const near = (k, i, span) => Math.abs(k - i) <= span;
+  function settleLive(i) {
+    stations.forEach((s, k) => {
+      if (liveAll || near(k, i, LIVE_SPAN)) { const m = mountStation(s); if (m !== true) m.catch(() => {}); }
+      else unmountStation(s);
+      if (!liveAll && s.src == null && near(k, i, PREFETCH_SPAN)) loadSrc(s);
+    });
+  }
+  function setSource(i, html) { const s = stations[i]; if (s && typeof html === 'string') s.src = html; }
+  function setLive(mode) {
+    if (mode !== 'all') return Promise.resolve();
+    liveAll = true;
+    return Promise.all(stations.map(s => mountStation(s))).then(() => {});
+  }
+
+  /* ---------- HUD ---------- */
+  const rail = document.getElementById('rail');
+  const railtip = document.createElement('div'); railtip.id = 'railtip'; document.body.appendChild(railtip);
+  stations.forEach((s, i) => {
+    const d = document.createElement('div'); d.className = 'dot' + (i ? '' : ' active');
+    d.addEventListener('click', () => { if (!busy && i !== cur) goto(i); });
+    d.addEventListener('mouseenter', () => {
+      const r = d.getBoundingClientRect();
+      railtip.textContent = [String(i + 1).padStart(2, '0'), s.key, s.name].filter(Boolean).join(' · ');
+      railtip.style.left = (r.left + r.width / 2) + 'px';
+      railtip.classList.add('show');
+    });
+    d.addEventListener('mouseleave', () => railtip.classList.remove('show'));
+    rail.appendChild(d);
+  });
+  const dots = Array.from(rail.children);
+  stations.forEach(s => {
+    if (!s.key) return;
+    const t = document.createElement('div'); t.className = 'station-tag';
+    t.textContent = s.key;
+    if (s.name) { const n = document.createElement('span'); n.className = 'tag-name'; n.textContent = ' · ' + s.name; t.appendChild(n); }
+    t.style.transform = `translate(${s.x}px, ${s.y}px) translateY(-140%)`;
+    world.appendChild(t);
+  });
+  document.getElementById('total').textContent = String(stations.length).padStart(2, '0');
+  function railWindow(i) {
+    const n = dots.length;
+    if (!n) return;
+    dots[i].classList.remove('out');
+    const DOT = dots[i].offsetWidth || 8, GAP = parseFloat(getComputedStyle(rail).gap) || 10;
+    const hs = getComputedStyle(hud), CLEAR = parseFloat(hs.columnGap) || 0;
+    const inner = hud.clientWidth - parseFloat(hs.paddingLeft) - parseFloat(hs.paddingRight);
+    const counterW = hud.querySelector('.counter').scrollWidth;
+    const nameMin = Math.min(160, inner * 0.2);
+    let avail = inner - 2 * (Math.max(counterW, nameMin) + CLEAR);
+    if (!(inner > 0)) avail = Math.max(100, vw() * 0.5 - 2 * CLEAR);
+    const max = Math.max(5, Math.floor((avail + GAP) / (DOT + GAP)));
+    if (n <= max) { dots.forEach(d => d.classList.remove('out', 'edge')); return; }
+    const start = Math.min(Math.max(0, i - Math.floor(max / 2)), n - max), end = start + max - 1;
+    dots.forEach((d, k) => {
+      const inWin = k >= start && k <= end;
+      d.classList.toggle('out', !inWin);
+      d.classList.toggle('edge', inWin && ((k === start && start > 0) || (k === end && end < n - 1)));
+    });
+  }
+  function setHud(i) {
+    document.getElementById('idx').textContent = String(i + 1).padStart(2, '0');
+    const label = hud.querySelector('.station-name'), s = stations[i];
+    label.textContent = s.name || '';
+    if (s.key) {
+      const k = document.createElement('span'); k.className = 'station-key'; k.textContent = s.key;
+      label.prepend(k, s.name ? ' · ' : '');
+    }
+    dots.forEach((d, k) => d.classList.toggle('active', k === i));
+    railWindow(i);
+    stepHud();
+  }
+  function syncHash(i) {
+    const s = stations[i], h = '#' + encodeURIComponent(s.key || s.el.id);
+    if (location.hash === h) return;
+    try { history.replaceState(null, '', location.pathname + location.search + h); } catch (e) {}
+  }
+  function setTone(i) {
+    const inv = stations[i].el.classList.contains('invert');
+    hud.classList.toggle('on-invert', inv);
+    document.body.classList.toggle('invert-hud', inv);
+  }
+
+  /* ---------- camera ---------- */
+  function flyTo(target, { dur = 1150, ease = EASE, mid, done } = {}) {
+    if (STILL) { Object.assign(cam, target); render(); maskToStation(stations[cur]); if (mid) mid(); if (done) done(); return; }
+    busy = true; unmask();
+    const D = dur * MOTION;
+    if (mid) setTimeout(mid, D * 0.55);
+    animate(cam, { x: target.x, y: target.y, zoom: target.zoom,
+      duration: D, ease, onUpdate: render,
+      onComplete: () => { busy = false; maskToStation(stations[cur]); if (done) done(); } });
+  }
+  function flyDive(s, { mid, done } = {}) {
+    const target = { x: s.cx, y: s.cy, zoom: fitZoom(s) };
+    if (STILL) { Object.assign(cam, target); render(); maskToStation(s); if (mid) mid(); if (done) done(); return; }
+    busy = true; unmask();
+    const D = 1750 * MOTION;
+    if (mid) setTimeout(mid, D * 0.55);
+    animate(cam, { x: target.x, y: target.y,
+      zoom: [
+        { to: target.zoom * 0.34, duration: 720 * MOTION, ease: 'inOutQuad' },
+        { to: target.zoom,        duration: 1030 * MOTION, ease: EASE }
+      ],
+      duration: D, ease: EASE, onUpdate: render,
+      onComplete: () => { busy = false; maskToStation(s); if (done) done(); } });
+  }
+  function overviewCam() {
+    const pad = 200;
+    const minX = Math.min(...stations.map(s => s.x)) - pad, maxX = Math.max(...stations.map(s => s.x + s.w)) + pad;
+    const minY = Math.min(...stations.map(s => s.y)) - pad, maxY = Math.max(...stations.map(s => s.y + s.h)) + pad;
+    return { x: (minX + maxX) / 2, y: (minY + maxY) / 2,
+             zoom: Math.min(vw() / (maxX - minX), vh() / (maxY - minY)) };
+  }
+  function toOverview() {
+    overview = true; busy = true; unmask(); updateCulling();
+    document.body.classList.add('is-overview');
+    stations.forEach(s => { if (!s.live && s.el.dataset.poster) s.el.style.backgroundImage = `url("${s.el.dataset.poster}")`; });
+    const c = overviewCam();
+    animate(cam, { x: c.x, y: c.y, zoom: c.zoom, duration: 1300 * MOTION, ease: EASE,
+      onUpdate: render, onComplete: () => busy = false });
+  }
+
+  /* ---------- scene registry ---------- */
+  const sceneRegistry = {};
+
+  /* ---------- navigation ---------- */
+  function holdFor(pending, then) {
+    busy = true; const t = ++navToken;
+    pending.then(() => { busy = false; if (t === navToken) then(); }, () => { busy = false; });
+  }
+  function goto(i, opts) {
+    if (i < 0 || i >= stations.length) return;
+    const m = mountStation(stations[i]);
+    if (m !== true) return holdFor(m, () => goto(i, opts));
+    const prev = cur, wasOverview = overview; cur = i; overview = false;
+    if (wasOverview) stations.forEach(t => { if (!t.live) t.el.style.backgroundImage = ''; });
+    document.body.classList.remove('is-overview');
+    setHud(i); updateCulling(); syncHash(i);
+    Object.values(sceneRegistry).forEach(sc => sc.stop());
+    const s = stations[i], isNew = i !== prev;
+    const token = ++navToken;
+    const fresh = () => token === navToken && !overview;
+    const fromEnd = !!(opts && opts.fromEnd);
+    primeStation(s, fromEnd);
+    const reveal = () => { if (fresh()) { revealStation(s, fromEnd); settleLive(i); } };
+    const mid = () => { if (fresh()) setTone(i); };
+    if (!isNew) { setTone(i); flyTo({ x: s.cx, y: s.cy, zoom: fitZoom(s) }, opts); reveal(); return; }
+    if (s.el.dataset.fly === 'dive') flyDive(s, { mid, done: reveal });
+    else flyTo({ x: s.cx, y: s.cy, zoom: fitZoom(s) }, { ...opts, mid, done: reveal });
+  }
+
+  /* ---------- generic intro ---------- */
+  function splitLines(el) {
+    if (el.dataset.done) return;
+    el.innerHTML = el.innerHTML.split(/<br\s*\/?>/i)
+      .map(html => `<span class="clip"><span class="lineInner">${html}</span></span>`)
+      .join('');
+    el.dataset.done = '1';
+  }
+  function fitHeading(el) {
+    if (el.dataset.fit) return; el.dataset.fit = '1';
+    const lines = [...el.querySelectorAll('.lineInner')];
+    if (!lines.length) return;
+    const wraps = l => {
+      const lh = parseFloat(getComputedStyle(l).lineHeight) || parseFloat(getComputedStyle(l).fontSize) * 1.2;
+      return l.offsetHeight > lh * 1.3;
+    };
+    let guard = 0;
+    while (lines.some(wraps) && guard++ < 26) {
+      el.style.fontSize = (parseFloat(getComputedStyle(el).fontSize) * 0.94).toFixed(1) + 'px';
+    }
+  }
+  function releaseClips(el) { el.querySelectorAll('.clip').forEach(c => { c.style.overflow = 'visible'; }); }
+
+  function introTargets(el) {
+    el.querySelectorAll('[data-split="lines"]').forEach(splitLines);
+    el.querySelectorAll('[data-split="lines"]').forEach(fitHeading);
+    const lines = el.querySelectorAll('.lineInner');
+    const fades = Array.from(el.querySelectorAll('[data-fade]'));
+    let autos = [];
+    if (!lines.length && !fades.length) {
+      autos = Array.from(el.children).filter(c => getComputedStyle(c).position !== 'absolute');
+    }
+    return { lines, fadeTargets: [...fades, ...autos] };
+  }
+  function primeIntro(el) {
+    el.querySelectorAll('.clip').forEach(c => { c.style.overflow = 'hidden'; });
+    const { lines, fadeTargets } = introTargets(el);
+    if (lines.length) utils.set(lines, { translateY: '100%' });
+    if (fadeTargets.length) utils.set(fadeTargets, { opacity: 0, translateY: 22 });
+  }
+  function playIntro(el) {
+    const { lines, fadeTargets } = introTargets(el);
+    if (STILL) {
+      releaseClips(el);
+      if (lines.length) utils.set(lines, { translateY: '0%' });
+      if (fadeTargets.length) utils.set(fadeTargets, { opacity: 1, translateY: 0 });
+      return;
+    }
+    if (lines.length) animate(lines, { translateY: ['100%', '0%'], duration: 1150 * MOTION,
+      delay: anime.stagger(150 * MOTION), ease: EASE, onComplete: () => releaseClips(el) });
+    else releaseClips(el);
+    if (fadeTargets.length) animate(fadeTargets, { opacity: [0, 1], translateY: [22, 0],
+      duration: 900 * MOTION, delay: anime.stagger(110 * MOTION, { start: (lines.length ? 440 : 90) * MOTION }),
+      ease: 'out(2)' });
+  }
+
+  function revealStation(s, fromEnd) {
+    const name = s.el.dataset.scene, sc = name && sceneRegistry[name];
+    if (STILL) { if (sc && sc.still) sc.still(s.el); playIntro(s.el); return; }
+    if (!s.primed) { console.warn('[deckadence] station revealed without priming (it will flash):', s.key || s.el.id); primeStation(s, fromEnd); }
+    s.primed = false;
+    if (sc) { if (fromEnd && sc.labels) stepHud(); else sc.run(s.el); return; }
+    playIntro(s.el);
+  }
+  function primeStation(s, fromEnd) {
+    s.primed = true;
+    if (STILL) return;
+    const name = s.el.dataset.scene, sc = name && sceneRegistry[name];
+    if (!sc) { primeIntro(s.el); return; }
+    if (sc.prep) sc.prep(s.el, fromEnd);
+    else console.warn('[deckadence] scene "' + name + '" has no prep(el): it will flash on every arrival');
+  }
+
+  /* ==========================================================
+     SCÈNES À ÉTAPES
+     stepped(name, { labels, build(svg) → m, pose(m, k), play(m, k, c) → ms })
+       build  : dessine tout le SVG (une fois par montage), puis pose(-1)
+       pose   : état FINAL de l'étape k, posé d'un coup (k = -1 : avant l'étape a)
+       play   : anime de l'état k-1 vers k ; renvoie sa durée, pose(k) est réappliqué à la fin
+     Un clic (→, espace, swipe) = une étape. ← revient d'une étape. ↓ rejoue l'étape.
+     ========================================================== */
+  const T = ms => ms * MOTION;
+  const NS = 'http://www.w3.org/2000/svg';
+  const lerp = (a, b, t) => a + (b - a) * t;
+  const lerpObj = (A, B, t) => { const o = {}; for (const k in A) o[k] = typeof A[k] === 'number' ? lerp(A[k], B[k], t) : A[k]; return o; };
+  const fr = (v, d = 1) => v.toFixed(d).replace('.', ',');
+  const flat = a => [a].flat(3).filter(Boolean).flatMap(x => (x instanceof NodeList ? [...x] : [x]));
+  function S(tag, attrs, parent) {
+    const e = document.createElementNS(NS, tag);
+    if (attrs) for (const k in attrs) e.setAttribute(k, attrs[k]);
+    if (parent) parent.appendChild(e);
+    return e;
+  }
+  // Rich SVG text: *gras*, ~italique~, _e en indice ; espace insécable avant : ? ! ;
+  function rich(t, content) {
+    while (t.firstChild) t.removeChild(t.firstChild);
+    const segs = typeof content === 'string' ? [[content]] : content;
+    let up = false;
+    segs.forEach(([str, attrs]) => {
+      str = str.replace(/ ([:?!;])/g, ' $1');
+      str.split(/(\*[^*]+\*|~[^~]+~)/).forEach(seg => {
+        if (!seg) return;
+        const sa = Object.assign({}, attrs || {});
+        if (seg.length > 2 && seg[0] === '*' && seg.endsWith('*')) { sa['font-weight'] = 700; seg = seg.slice(1, -1); }
+        else if (seg.length > 2 && seg[0] === '~' && seg.endsWith('~')) { sa['font-style'] = 'italic'; seg = seg.slice(1, -1); }
+        seg.split(/(_[A-Za-z0-9α])/).forEach(q => {
+          if (!q) return;
+          const a = Object.assign({}, sa), sub = q.length === 2 && q[0] === '_';
+          if (sub) { a.dy = '0.25em'; a['font-size'] = '70%'; } else if (up) a.dy = '-0.175em';
+          S('tspan', a, t).textContent = sub ? q[1] : q;
+          up = sub;
+        });
+      });
+    });
+    return t;
+  }
+  const tx = (parent, x, y, content, attrs) => rich(S('text', Object.assign({ x, y }, attrs || {}), parent), content);
+  function seeded(seed) {
+    return function () {
+      seed = seed + 0x6D2B79F5 | 0;
+      let t = Math.imul(seed ^ seed >>> 15, 1 | seed);
+      t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t;
+      return ((t ^ t >>> 14) >>> 0) / 4294967296;
+    };
+  }
+  function shuffle(arr, r) { for (let i = arr.length - 1; i > 0; i--) { const j = Math.floor(r() * (i + 1)); [arr[i], arr[j]] = [arr[j], arr[i]]; } return arr; }
+
+  // pose helpers
+  function clean(svg) { svg.querySelectorAll('[style]').forEach(e => e.removeAttribute('style')); }
+  // hidden = transparent AND not clickable (otherwise an invisible element from another step catches edit clicks)
+  function vis(els, on) { flat(els).forEach(e => { e.style.opacity = on ? '' : 0; e.style.pointerEvents = on ? '' : 'none'; }); }
+  // play helpers (all queued on the step controller c, so leaving the step cancels them)
+  function fadeIn(c, els, d = 0, dur = 500) { const t = flat(els); if (!t.length) return; t.forEach(e => { e.style.opacity = 0; }); c.anim(t, { opacity: [0, 1], duration: T(dur), delay: T(d), ease: 'out(2)' }); }
+  function fadeOut(c, els, d = 0, dur = 400) { const t = flat(els); if (!t.length) return; c.anim(t, { opacity: 0, duration: T(dur), delay: T(d), ease: 'out(2)' }); }
+  function tweenT(c, dur, d, fn, ease = EASE) { const o = { t: 0 }; c.anim(o, { t: [0, 1], duration: T(dur), delay: T(d), ease, onUpdate: () => fn(o.t) }); }
+  function hidePath(p) { const L = p.getTotalLength(); p.style.strokeDasharray = L + ' ' + L; p.style.strokeDashoffset = L; }
+  function drawPath(c, p, dur, d = 0, ease = 'inOutQuad') {
+    const L = p.getTotalLength(), o = { v: L };
+    p.style.opacity = ''; p.style.strokeDasharray = L + ' ' + L; p.style.strokeDashoffset = L;
+    c.anim(o, { v: [L, 0], duration: T(dur), delay: T(d), ease, onUpdate: () => { p.style.strokeDashoffset = o.v; } });
+  }
+
+  let stepHud = () => {};
+  function stepped(name, def) {
+    let ctl = null;
+    const n = def.labels.length;
+    const pose = (m, k) => { def.pose(m, k); applyEdits(m.svg); };
+    const sc = sceneRegistry[name] = {
+      labels: def.labels,
+      mount(el) {
+        const svg = el.querySelector('svg.stage');
+        svg.replaceChildren();
+        el._m = def.build(svg); el._m.svg = svg; el._at = 0;
+        nameBlocks(svg);
+        pose(el._m, -1);
+      },
+      stop() {
+        if (!ctl) return;
+        ctl.cancelled = true; ctl.timers.forEach(clearTimeout);
+        ctl.anims.forEach(a => { try { a.pause(); } catch (e) {} });
+        ctl = null;
+      },
+      prep(el, fromEnd) { sc.stop(); const k = fromEnd ? n - 1 : -1; pose(el._m, k); el._at = Math.max(0, k); },
+      run(el) { sc.go(el, 0); },
+      still(el) { sc.set(el, 0); },
+      go(el, k) {
+        sc.stop(); pose(el._m, k - 1); el._at = k; stepHud();
+        const c = ctl = { cancelled: false, timers: [], anims: [] };
+        c.at = (ms, fn) => c.timers.push(setTimeout(() => { if (!c.cancelled) fn(); }, T(ms)));
+        c.anim = (t, p) => { const a = animate(t, p); c.anims.push(a); return a; };
+        const ms = def.play(el._m, k, c) || 0;
+        c.at(ms + 80, () => pose(el._m, k));
+      },
+      set(el, k) { sc.stop(); pose(el._m, k); el._at = k; stepHud(); },
+      forward(el) { if (el._at < n - 1) { sc.go(el, el._at + 1); return true; } return false; },
+      back(el) { if (el._at > 0) { sc.set(el, el._at - 1); return true; } return false; },
+    };
+  }
+
+
+  /* ==========================================================
+     MODE ÉDITION · touche E ou bouton ✎
+     Clic : sélectionner · glisser : déplacer · Maj + glisser : déplacer tout le groupe
+     Flèches : déplacer de 1 px (Maj : 10 px) · double-clic sur un texte : le réécrire
+     (*gras*, ~italique~, m_e pour l'indice) · Suppr : masquer · Ctrl+Z : annuler.
+     Une modification vaut pour toutes les étapes du visuel. Elle est enregistrée avec la
+     présentation (stockage partagé de l'artifact) ; hors ligne, dans ce navigateur.
+     EDITS = { CLÉ_STATION : { chemin-dans-le-svg : { dx, dy, text, fill, size, hidden } } }
+     ========================================================== */
+  const EDITS = {};
+  const LS_KEY = 'ddl-edits-v1';
+  // Inside the claude.ai viewer (an iframe) the edits saved with the artifact are the only truth:
+  // this browser's copy is ignored, then overwritten once they arrive. Opened as a plain file,
+  // the browser copy is all there is.
+  const IN_VIEWER = window.parent !== window;
+  const loadLocal = () => { try { Object.assign(EDITS, JSON.parse(localStorage.getItem(LS_KEY) || '{}')); } catch (e) {} };
+  if (!IN_VIEWER) loadLocal();
+  const stationKey = svg => svg.closest('.station').dataset.key;
+  // An element's address = the stable name of its top-level block + its child indices inside it.
+  // Blocks are named from their content at build time (before any edit), so adding or removing
+  // another block elsewhere in the drawing never re-targets a saved edit.
+  const hashName = str => { let h = 5381; for (let i = 0; i < str.length; i++) h = ((h << 5) + h + str.charCodeAt(i)) | 0; return 'k' + (h >>> 0).toString(36); };
+  function nameBlocks(svg) {
+    const seen = {};
+    [...svg.children].forEach(ch => {
+      const t = ch.tagName === 'text' ? ch : ch.querySelector('text');
+      const sig = ch.tagName + ':' + (t ? t.textContent.trim().slice(0, 40) : (ch.getAttribute('class') || ''));
+      seen[sig] = (seen[sig] || 0) + 1;
+      ch.dataset.ek = hashName(sig + '#' + seen[sig]);
+    });
+  }
+  const pathOf = (el, svg) => {
+    const rel = []; let top = el;
+    while (top.parentNode !== svg) { rel.unshift([...top.parentNode.children].indexOf(top)); top = top.parentNode; }
+    return top.dataset.ek + (rel.length ? '/' + rel.join('-') : '');
+  };
+  const byPath = (svg, p) => {
+    if (p[0] !== 'k') return p.split('-').reduce((n, i) => n && n.children[+i], svg);   // older index-only addresses
+    const [top, rel] = p.split('/');
+    let n = svg.querySelector(':scope > [data-ek="' + top + '"]');
+    if (n && rel) n = rel.split('-').reduce((x, i) => x && x.children[+i], n);
+    return n;
+  };
+  function recolor(t, c) {
+    if (t.tagName === 'g') { [...t.children].forEach(ch => recolor(ch, c)); return; }
+    if (t.tagName === 'text') { t.style.fill = c; t.querySelectorAll('tspan').forEach(x => { x.style.fill = c; }); return; }
+    const cs = getComputedStyle(t);
+    if (t.tagName === 'line' || cs.fill === 'none') t.style.stroke = c;
+    else { t.style.fill = c; if (cs.stroke !== 'none') t.style.stroke = c; }
+  }
+  function paint(t, o) {
+    if (o.text != null && t.tagName === 'text') rich(t, o.text);
+    if (o.hidden) t.style.display = 'none';
+    if (o.dx || o.dy) t.style.translate = `${o.dx || 0}px ${o.dy || 0}px`;   // CSS translate composes with any transform
+    if (o.size) t.style.fontSize = o.size + 'px';
+    if (o.fill) recolor(t, o.fill);
+  }
+  function applyEdits(svg) {
+    const key = stationKey(svg), E = EDITS[key];
+    if (!E) return;
+    let migrated = false;
+    for (const p of Object.keys(E)) {
+      const t = byPath(svg, p); if (!t) continue;
+      paint(t, E[p]);
+      if (p[0] !== 'k') { const np = pathOf(t, svg); E[np] = { ...(E[np] || {}), ...E[p] }; delete E[p]; migrated = true; }   // upgrade old addresses
+    }
+    if (migrated && !STILL && (!IN_VIEWER || storeReady)) save(key);
+  }
+  // text element → the markup rich() reads back (*gras*, ~italique~, _e)
+  function toMarkup(t) {
+    const ts = [...t.querySelectorAll('tspan')];
+    if (!ts.length) return t.textContent;
+    let out = '', bold = false;
+    ts.forEach(x => {
+      const sub = x.getAttribute('font-size') === '70%', b = +x.getAttribute('font-weight') >= 700, it = x.getAttribute('font-style') === 'italic';
+      if (!sub && b !== bold) { out += '*'; bold = b; }
+      out += sub ? '_' + x.textContent : it ? '~' + x.textContent + '~' : x.textContent;
+    });
+    if (bold) out += '*';
+    return out.replace(/ /g, ' ').replace(/\*\*/g, '');
+  }
+
+  let editing = false, sel = null, selPath = null, undo = [], db = null, saving = false, saveTimer = 0, storeReady = !IN_VIEWER;
+  const pending = new Set();
+  const $id = id => document.getElementById(id);
+  const edbar = $id('edbar'), edsel = $id('edsel'), edtext = $id('edtext'), edstat = $id('edstat');
+  const curSvg = () => stations[cur].el.querySelector('svg.stage');
+  const edStatus = t => { edstat.textContent = t; };
+  function save(key) {
+    if (!storeReady) return;
+    try { localStorage.setItem(LS_KEY, JSON.stringify(EDITS)); } catch (e) {}
+    pending.add(key);
+    clearTimeout(saveTimer); saveTimer = setTimeout(flush, 700);
+    edStatus(db ? 'Enregistrement…' : 'Enregistré dans ce navigateur');
+  }
+  async function flush() {
+    if (!db || saving || !pending.size) return;
+    saving = true;
+    try {
+      for (const key of [...pending]) { pending.delete(key); await db.doc('edits/' + key).set({ o: JSON.parse(JSON.stringify(EDITS[key] || {})) }); }
+      edStatus('Enregistré');
+    } catch (e) {
+      edStatus(e && (e.code === 'not_granted' || e.code === 'revoked') ? 'Lecture seule : gardé dans ce navigateur' : 'Pas enregistré : réessaie dans un moment');
+    }
+    saving = false;
+    if (pending.size) flush();
+  }
+  function repose() {
+    const s = stations[cur], sc = sceneOf(s);
+    if (sc && sc.labels && s.mounted) sc.set(s.el, s.el._at || 0);
+    if (selPath) sel = byPath(curSvg(), selPath);
+  }
+  function change(svg, p, patch) {
+    const key = stationKey(svg), E = EDITS[key] = EDITS[key] || {};
+    undo.push({ key, p, prev: E[p] ? { ...E[p] } : null });
+    E[p] = { ...(E[p] || {}), ...patch };
+    repose(); save(key);
+  }
+  function doUndo() {
+    const u = undo.pop(); if (!u) return;
+    const E = EDITS[u.key] = EDITS[u.key] || {};
+    if (u.prev) E[u.p] = u.prev; else delete E[u.p];
+    repose(); save(u.key);
+  }
+  function select(t) {
+    sel = t; selPath = t ? pathOf(t, curSvg()) : null;
+    edbar.classList.toggle('has-sel', !!t);
+    edbar.classList.toggle('is-text', !!t && t.tagName === 'text');
+  }
+  // the selection outline follows its element (camera moves, steps, drags)
+  (function track() {
+    if (editing && sel && sel.isConnected && curSvg().contains(sel) && getComputedStyle(sel).display !== 'none') {
+      const r = sel.getBoundingClientRect();
+      Object.assign(edsel.style, { left: r.left + 'px', top: r.top + 'px', width: r.width + 'px', height: r.height + 'px' });
+      edsel.hidden = false;
+    } else edsel.hidden = true;
+    requestAnimationFrame(track);
+  })();
+  function toggleEdit(on = !editing) {
+    editing = on;
+    document.body.classList.toggle('editing', on);
+    edbar.hidden = !on;
+    select(null); edtext.hidden = true;
+    if (on) { repose(); edStatus(db ? 'Les modifications sont enregistrées avec la présentation' : 'Les modifications sont gardées dans ce navigateur'); }
+  }
+  $id('edbtn').addEventListener('click', e => { toggleEdit(); e.currentTarget.blur(); });
+
+  viewportEl.addEventListener('pointerdown', e => {
+    if (!editing || busy || e.button > 0) return;
+    const svg = curSvg();
+    let t = e.target;
+    if (!svg.contains(t) || t === svg) { select(null); return; }
+    if (t.tagName === 'tspan') t = t.parentNode;
+    if (e.shiftKey && t.parentNode !== svg) t = t.parentNode;   // Maj : the whole group
+    select(t);
+    const p = selPath, key = stationKey(svg), base = { ...((EDITS[key] || {})[p] || {}) };
+    const M = t.parentNode.getScreenCTM().inverse(), P = ev => new DOMPoint(ev.clientX, ev.clientY).matrixTransform(M);
+    const p0 = P(e), off = ev => { const q = P(ev); return [Math.round((base.dx || 0) + q.x - p0.x), Math.round((base.dy || 0) + q.y - p0.y), Math.abs(q.x - p0.x) + Math.abs(q.y - p0.y)]; };
+    let moved = false;
+    const mv = ev => { const [dx, dy, d] = off(ev); if (d > 2) moved = true; if (moved) t.style.translate = `${dx}px ${dy}px`; };
+    const up = ev => {
+      window.removeEventListener('pointermove', mv); window.removeEventListener('pointerup', up);
+      if (moved) { const [dx, dy] = off(ev); change(svg, p, { dx, dy }); }
+    };
+    window.addEventListener('pointermove', mv); window.addEventListener('pointerup', up);
+    e.preventDefault();
+  });
+  viewportEl.addEventListener('dblclick', e => {
+    if (!editing) return;
+    let t = e.target;
+    if (t.tagName === 'tspan') t = t.parentNode;
+    if (t.tagName === 'text' && curSvg().contains(t)) openText(t);
+  });
+  function openText(t) {
+    const svg = curSvg(), p = pathOf(t, svg), key = stationKey(svg), r = t.getBoundingClientRect();
+    const before = ((EDITS[key] || {})[p] || {}).text ?? toMarkup(t);
+    edtext.value = before;
+    Object.assign(edtext.style, { left: r.left - 8 + 'px', top: r.top - 6 + 'px', width: Math.max(r.width + 80, 240) + 'px',
+      fontSize: Math.max(13, parseFloat(getComputedStyle(t).fontSize) * cam.zoom) + 'px' });
+    edtext.hidden = false; edtext.focus(); edtext.select();
+    const done = keep => {
+      edtext.onkeydown = edtext.onblur = null; edtext.hidden = true;
+      if (keep && edtext.value !== before) change(svg, p, { text: edtext.value });
+    };
+    edtext.onkeydown = ev => { ev.stopPropagation(); if (ev.key === 'Enter') done(true); else if (ev.key === 'Escape') done(false); };
+    edtext.onblur = () => done(true);
+  }
+  edbar.addEventListener('click', e => {
+    const b = e.target.closest('button'); if (!b) return;
+    const svg = curSvg(), key = stationKey(svg), act = b.dataset.act;
+    if (act === 'done') return toggleEdit(false);
+    if (act === 'undo') return doUndo();
+    if (act === 'reset') {
+      if (!b.classList.contains('armed')) { b.classList.add('armed'); b.textContent = 'Confirmer ?'; setTimeout(() => { b.classList.remove('armed'); b.textContent = 'Réinitialiser ce visuel'; }, 2500); return; }
+      b.classList.remove('armed'); b.textContent = 'Réinitialiser ce visuel';
+      delete EDITS[key]; undo = undo.filter(u => u.key !== key); select(null); repose(); save(key); return;
+    }
+    if (!sel) return;
+    if (b.dataset.color) change(svg, selPath, { fill: b.dataset.color });
+    else if (act === 'bigger' || act === 'smaller') {
+      if (sel.tagName === 'text') change(svg, selPath, { size: Math.round(parseFloat(getComputedStyle(sel).fontSize) * (act === 'bigger' ? 1.12 : 0.89) * 10) / 10 });
+    } else if (act === 'hide') { change(svg, selPath, { hidden: true }); select(null); }
+  });
+  // keys: E toggles; while editing, arrows / Suppr / Ctrl+Z act on the selection before the deck sees them
+  window.addEventListener('keydown', e => {
+    if (e.target.closest && e.target.closest('input, textarea')) return;
+    if ((e.key === 'e' || e.key === 'E') && !e.metaKey && !e.ctrlKey && !e.altKey) { e.preventDefault(); e.stopImmediatePropagation(); toggleEdit(); return; }
+    if (!editing) return;
+    const eat = () => { e.preventDefault(); e.stopImmediatePropagation(); };
+    if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'z') { eat(); doUndo(); return; }
+    if (e.key === 'Escape') { eat(); if (sel) select(null); else toggleEdit(false); return; }
+    if (!sel) return;
+    const st = e.shiftKey ? 10 : 1, d = { ArrowLeft: [-st, 0], ArrowRight: [st, 0], ArrowUp: [0, -st], ArrowDown: [0, st] }[e.key];
+    const svg = curSvg(), o = (EDITS[stationKey(svg)] || {})[selPath] || {};
+    if (d) { eat(); change(svg, selPath, { dx: (o.dx || 0) + d[0], dy: (o.dy || 0) + d[1] }); }
+    else if (e.key === 'Delete' || e.key === 'Backspace') { eat(); change(svg, selPath, { hidden: true }); select(null); }
+  }, true);
+  // shared store: the edits saved with the artifact replace this browser's copy
+  function reposeAll() { stations.forEach(st => { const sc = sceneOf(st); if (st.mounted && sc && sc.labels && st !== stations[cur]) sc.set(st.el, st.el._at || 0); }); repose(); }
+  function useLocalCopy() { if (storeReady) return; storeReady = true; loadLocal(); reposeAll(); }   // no shared store in this view
+  (function connect(t0) {
+    const C = window.claude;
+    if (!(C && typeof C.use === 'function')) { if (IN_VIEWER && Date.now() - t0 < 8000) setTimeout(() => connect(t0), 150); else useLocalCopy(); return; }
+    C.use('db').then(async d => {
+      if (!d) { useLocalCopy(); return; }
+      try {
+        const qs = await d.collection('edits').get();
+        for (const k in EDITS) delete EDITS[k];
+        qs.docs.forEach(doc => { const v = doc.data(); if (v && v.o) EDITS[doc.id] = JSON.parse(JSON.stringify(v.o)); });
+        db = d; storeReady = true;
+        try { localStorage.setItem(LS_KEY, JSON.stringify(EDITS)); } catch (e) {}
+        reposeAll();
+      } catch (e) { db = d; useLocalCopy(); }
+      if (editing) edStatus('Les modifications sont enregistrées avec la présentation');
+      flush();
+    }, () => useLocalCopy());
+  })(Date.now());
+  /* ---------- chart parts (shared by every station) ---------- */
+  const geoX = G => mm => G.x0 + (mm - G.d0) * (G.x1 - G.x0) / (G.d1 - G.d0);
+  const fmtTick = v => Number.isInteger(v) ? String(v) : fr(v);
+  const range = (a, b, s) => { const o = []; for (let v = a; v <= b + 1e-9; v += s) o.push(+v.toFixed(4)); return o; };
+
+  // Moyenne mₑ : jamais une barre. Trait vertical 3 px + triangle sous l'axe + étiquette orange.
+  function makeMean(parent, m, label, sym = 'm_e') {
+    const g = S('g', {}, parent);
+    const line = S('line', { class: 'mline grow' }, g);
+    const tri = S('path', { class: 'mtri' }, g);
+    const lbl = S('text', { class: 't-or', 'font-weight': 600 }, g);
+    let mode = null;
+    return { g, line, tri, lbl, m, layout(X, top, base, md, L = {}) {
+      const x = X(m);
+      line.setAttribute('x1', x); line.setAttribute('x2', x); line.setAttribute('y1', top); line.setAttribute('y2', base);
+      const [h, hw] = md === 'below' ? [26, 14] : md === 'right' ? [13, 8] : [12, 7];
+      tri.setAttribute('d', `M${x} ${base + 2}L${x + hw} ${base + 2 + h}L${x - hw} ${base + 2 + h}Z`);
+      if (md !== mode) {
+        mode = md;
+        rich(lbl, md === 'top' ? `${sym} = ${fr(m)}` : (label || `${sym} = ${fr(m)} mm`));
+        lbl.setAttribute('font-size', md === 'top' ? 22 : 28);
+        lbl.setAttribute('text-anchor', md === 'top' ? 'middle' : 'start');
+      }
+      if (md === 'below') { lbl.setAttribute('x', x + 22); lbl.setAttribute('y', base + 28); }
+      else if (md === 'right') { lbl.setAttribute('x', L.labelX); lbl.setAttribute('y', (top + base) / 2 + 10); }
+      else { lbl.setAttribute('x', x); lbl.setAttribute('y', top - 8); }
+    } };
+  }
+
+  // Une barre d'histogramme : de x0 à x1, hauteur h px posée sur base (cachée quand vide).
+  function setBar(el, x0, x1, base, h) {
+    el.setAttribute('x', x0); el.setAttribute('width', x1 - x0);
+    el.setAttribute('y', base - h); el.setAttribute('height', Math.max(0, h));
+    el.setAttribute('visibility', h > 0.5 ? 'visible' : 'hidden');
+  }
+  // Diagramme en bâtons d'un groupe : les longueurs sont arrondies au mm, donc un bâton fin
+  // posé EXACTEMENT sur chaque valeur (56…84 mm), haut de son effectif. Ainsi le trait mₑ tombe
+  // sur une abscisse précise, jamais sur un intervalle. Les valeurs arrivent dans un ordre
+  // aléatoire (graine fixe) : à chaque arrivée, le bâton de sa valeur monte d'un cran.
+  const YMAX = 5;   // effectif maximal d'une valeur dans G1–G9 (N = 30)
+  const stickW = G => Math.max(3, Math.min(18, 0.32 * (G.x1 - G.x0) / (G.d1 - G.d0)));
+  function makeChart(parent, grp, o = {}) {
+    const g = S('g', {}, parent);
+    const frame = S('g', {}, g);
+    const grid = [], ylab = [];
+    for (let i = 0; i <= YMAX; i++) {
+      grid.push(S('line', { class: i ? 'gridl' : 'basel' }, frame));
+      if (o.ylabels !== false) ylab.push(tx(frame, 0, 0, String(i), { class: 't-tick', 'text-anchor': 'end' }));
+    }
+    const yTitle = o.yTitle ? tx(frame, 0, 0, 'Effectif', { class: 't-ax', 'text-anchor': 'middle' }) : null;
+    const sqG = S('g', {}, g);
+    const r = seeded(o.seed || 7), lv = {};
+    const counts = new Array(29).fill(0);
+    grp.v.forEach(v => counts[v - 56]++);
+    const bars = counts.map(() => S('rect', { class: 'sq' }, sqG));
+    const sq = shuffle(grp.v.map((_, i) => i), r).map(i => {
+      const c = grp.v[i] - 56;
+      lv[c] = (lv[c] ?? -1) + 1;
+      return { c, lvl: lv[c] };
+    });
+    const mean = makeMean(g, grp.m, o.meanText, o.sym);
+    const cart = S('g', {}, g), cr = S('rect', { class: 'nobox', rx: 8 }, cart), ct = tx(cart, 0, 0, grp.name, { 'text-anchor': 'middle', 'font-weight': 700 });
+    const ext = o.ext === false ? null : S('line', { class: 'mext' }, o.extParent || g);
+    const ch = { g, frame, sq, bars, sqEls: bars, counts, shown: counts.slice(), mean, cart, ext, yTitle, grp, G: null,
+      drawBars() { const G = ch.G, X = geoX(G), w = stickW(G); bars.forEach((b, c) => setBar(b, X(56 + c) - w / 2, X(56 + c) + w / 2, G.base, ch.shown[c] * G.unit)); },
+      layout(G, L = {}) {
+        ch.G = G; ch.shown = counts.slice();
+        const X = geoX(G), top = G.base - YMAX * G.unit;
+        grid.forEach((l, i) => { const y = G.base - i * G.unit; l.setAttribute('x1', X(56)); l.setAttribute('x2', X(84)); l.setAttribute('y1', y); l.setAttribute('y2', y); });
+        ylab.forEach((t, i) => { t.setAttribute('x', G.x0 - 14); t.setAttribute('y', G.base - i * G.unit + 8); t.setAttribute('visibility', G.unit < 60 && (i % 2 || i === 0) ? 'hidden' : 'visible'); });
+        if (yTitle) { const x = G.x0 - 70, y = (top + G.base) / 2; yTitle.setAttribute('x', x); yTitle.setAttribute('y', y); yTitle.setAttribute('transform', `rotate(-90 ${x} ${y})`); }
+        ch.drawBars();
+        mean.layout(X, top, G.base, L.mean || 'below', L);
+        const [cw, chh] = L.cartSize || [76, 44], [cx, cy] = L.cart || [G.x0 - 100, (top + G.base) / 2];
+        cr.setAttribute('x', cx - cw / 2); cr.setAttribute('y', cy - chh / 2); cr.setAttribute('width', cw); cr.setAttribute('height', chh);
+        ct.setAttribute('x', cx); ct.setAttribute('y', cy + (L.cartFont || 26) * 0.36); ct.setAttribute('font-size', L.cartFont || 26);
+        if (ext) { const x = X(grp.m); ext.setAttribute('x1', x); ext.setAttribute('x2', x); ext.setAttribute('y1', L.extTop ?? top); ext.setAttribute('y2', L.extBot ?? G.base); }
+      } };
+    return ch;
+  }
+
+  function makeAxis(parent, ticks, isLabel, title, cls = 't-tick') {
+    const g = S('g', {}, parent);
+    const line = S('line', { class: 'axl' }, g);
+    const tk = ticks.map(v => ({ v, l: S('line', { class: 'axl' }, g), t: isLabel(v) ? tx(g, 0, 0, fmtTick(v), { class: cls, 'text-anchor': 'middle' }) : null }));
+    const tt = title ? tx(g, 0, 0, title, { class: 't-ax', 'text-anchor': 'middle' }) : null;
+    return { g, labels: tk.filter(k => k.t).map(k => k.t), tt, layout(X, y, o = {}) {
+      line.setAttribute('x1', X(ticks[0])); line.setAttribute('x2', X(ticks[ticks.length - 1])); line.setAttribute('y1', y); line.setAttribute('y2', y);
+      tk.forEach(k => {
+        const x = X(k.v);
+        k.l.setAttribute('x1', x); k.l.setAttribute('x2', x); k.l.setAttribute('y1', y); k.l.setAttribute('y2', y + 8);
+        if (k.t) { k.t.setAttribute('x', x); k.t.setAttribute('y', y + (o.ldy || 34)); k.t.setAttribute('visibility', o.thin && k.v % 4 ? 'hidden' : 'visible'); }
+      });
+      if (tt) { tt.setAttribute('x', (X(ticks[0]) + X(ticks[ticks.length - 1])) / 2); tt.setAttribute('y', y + (o.tdy || 78)); }
+    } };
+  }
+
+  // Les barres partent de zéro ; à chaque valeur qui arrive, la barre de sa classe monte d'un cran.
+  function growBars(c, ch, start, step) {
+    ch.shown = ch.counts.map(() => 0); ch.drawBars(); vis(ch.bars, true);
+    ch.sq.forEach((s, i) => {
+      const o = { v: 0 };
+      c.anim(o, { v: [0, 1], duration: T(280), delay: T(start + i * step), ease: 'out(3)',
+        onUpdate: () => { ch.shown[s.c] = Math.max(ch.shown[s.c], s.lvl + o.v); ch.drawBars(); } });
+    });
+  }
+  function meanIn(c, mean, d = 0) {
+    c.at(d, () => { mean.g.style.opacity = ''; });
+    utils.set(mean.line, { scaleY: 0 }); utils.set([mean.tri, mean.lbl], { opacity: 0 });
+    c.anim(mean.line, { scaleY: [0, 1], duration: T(500), delay: T(d), ease: 'out(3)' });
+    c.anim(mean.tri, { opacity: [0, 1], translateY: [12, 0], duration: T(400), delay: T(d + 300), ease: 'out(2)' });
+    c.anim(mean.lbl, { opacity: [0, 1], duration: T(400), delay: T(d + 450) });
+  }
+  function box(parent, x, y, w, h, cls = 'box', rx = 10) { return S('rect', { x, y, width: w, height: h, rx, class: cls }, parent); }
+  function arrowHead(parent, x, y, ang, cls, size = 16) {
+    const a = ang, s = size, w = size * 0.55;
+    const p = [[x, y], [x - s * Math.cos(a) + w * Math.sin(a), y - s * Math.sin(a) - w * Math.cos(a)], [x - s * Math.cos(a) - w * Math.sin(a), y - s * Math.sin(a) + w * Math.cos(a)]];
+    return S('polygon', { points: p.map(q => q.map(v => v.toFixed(1)).join(',')).join(' '), class: cls }, parent);
+  }
+  // Pictogramme : main, index tendu. Le groupe extérieur porte la position, l'intérieur s'anime.
+  function hand(parent, x, y, s, on = false) {
+    const outer = S('g', { transform: `translate(${x} ${y}) scale(${s / 100})` }, parent);
+    const g = S('g', { class: 'hand' }, outer);
+    const idx = S('rect', { x: 40, y: 4, width: 17, height: 56, rx: 8.5, class: on ? 'on' : '' }, g);
+    S('rect', { x: 56, y: 40, width: 15, height: 26, rx: 7.5 }, g);
+    S('rect', { x: 69, y: 44, width: 14, height: 24, rx: 7 }, g);
+    S('rect', { x: 14, y: 52, width: 16, height: 34, rx: 8, transform: 'rotate(-28 22 68)' }, g);
+    S('rect', { x: 28, y: 50, width: 56, height: 46, rx: 16 }, g);
+    return { outer, g, idx };
+  }
+
+  /* ==========================================================
+     COURS 2 · LES DEGRÉS DE LIBERTÉ
+     Déroulé validé par le tuteur (9 stations, 33 clics) :
+       TITRE · RAPPEL (3) · MAINS (5) · ECARTS (3) · CARRES (4) · PONT (4) · ESSAI (4) · COURBE (6) · REGLE (3)
+     ========================================================== */
+
+  /* ---------- données : un objet par source, lu par toutes les diapos ----------
+     D     : 5 largeurs de main prises dans G1 du premier cours (valeurs simulées là-bas ;
+             population μ = 70 mm, σ² = 22,5 mm²). Tout le reste en est calculé.
+     ESSAI : document « La loi de Student, pas à pas » (10 + 10 patients, 132 et 140 mmHg, s = 8,
+             t = 2,24, ν = 18, seuil 2,10). Les 20 tensions individuelles sont FABRIQUÉES, avec
+             exactement ces moyennes et ce s (somme des carrés 582 + 570 = 1 152 = 18 × 64). */
+  const D = (() => {
+    const v = [68, 73, 65, 75, 74], N = v.length;
+    const me = v.reduce((a, b) => a + b, 0) / N;                       // 71
+    const ec = v.map(x => x - me);                                     // −3, +2, −6, +4, +3
+    const SC = ec.reduce((a, e) => a + e * e, 0);                      // 74
+    const mu = 70, ecMu = v.map(x => x - mu);                          // −2, +3, −5, +5, +4
+    const SCmu = ecMu.reduce((a, e) => a + e * e, 0);                  // 79
+    const order = v.map((_, i) => i).sort((a, b) => v[a] - v[b]);      // 65, 68, 73, 74, 75
+    return { v, N, me, ec, SC, Se2: SC / N, s2: SC / (N - 1), mu, ecMu, SCmu, order,
+             free: [62, 77, 66, 79, 69],   // MAINS : les 5 valeurs encore libres, avant la contrainte
+             park: 78,                     // MAINS (M3) : la 5ᵉ, toujours libre, se tient à l'écart
+             last: 4, other: 2 };          // la valeur imposée (74), puis une autre (65)
+  })();
+  const ESSAI = (() => {
+    const A = [121, 123, 126, 127, 131, 132, 134, 139, 143, 144];
+    const B = [125, 128, 137, 139, 141, 144, 145, 146, 147, 148];
+    const mean = a => a.reduce((s, x) => s + x, 0) / a.length;
+    const m1 = mean(A), m2 = mean(B);
+    const SC = A.reduce((s, x) => s + (x - m1) ** 2, 0) + B.reduce((s, x) => s + (x - m2) ** 2, 0);
+    const nu = A.length + B.length - 2;
+    return { A, B, m1, m2, n1: A.length, n2: B.length, nu, s: Math.sqrt(SC / nu), t: 2.24, hollowA: 9, hollowB: 0 };
+  })();
+  // Seuils de Student au risque 5 % (bilatéral, quantile 0,975), recalculés ; Gauss : 1,960
+  const TQ = { 4: 2.7764, 9: 2.2622, 16: 2.1199, 17: 2.1098, 18: 2.1009, 19: 2.0930, 20: 2.0860, 29: 2.0452, 198: 1.9720 };
+  const Z975 = 1.960;
+  console.assert(D.me === 71 && D.SC === 74 && D.SCmu === 79 && ESSAI.m1 === 132 && ESSAI.m2 === 140 && ESSAI.s === 8 && ESSAI.nu === 18,
+    '[ddl] données incohérentes');
+
+  /* ---------- petits outils ---------- */
+  const GR = { class: 't-green' }, OR = { class: 't-or' }, PO = { class: 't-pop' };
+  // {p:…} gris, {g:…} vert, {o:…} orange, {u:…} bleu, {b:…} gras, {r:…} rouge ; majuscule = en gras
+  const FMA = { p: PO, g: GR, o: OR, u: { class: 't-blue' }, b: { 'font-weight': 700 }, r: { class: 't-red' },
+    P: { class: 't-pop', 'font-weight': 700 }, G: { class: 't-green', 'font-weight': 700 },
+    O: { class: 't-or', 'font-weight': 700 }, U: { class: 't-blue', 'font-weight': 700 } };
+  const FM = s => s.split(/(\{[pgourbPGOU]:[^}]*\})/).filter(Boolean)
+    .map(t => { const q = t.match(/^\{([pgourbPGOU]):([^}]*)\}$/); return q ? [q[2], FMA[q[1]]] : [t]; });
+  const sgn = e => (e > 0 ? '+' : e < 0 ? '−' : '') + Math.abs(e);
+  const clamp01 = t => Math.max(0, Math.min(1, t));
+  // a smooth walk through waypoints (t in 0…1)
+  function along(p, t) {
+    const n = p.length - 1, u = Math.min(n - 1e-9, clamp01(t) * n), i = Math.floor(u), f = u - i;
+    return lerp(p[i], p[i + 1], f * f * (3 - 2 * f));
+  }
+  function setXY(el, x, y) { el.setAttribute('x', x); el.setAttribute('y', y); }
+  function setLine(el, x1, y1, x2, y2) { el.setAttribute('x1', x1); el.setAttribute('y1', y1); el.setAttribute('x2', x2); el.setAttribute('y2', y2); }
+  function stickAt(r, x, base, h, w = 18) {
+    r.setAttribute('x', x - w / 2); r.setAttribute('y', base - h); r.setAttribute('width', w); r.setAttribute('height', Math.max(0, h));
+  }
+  const triPath = (x, base, h = 26, hw = 14) => `M${x} ${base + 2}L${x + hw} ${base + 2 + h}L${x - hw} ${base + 2 + h}Z`;
+  // une flèche horizontale de x1 vers x2 (la pointe est en x2)
+  function hArrow(parent, cls = 'ecart', hcls = 'ecart-h') {
+    const g = S('g', {}, parent), line = S('line', { class: cls }, g), head = S('polygon', { class: hcls }, g);
+    return { g, line, head, set(x1, x2, y, hs = 18) {
+      const dir = x2 >= x1 ? 1 : -1, len = Math.abs(x2 - x1), h = Math.min(hs, len * 0.7), w = h * 0.6;
+      setLine(line, x1, y, x2 - dir * h * 0.7, y);
+      head.setAttribute('points', `${x2},${y} ${x2 - dir * h},${y - w} ${x2 - dir * h},${y + w}`);
+      head.setAttribute('visibility', len < 2 ? 'hidden' : 'visible');
+    } };
+  }
+  // une double flèche ↔ (valeur encore libre, ou écart entre deux moyennes)
+  function dblArrow(parent, cls = 'barr', hcls = 'barr-h') {
+    const g = S('g', {}, parent), line = S('line', { class: cls }, g);
+    const h1 = S('polygon', { class: hcls }, g), h2 = S('polygon', { class: hcls }, g);
+    return { g, set(a, b, y, hs = 14) {
+      const k = hs * 0.6;
+      setLine(line, a + hs * 0.7, y, b - hs * 0.7, y);
+      h1.setAttribute('points', `${a},${y} ${a + hs},${y - k} ${a + hs},${y + k}`);
+      h2.setAttribute('points', `${b},${y} ${b - hs},${y - k} ${b - hs},${y + k}`);
+    } };
+  }
+  // la moyenne d'un échantillon : trait orange, triangle sous l'axe, étiquette (jamais une barre)
+  function meanMark(parent, label, o = {}) {
+    const g = S('g', {}, parent);
+    const line = S('line', { class: (o.lineCls || 'mline') + ' grow' }, g);
+    const tri = o.tri === false ? null : S('path', { class: 'mtri' }, g);
+    const lbl = tx(g, 0, 0, label, { 'text-anchor': o.anchor || 'middle', 'font-size': o.size || 30, 'font-weight': 600, class: o.txt || 't-or' });
+    return { g, line, tri, lbl, set(x, top, base, lx, ly) {
+      setLine(line, x, top, x, base);
+      if (tri) tri.setAttribute('d', triPath(x, base));
+      setXY(lbl, lx ?? x, ly ?? top - 14);
+    } };
+  }
+  function meanGrow(c, mk, d = 0) {
+    mk.g.style.opacity = '';
+    const rest = [mk.tri, mk.lbl].filter(Boolean);
+    utils.set(mk.line, { scaleY: 0 }); rest.forEach(e => { e.style.opacity = 0; });
+    c.anim(mk.line, { scaleY: [0, 1], duration: T(600), delay: T(d), ease: 'out(3)' });
+    if (mk.tri) c.anim(mk.tri, { opacity: [0, 1], translateY: [12, 0], duration: T(400), delay: T(d + 300), ease: 'out(2)' });
+    c.anim(mk.lbl, { opacity: [0, 1], duration: T(400), delay: T(d + 450) });
+  }
+  function popIn(c, el, d = 0, from = 1.35) {
+    c.at(d, () => { el.style.opacity = ''; });
+    el.style.opacity = 0;
+    c.anim(el, { opacity: [0, 1], scale: [from, 1], duration: T(550), delay: T(d), ease: 'out(3)' });
+  }
+  function riseIn(c, el, d = 0, dur = 450) {
+    el.style.opacity = 0;
+    c.anim(el, { opacity: [0, 1], translateY: [14, 0], duration: T(dur), delay: T(d), ease: 'out(3)' });
+  }
+  function bullet(parent, x, y) { return S('circle', { cx: x - 26, cy: y - 11, r: 6, class: 'f-bullet' }, parent); }
+
+  // Un écart par ligne, chacun partant de mₑ. Lignes alternées droite / gauche, la plus longue en haut
+  // de chaque côté : aucun trait vertical ne croise une autre flèche.
+  function rowIndex(i) {
+    const side = right => D.v.map((_, j) => j).filter(j => (D.v[j] > D.me) === right).sort((a, b) => Math.abs(D.ec[b]) - Math.abs(D.ec[a]));
+    const R = side(true), L = side(false), seq = [];
+    for (let k = 0; k < Math.max(R.length, L.length); k++) { if (R[k] != null) seq.push(R[k]); if (L[k] != null) seq.push(L[k]); }
+    return seq.indexOf(i);
+  }
+  function makeRows(parent, X, rowY, stickTop, o = {}) {
+    const size = o.size || 30;
+    return D.v.map((v, i) => {
+      const y = rowY(rowIndex(i)), g = S('g', {}, parent);
+      const guide = o.guides === false ? null : S('line', { class: 'guide-v' }, g);
+      const a = hArrow(g, 'ecart', 'ecart-h');
+      const mk = txt => tx(g, 0, 0, txt, { 'font-size': size, 'font-weight': 700, class: 't-blue' });
+      const lab = mk(sgn(v - D.me)), lab2 = o.mu ? mk(sgn(v - D.mu)) : null;
+      const row = { g, a, lab, lab2, guide, y, i, v,
+        place(center, tip = X(v)) {
+          const x0 = X(center), e = v - center, side = e > 0 ? 1 : -1;
+          a.set(x0, tip, y, o.hs || 18);
+          [lab, lab2].filter(Boolean).forEach(l => { setXY(l, X(v) + side * 14, y + size * 0.36); l.setAttribute('text-anchor', side > 0 ? 'start' : 'end'); });
+          if (guide) setLine(guide, X(v), y + 12, X(v), stickTop - 6);
+        } };
+      row.place(D.me);
+      return row;
+    });
+  }
+
+  /* ======================= TITRE ======================= */
+  stepped('titre', {
+    labels: ['titre'],
+    build(svg) {
+      const m = {};
+      m.title = tx(svg, 960, 540, 'Les degrés de liberté', { 'text-anchor': 'middle', 'font-size': 110, 'font-weight': 700, 'letter-spacing': '-2' });
+      m.sub = tx(svg, 960, 625, '~Combien de valeurs ont encore le droit de bouger ?~', { 'text-anchor': 'middle', 'font-size': 40, class: 't-pop' });
+      m.foot = tx(svg, 960, 930, 'Tutorat PASS · UE4 Biostatistiques - Esteban Mora', { 'text-anchor': 'middle', 'font-size': 26, class: 't-pop' });
+      return m;
+    },
+    pose(m, k) { clean(m.svg); vis([m.title, m.sub, m.foot], k >= 0); },
+    play(m, k, c) {
+      c.anim(m.title, { opacity: [0, 1], translateY: [40, 0], duration: T(900), ease: 'out(3)' });
+      fadeIn(c, m.sub, 700, 700);
+      fadeIn(c, m.foot, 1100, 600);
+      return 1800;
+    }
+  });
+
+  /* ======================= RAPPEL · vous l'avez déjà vu =======================
+     R1 trois formules du premier cours · R2 chaque « N − 1 » s'allume · R3 la question */
+  stepped('rappel', {
+    labels: ['R1', 'R2', 'R3'],
+    build(svg) {
+      const m = {};
+      tx(svg, 60, 90, 'Vous l\'avez déjà vu', { class: 't-title' });
+      m.hlG = S('g', {}, svg);
+      m.rows = S('g', {}, svg);
+      const HL = (s, id) => [s, { 'data-hl': id, 'font-weight': 700 }];
+      const L = 160;
+      const lab = (y, s) => tx(m.rows, L, y, FM(s), { 'font-size': 28, 'font-weight': 600, class: 't-pop' });
+      const big = (y, segs) => tx(m.rows, L, y, segs, { 'font-size': 56, 'font-weight': 500 });
+      const note = (y, segs) => tx(m.rows, L, y, segs, { 'font-size': 30, 'font-weight': 500 });
+      m.items = [
+        [lab(260, 'Estimer {p:~σ~²}'),
+         big(330, [['~s~²', GR], [' = '], ['~S~_e²', OR], [' · ~N~ / ('], HL('~N~ − 1', 'a'), [')']])],
+        [lab(480, 'IC d\'une moyenne, {p:~σ~} inconnu'),
+         big(550, [['~m~', GR], [' ± ~t~(~α~) · '], ['~s~', GR], [' / √~N~']]),
+         note(604, [['~t~ : loi de Student à '], HL('~N~ − 1', 'a'), [' ddl']])],
+        [lab(710, 'IC d\'une variance'),
+         big(780, [['[ ('], HL('~N~ − 1', 'a'), [')'], ['~s~²', GR], [' / ~χ~²(~α~/2) ; ('], HL('~N~ − 1', 'b'), [')'], ['~s~²', GR], [' / ~χ~²(1 − ~α~/2) ]']]),
+         note(834, [['~χ~² à '], HL('~N~ − 1', 'a'), [' ddl']])],
+      ];
+      // one highlight per « N − 1 » (positions measured from the rendered text, in pose)
+      m.hls = [];
+      m.items.flat().forEach(t => {
+        const ids = [...new Set([...t.querySelectorAll('tspan[data-hl]')].map(s => s.dataset.hl))];
+        ids.forEach(id => m.hls.push({ t, id, r: S('rect', { class: 'hl growx', rx: 8 }, m.hlG) }));
+      });
+      m.q = tx(svg, 960, 975, 'Pourquoi ~N~ − 1 ?', { 'text-anchor': 'middle', 'font-size': 64, 'font-weight': 700 });
+      return m;
+    },
+    pose(m, k) {
+      clean(m.svg);
+      m.hls.forEach(h => {
+        const sp = [...h.t.querySelectorAll(`tspan[data-hl="${h.id}"]`)];
+        try {
+          const x0 = sp[0].getStartPositionOfChar(0).x, last = sp[sp.length - 1];
+          const x1 = last.getEndPositionOfChar(last.getNumberOfChars() - 1).x;
+          const fs = parseFloat(h.t.getAttribute('font-size')), y = +h.t.getAttribute('y');
+          h.r.setAttribute('x', x0 - 4); h.r.setAttribute('width', x1 - x0 + 8);
+          h.r.setAttribute('y', y - fs * 0.86); h.r.setAttribute('height', fs * 1.14);
+        } catch (e) {}
+      });
+      vis(m.rows, k >= 0);
+      vis(m.hlG, k >= 1);
+      vis(m.q, k >= 2);
+    },
+    play(m, k, c) {
+      if (k === 0) { m.rows.style.opacity = ''; m.items.forEach((it, i) => it.forEach(t => riseIn(c, t, i * 380, 500))); return 1700; }
+      if (k === 1) {
+        m.hlG.style.opacity = '';
+        m.hls.forEach((h, i) => { utils.set(h.r, { scaleX: 0 }); c.anim(h.r, { scaleX: [0, 1], duration: T(450), delay: T(i * 260), ease: 'out(3)' }); });
+        return m.hls.length * 260 + 500;
+      }
+      popIn(c, m.q, 0, 1.15); return 700;
+    }
+  });
+
+  /* ======================= MAINS · le jeu des 5 mains =======================
+     M1 5 valeurs libres (elles se promènent) · M2 on impose mₑ = 71 mm · M3 quatre valeurs se posent
+     M4 la 5ᵉ n'a plus le choix (bâton vide) : 4 = N − 1 · M5 ce n'est pas LA 5ᵉ : n'importe laquelle */
+  const HX = { x0: 200, x1: 1400, d0: 60, d1: 80 };   // 60 px par mm, le même axe sur MAINS et ECARTS
+  const HB = 760, HH = 150;                            // ligne de base, hauteur d'un bâton (effectif 1)
+  function makeStick(parent) {
+    const g = S('g', {}, parent);
+    const f = S('rect', { class: 'sq grow' }, g), h = S('rect', { class: 'stick-h' }, g);
+    const lab = tx(g, 0, 0, '', { 'text-anchor': 'middle', 'font-size': 28, 'font-weight': 500, class: 't-blue' });
+    const dbl = dblArrow(g);
+    return { g, f, h, lab, dbl, set(x, val) {
+      stickAt(f, x, HB, HH); stickAt(h, x, HB, HH);
+      setXY(lab, x, HB - HH - 16); if (val != null) lab.textContent = val;
+      dbl.set(x - 34, x + 34, HB - HH - 30);
+    } };
+  }
+  stepped('mains', {
+    labels: ['M1', 'M2', 'M3', 'M4', 'M5'],
+    build(svg) {
+      const m = {}, X = m.X = geoX(HX);
+      m.title = tx(svg, 60, 90, 'Le jeu des 5 mains (~N~ = 5)', { class: 't-title' });
+      m.def = tx(svg, 60, 165, FM('{b:1 degré de liberté (ddl)} = 1 valeur qui peut encore bouger'), { 'font-size': 36 });
+      m.axis = makeAxis(svg, range(60, 80, 1), v => v % 2 === 0, 'Largeur de la main (mm)');
+      m.axis.layout(X, HB, { ldy: 38, tdy: 84 });
+      m.mean = meanMark(svg, '~m~_e = 71 mm');
+      m.mean.set(X(D.me), 440, HB, X(D.me), 420);
+      m.st = D.v.map(v => makeStick(svg));
+      m.cLab = tx(svg, 1660, 380, 'valeurs libres', { 'text-anchor': 'middle', 'font-size': 34, 'font-weight': 600 });
+      m.c5 = tx(svg, 1660, 575, String(D.N), { 'text-anchor': 'middle', 'font-size': 190, 'font-weight': 700, class: 't-blue' });
+      m.c4 = tx(svg, 1660, 575, String(D.N - 1), { 'text-anchor': 'middle', 'font-size': 190, 'font-weight': 700, class: 't-blue' });
+      m.cN = tx(svg, 1660, 665, '= ~N~ − 1', { 'text-anchor': 'middle', 'font-size': 54, 'font-weight': 600 });
+      const calc = skip => FM(`${D.N} × {o:${D.me}} − (${D.v.filter((_, i) => i !== skip).join(' + ')}) = {U:${D.v[skip]}}`);
+      m.f1 = tx(svg, 800, 975, calc(D.last), { 'text-anchor': 'middle', 'font-size': 42, 'font-weight': 500 });
+      m.f2 = tx(svg, 800, 975, calc(D.other), { 'text-anchor': 'middle', 'font-size': 42, 'font-weight': 500 });
+      return m;
+    },
+    pose(m, k) {
+      clean(m.svg);
+      const X = m.X, imposed = k === 3 ? D.last : k >= 4 ? D.other : -1;
+      vis([m.title, m.axis.g, m.cLab], k >= 0);
+      vis(m.mean.g, k >= 1);
+      vis(m.c5, k >= 0 && k <= 2); vis([m.c4, m.cN, m.def], k >= 3);
+      vis(m.f1, k === 3); vis(m.f2, k >= 4);
+      m.st.forEach((s, i) => {
+        const landed = k >= 3 || (k >= 2 && i !== D.last);
+        s.set(X(landed ? D.v[i] : k === 2 ? D.park : D.free[i]), D.v[i]);
+        vis(s.g, k >= 0);
+        vis(s.f, i !== imposed); vis(s.h, i === imposed);
+        vis(s.lab, landed); vis(s.dbl.g, !landed);
+        s.lab.setAttribute('font-weight', i === imposed ? 700 : 500);
+        s.lab.setAttribute('font-size', i === imposed ? 34 : 28);
+      });
+    },
+    play(m, k, c) {
+      const X = m.X;
+      if (k === 0) {
+        fadeIn(c, m.title, 0, 500); fadeIn(c, m.axis.g, 100, 500);
+        const r = seeded(17), paths = D.free.map(f => [61 + r() * 18, 61 + r() * 18, 61 + r() * 18, f]);
+        m.st.forEach((s, i) => {
+          s.g.style.opacity = ''; vis(s.dbl.g, false);
+          s.set(X(paths[i][0]));
+          utils.set(s.f, { scaleY: 0 });
+          c.at(400 + i * 110, () => c.anim(s.f, { scaleY: [0, 1], duration: T(500), ease: 'out(3)' }));
+        });
+        // elles se promènent librement, chacune à son rythme, puis s'arrêtent
+        tweenT(c, 2800, 900, t => m.st.forEach((s, i) => s.set(X(along(paths[i], clamp01((t - i * 0.03) / 0.88))))), 'linear');
+        fadeIn(c, m.st.map(s => s.dbl.g), 3700, 400);
+        fadeIn(c, [m.cLab, m.c5], 1300, 500);
+        return 4200;
+      }
+      if (k === 1) { meanGrow(c, m.mean, 0); return 1100; }
+      if (k === 2) {
+        const f = m.st[D.last];   // la 5ᵉ reste libre : elle s'écarte pour laisser la place
+        tweenT(c, 900, 0, t => f.set(X(lerp(D.free[D.last], D.park, t))));
+        D.v.map((_, i) => i).filter(i => i !== D.last).forEach((i, j) => {
+          const s = m.st[i], d = j * 700;
+          fadeOut(c, s.dbl.g, d, 250);
+          tweenT(c, 650, d, t => s.set(X(lerp(D.free[i], D.v[i], t))));
+          c.at(d + 600, () => { s.lab.style.opacity = ''; c.anim(s.lab, { opacity: [0, 1], translateY: [8, 0], duration: T(300), ease: 'out(2)' }); });
+        });
+        return 3200;
+      }
+      if (k === 3) {
+        const s = m.st[D.last], x0 = D.park, x1 = D.v[D.last];
+        fadeOut(c, s.dbl.g, 0, 250);
+        // elle essaie de bouger… puis elle est tirée jusqu'à la seule valeur possible
+        tweenT(c, 1000, 0, t => s.set(X(x0 + 1.6 * Math.sin(t * Math.PI * 4) * (1 - t))), 'linear');
+        tweenT(c, 800, 1100, t => s.set(X(lerp(x0, x1, t))));
+        fadeIn(c, s.h, 1700, 500); fadeOut(c, s.f, 1700, 500);
+        c.at(1900, () => { s.lab.setAttribute('font-weight', 700); s.lab.setAttribute('font-size', 34); s.lab.style.opacity = '';
+          c.anim(s.lab, { opacity: [0, 1], translateY: [8, 0], duration: T(300), ease: 'out(2)' }); });
+        fadeOut(c, m.c5, 2300, 300);
+        popIn(c, m.c4, 2500);
+        fadeIn(c, m.cN, 2900, 400);
+        fadeIn(c, m.f1, 3100, 500);
+        riseIn(c, m.def, 3800, 500);
+        return 4400;
+      }
+      // k === 4 : une autre valeur aurait pu être la dernière
+      const a = m.st[D.last], b = m.st[D.other];
+      fadeOut(c, a.h, 0, 500); fadeIn(c, a.f, 0, 500);
+      fadeIn(c, b.h, 400, 500); fadeOut(c, b.f, 400, 500);
+      c.at(400, () => { a.lab.setAttribute('font-weight', 500); a.lab.setAttribute('font-size', 28); b.lab.setAttribute('font-weight', 700); b.lab.setAttribute('font-size', 34); });
+      fadeOut(c, m.f1, 0, 400); fadeIn(c, m.f2, 600, 500);
+      return 1300;
+    }
+  });
+
+  /* ======================= ECARTS · les écarts s'équilibrent =======================
+     E1 les 5 écarts à mₑ · E2 l'expérience de la balance : le triangle de mₑ est le point d'appui,
+     la planche ne tient à l'horizontale que sur mₑ ; Σ(xᵢ − mₑ) = 0 · E3 un écart caché se retrouve */
+  stepped('ecarts', {
+    labels: ['E1', 'E2', 'E3'],
+    build(svg) {
+      const m = {}, X = m.X = geoX(HX), top = HB - HH;
+      tx(svg, 60, 90, 'Les écarts à la moyenne', { class: 't-title' });
+      m.beam = S('g', {}, svg);          // tout ce qui repose sur la planche (elle bascule en E2)
+      m.axis = makeAxis(m.beam, range(60, 80, 1), v => v % 2 === 0, 'Largeur de la main (mm)');
+      m.axis.layout(X, HB, { ldy: 38, tdy: 84 });
+      m.sticks = D.v.map(v => { const r = S('rect', { class: 'sq grow' }, m.beam); stickAt(r, X(v), HB, HH); return r; });
+      m.mean = meanMark(m.beam, '~m~_e = 71 mm', { tri: false });
+      m.mean.set(X(D.me), 270, HB, X(D.me), 250);
+      m.rows = makeRows(m.beam, X, r => 300 + r * 62, top, { size: 34 });
+      m.tri = S('path', { class: 'mtri' }, svg);   // le point d'appui : il reste sous la planche
+      m.q = tx(svg, 0, 0, '?', { 'font-size': 44, 'font-weight': 700, class: 't-blue' });
+      const rl = m.rows[D.last]; setXY(m.q, X(D.v[D.last]) + 14, rl.y + 15);
+      const byVal = D.order.map(i => D.ec[i]);
+      m.sum = tx(svg, 800, 975, FM(`{u:${byVal.map(sgn).join(' ').replace(/ \+/g, ' + ').replace(/ −/g, ' − ')}} = {b:0}`), { 'text-anchor': 'middle', 'font-size': 46, 'font-weight': 500 });
+      const known = D.order.filter(i => i !== D.last).map(i => D.ec[i]), ks = known.reduce((a, b) => a + b, 0);
+      m.calc = tx(svg, 800, 975, FM(`{u:${known.map(sgn).join(' ').replace(/ \+/g, ' + ').replace(/ −/g, ' − ')}} = {u:${sgn(ks)}}, donc la dernière vaut {U:${sgn(-ks)}}`), { 'text-anchor': 'middle', 'font-size': 42, 'font-weight': 500 });
+      m.sigma = tx(svg, 1665, 470, [['Σ(~x~_i − '], ['~m~_e', OR], [') = 0']], { 'text-anchor': 'middle', 'font-size': 54, 'font-weight': 600 });
+      m.always = tx(svg, 1665, 530, 'toujours', { 'text-anchor': 'middle', 'font-size': 32, class: 't-pop' });
+      m.free = tx(svg, 1665, 690, FM('{U:~N~ − 1 = 4}'), { 'text-anchor': 'middle', 'font-size': 64 });
+      m.freeL = tx(svg, 1665, 745, 'écarts libres', { 'text-anchor': 'middle', 'font-size': 34, 'font-weight': 600 });
+      return m;
+    },
+    pose(m, k) {
+      clean(m.svg);
+      m.beam.removeAttribute('transform');
+      m.tri.setAttribute('d', triPath(m.X(D.me), HB));
+      vis([m.beam, m.tri], k >= 0);
+      vis([m.sigma, m.always], k >= 1);
+      vis(m.sum, k === 1); vis(m.calc, k >= 2);
+      vis([m.free, m.freeL], k >= 2);
+      vis(m.q, false);
+    },
+    play(m, k, c) {
+      const X = m.X;
+      if (k === 0) {
+        m.beam.style.opacity = '';
+        fadeIn(c, [m.axis.g, m.tri], 0, 500);
+        m.sticks.forEach((s, i) => { utils.set(s, { scaleY: 0 }); c.anim(s, { scaleY: [0, 1], duration: T(500), delay: T(200 + i * 100), ease: 'out(3)' }); });
+        meanGrow(c, m.mean, 700);
+        m.rows.forEach((r, j) => {
+          const d = 1400 + rowIndex(r.i) * 300;
+          [r.lab, r.guide, r.a.g].forEach(e => { e.style.opacity = 0; });
+          c.at(d, () => { r.a.g.style.opacity = ''; });
+          r.a.set(X(D.me), X(D.me), r.y);
+          tweenT(c, 600, d, t => r.a.set(X(D.me), lerp(X(D.me), X(r.v), t), r.y));
+          fadeIn(c, [r.lab, r.guide], d + 500, 300);
+        });
+        return 2900;
+      }
+      if (k === 1) {
+        // le point d'appui glisse : la planche penche du côté le plus lourd, et ne tient droite que sur mₑ
+        const rot = f => Math.max(-8, Math.min(8, 1.25 * (D.me - f)));
+        fadeOut(c, [m.mean.line, m.mean.lbl], 0, 300);
+        tweenT(c, 3600, 300, t => {
+          const f = along([D.me, 64, 77.5, D.me], t);
+          m.tri.setAttribute('d', triPath(X(f), HB));
+          m.beam.setAttribute('transform', `rotate(${rot(f).toFixed(3)} ${X(f).toFixed(1)} ${HB + 2})`);
+        }, 'linear');
+        fadeIn(c, [m.mean.line, m.mean.lbl], 4000, 400);
+        fadeIn(c, m.sum, 4300, 500);
+        fadeIn(c, [m.sigma, m.always], 4800, 500);
+        return 5400;
+      }
+      // k === 2 : on cache un écart ; les quatre autres le retrouvent
+      const r = m.rows[D.last];
+      c.anim([r.a.g, r.lab, r.guide], { opacity: [1, 0.12], duration: T(400), ease: 'out(2)' });
+      fadeIn(c, m.q, 400, 300);
+      fadeOut(c, m.sum, 0, 300); fadeIn(c, m.calc, 700, 500);
+      c.at(2000, () => c.anim([r.a.g, r.lab, r.guide], { opacity: [0.12, 1], duration: T(500), ease: 'out(2)' }));
+      fadeOut(c, m.q, 2000, 300);
+      fadeIn(c, [m.free, m.freeL], 2600, 500);
+      return 3200;
+    }
+  });
+
+  /* ======================= CARRES · d'où le N − 1 de s² =======================
+     C1 chaque écart devient un carré (même échelle) : somme 74 mm² · C2 Sₑ² = 74 / 5
+     C3 s² = 74 / 4 (= Sₑ² × N/(N − 1), la formule du premier cours)
+     C4 si μ = 70 était connu : écarts à μ, 79 > 74 ; mₑ donne les écarts les plus petits possibles */
+  const CX = { x0: 140, x1: 1040, d0: 60, d1: 80 };   // 45 px par mm, carrés à la même échelle
+  const CB = 470, CHT = 80, SQB = 900, SQGAP = 36;
+  stepped('carres', {
+    labels: ['C1', 'C2', 'C3', 'C4'],
+    build(svg) {
+      const m = {}, X = m.X = geoX(CX), ppm = (CX.x1 - CX.x0) / (CX.d1 - CX.d0), top = CB - CHT;
+      tx(svg, 60, 90, [['D\'où le ~N~ − 1 de '], ['~s~²', GR]], { class: 't-title' });
+      m.chart = S('g', {}, svg);
+      m.axis = makeAxis(m.chart, range(60, 80, 1), v => v % 2 === 0, 'Largeur de la main (mm)');
+      m.axis.layout(X, CB, { ldy: 36, tdy: 76 });
+      m.axis.labels.forEach(l => l.setAttribute('font-size', 20)); if (m.axis.tt) m.axis.tt.setAttribute('font-size', 24);
+      D.v.forEach(v => stickAt(S('rect', { class: 'sq' }, m.chart), X(v), CB, CHT, 14));
+      m.mean = meanMark(m.chart, '~m~_e = 71', { size: 26, anchor: 'start' });
+      m.mean.set(X(D.me), 190, CB, X(D.me) + 10, 205);
+      m.mu = meanMark(svg, '~μ~ = 70', { size: 26, anchor: 'end', lineCls: 'mu-solid', tri: false, txt: 't-pop' });
+      m.mu.set(X(D.mu), 190, CB, X(D.mu) - 10, 205);
+      m.rows = makeRows(m.chart, X, r => 232 + r * 34, top, { size: 24, mu: true, hs: 14 });
+      // squares, left to right in the axis order ; side = |écart| at the same scale (ppm px per mm)
+      const lay = es => { let x = CX.x0; return D.order.map(i => { const s = Math.abs(es[i]) * ppm, o = { x, s }; x += s + SQGAP; return o; }); };
+      m.layMe = lay(D.ec); m.layMu = lay(D.ecMu);
+      m.sq = D.order.map((i, j) => {
+        const g = S('g', {}, svg);
+        const rect = S('rect', { class: 'sqr' }, g), edge = S('line', { class: 'ecart' }, g);
+        const fs = s => Math.round(24 + s * 0.11);
+        const nMe = tx(g, 0, 0, String(D.ec[i] ** 2), { 'text-anchor': 'middle', 'font-weight': 700, class: 't-blue' });
+        const nMu = tx(g, 0, 0, String(D.ecMu[i] ** 2), { 'text-anchor': 'middle', 'font-weight': 700, class: 't-pop' });
+        const fly = S('line', { class: 'ecart' }, svg);
+        const q = { g, rect, edge, nMe, nMu, fly, i, set(x, s, h = s) {
+          rect.setAttribute('x', x); rect.setAttribute('width', s); rect.setAttribute('y', SQB - h); rect.setAttribute('height', Math.max(0, h));
+          setLine(edge, x, SQB, x + s, SQB);
+          [nMe, nMu].forEach(n => { setXY(n, x + s / 2, SQB - h / 2 + fs(s) * 0.36); n.setAttribute('font-size', fs(s)); });
+        } };
+        q.set(m.layMe[j].x, m.layMe[j].s);
+        return q;
+      });
+      const cx = (CX.x0 + m.layMe[4].x + m.layMe[4].s) / 2;
+      m.sumMe = tx(svg, cx, 985, FM(`{u:${D.order.map(i => D.ec[i] ** 2).join(' + ')}} = {b:${D.SC} mm²}`), { 'text-anchor': 'middle', 'font-size': 40, 'font-weight': 500 });
+      m.sumMu = tx(svg, cx + 20, 985, FM(`{p:${D.order.map(i => D.ecMu[i] ** 2).join(' + ')}} = {P:${D.SCmu} mm²}`), { 'text-anchor': 'middle', 'font-size': 40, 'font-weight': 500 });
+      const R = 1190;
+      m.se = S('g', {}, svg);
+      tx(m.se, R, 560, FM(`{o:~S~_e²} = ${D.SC} / ${D.N} = {O:${fr(D.Se2)}} mm²`), { 'font-size': 50, 'font-weight': 500 });
+      tx(m.se, R, 612, FM(`{p:on divise par ~N~ = ${D.N} écarts}`), { 'font-size': 28 });
+      m.s2 = S('g', {}, svg);
+      tx(m.s2, R, 740, FM(`{g:~s~²} = ${D.SC} / ${D.N - 1} = {G:${fr(D.s2)}} mm²`), { 'font-size': 50, 'font-weight': 500 });
+      tx(m.s2, R, 792, FM(`{p:mais seuls ~N~ − 1 = ${D.N - 1} sont libres}`), { 'font-size': 28 });
+      tx(m.s2, R, 856, FM(`= {o:~S~_e²} × ~N~ / (~N~ − 1) = ${fr(D.Se2)} × ${D.N}/${D.N - 1}`), { 'font-size': 30, 'font-weight': 500 });
+      m.muTxt = S('g', {}, svg);
+      tx(m.muTxt, R, 330, FM(`Si {P:~μ~ = ${D.mu}} était connu : {P:${D.SCmu}} > ${D.SC}`), { 'font-size': 42, 'font-weight': 500 });
+      tx(m.muTxt, R, 384, FM('{o:~m~_e} donne les écarts les plus petits possibles'), { 'font-size': 30, 'font-weight': 500 });
+      return m;
+    },
+    pose(m, k) {
+      clean(m.svg);
+      const X = m.X, muOn = k >= 3, L = muOn ? m.layMu : m.layMe;
+      vis(m.chart, k >= 0);
+      vis(m.mu.g, muOn);
+      m.rows.forEach(r => { r.place(muOn ? D.mu : D.me); vis(r.lab, !muOn); vis(r.lab2, muOn); });
+      m.sq.forEach((q, j) => { q.set(L[j].x, L[j].s); vis(q.g, k >= 0); vis(q.nMe, !muOn); vis(q.nMu, muOn); vis(q.fly, false); });
+      vis(m.sumMe, k >= 0 && !muOn); vis(m.sumMu, muOn);
+      vis(m.se, k >= 1); vis(m.s2, k >= 2); vis(m.muTxt, muOn);
+      if (muOn) { m.se.style.opacity = 0.3; m.s2.style.opacity = 0.3; }
+    },
+    play(m, k, c) {
+      const X = m.X;
+      if (k === 0) {
+        fadeIn(c, m.chart, 0, 600);
+        m.sq.forEach((q, j) => {
+          const r = m.rows[q.i], L = m.layMe[j], d = 900 + j * 520;
+          q.g.style.opacity = ''; [q.rect, q.edge, q.nMe].forEach(e => { e.style.opacity = 0; });
+          // l'écart quitte sa ligne, descend, puis le carré pousse dessus
+          c.at(d, () => { q.fly.style.opacity = ''; });
+          q.fly.style.opacity = 0;
+          const a0 = [X(D.me), X(r.v)].sort((p, s) => p - s);
+          tweenT(c, 520, d, t => setLine(q.fly, lerp(a0[0], L.x, t), lerp(r.y, SQB, t), lerp(a0[1], L.x + L.s, t), lerp(r.y, SQB, t)));
+          c.at(d + 540, () => { q.fly.style.opacity = 0; q.edge.style.opacity = ''; q.rect.style.opacity = ''; });
+          tweenT(c, 450, d + 540, t => q.set(L.x, L.s, L.s * t), 'out(2)');
+          fadeIn(c, q.nMe, d + 900, 300);
+        });
+        fadeIn(c, m.sumMe, 900 + 5 * 520 + 400, 500);
+        return 900 + 5 * 520 + 1000;
+      }
+      if (k === 1) { fadeIn(c, m.se, 0, 600); return 700; }
+      if (k === 2) { fadeIn(c, m.s2, 0, 600); return 700; }
+      // k === 3 : le centre passe de mₑ à μ ; les écarts et les carrés grandissent
+      meanGrow(c, m.mu, 0);
+      c.anim([m.se, m.s2], { opacity: [1, 0.3], duration: T(500), ease: 'out(2)' });
+      tweenT(c, 1200, 700, t => {
+        const ctr = lerp(D.me, D.mu, t);
+        m.rows.forEach(r => r.place(ctr));
+        m.sq.forEach((q, j) => { const a = m.layMe[j], b = m.layMu[j]; q.set(lerp(a.x, b.x, t), lerp(a.s, b.s, t)); });
+      });
+      m.rows.forEach(r => { fadeOut(c, r.lab, 700, 300); fadeIn(c, r.lab2, 1500, 400); });
+      m.sq.forEach(q => { fadeOut(c, q.nMe, 700, 300); fadeIn(c, q.nMu, 1600, 400); });
+      fadeOut(c, m.sumMe, 700, 300); fadeIn(c, m.sumMu, 1900, 500);
+      fadeIn(c, m.muTxt, 2300, 500);
+      return 2900;
+    }
+  });
+
+  /* ======================= PONT · les ν + 1 gaussiennes du poly =======================
+     P1 ν = nombre de ddl ; les 5 mesures et la fraction t · P2 la moyenne monte : 1 en haut
+     P3 les 4 écarts libres descendent : ν = 4 en bas · P4 ν + 1 = 5 = N */
+  const PX = { x0: 120, x1: 960, d0: 60, d1: 80 };    // 42 px par mm
+  const PB = 660, PHT = 100;
+  stepped('pont', {
+    labels: ['P1', 'P2', 'P3', 'P4'],
+    build(svg) {
+      const m = {}, X = m.X = geoX(PX), ppm = (PX.x1 - PX.x0) / (PX.d1 - PX.d0);
+      tx(svg, 60, 90, 'Les « ~ν~ + 1 gaussiennes » du poly', { class: 't-title' });
+      m.intro = S('g', {}, svg);
+      tx(m.intro, 60, 165, FM('{b:~ν~} = nombre de degrés de liberté'), { 'font-size': 34 });
+      tx(m.intro, 60, 215, FM('Student à ~ν~ ddl se construit avec {b:~ν~ + 1 gaussiennes} ; une gaussienne = une mesure'), { 'font-size': 30, class: 't-pop' });
+      m.chart = S('g', {}, svg);
+      m.axis = makeAxis(m.chart, range(60, 80, 1), v => v % 2 === 0, 'Largeur de la main (mm)');
+      m.axis.layout(X, PB, { ldy: 36, tdy: 78 });
+      m.axis.labels.forEach(l => l.setAttribute('font-size', 20)); if (m.axis.tt) m.axis.tt.setAttribute('font-size', 24);
+      D.v.forEach(v => stickAt(S('rect', { class: 'sq' }, m.chart), X(v), PB, PHT, 14));
+      m.mean = meanMark(m.chart, '~m~_e = 71', { size: 26 });
+      m.mean.set(X(D.me), 370, PB, X(D.me), 352);
+      m.rows = makeRows(m.chart, X, r => 398 + r * 36, PB - PHT, { size: 24, hs: 14 });
+      m.cap = tx(m.chart, (PX.x0 + PX.x1) / 2, 820, FM(`{U:${D.N} mesures = ${D.N} gaussiennes}`), { 'text-anchor': 'middle', 'font-size': 32 });
+      // la fraction t = (m − μ) / (s/√N), la même qu'en cours (IC, σ inconnu)
+      const FX = 1440;
+      m.frac = S('g', {}, svg);
+      tx(m.frac, 1110, 663, '~t~ =', { 'font-size': 76, 'font-weight': 500 });
+      tx(m.frac, FX, 585, FM('{g:~m~} − {p:~μ~}'), { 'text-anchor': 'middle', 'font-size': 76, 'font-weight': 500 });
+      S('line', { class: 'fbar', x1: FX - 180, x2: FX + 180, y1: 637, y2: 637 }, m.frac);
+      tx(m.frac, FX, 725, FM('{g:~s~} / √~N~'), { 'text-anchor': 'middle', 'font-size': 76, 'font-weight': 500 });
+      m.numTag = tx(svg, FX + 230, 585, '1', { 'font-size': 72, 'font-weight': 700, class: 't-or' });
+      m.numCap = tx(svg, FX + 230, 470, 'la moyenne', { 'font-size': 26, 'font-weight': 600, class: 't-or' });
+      m.denTag = tx(svg, FX + 230, 725, String(D.N - 1), { 'font-size': 72, 'font-weight': 700, class: 't-blue' });
+      m.denNu = tx(svg, FX + 290, 725, '= ~ν~', { 'font-size': 60, 'font-weight': 700 });
+      m.fly = S('line', { class: 'mline' }, svg);
+      // les écarts libres, réduits de moitié, rangés sous la fraction
+      const sc = 0.5 * ppm, free = D.order.filter(i => i !== D.last);
+      let x = 1215;
+      m.low = free.map(i => {
+        const w = Math.abs(D.ec[i]) * sc, x0 = D.ec[i] > 0 ? x : x + w, x1 = D.ec[i] > 0 ? x + w : x;
+        const a = hArrow(svg); a.set(x0, x1, 820, 14);
+        const lab = tx(svg, x + w / 2, 795, sgn(D.ec[i]), { 'text-anchor': 'middle', 'font-size': 24, 'font-weight': 700, class: 't-blue' });
+        const o = { a, lab, i, x0, x1 }; x += w + 34; return o;
+      });
+      m.lowCap = tx(svg, 1215 + (x - 34 - 1215) / 2, 872, `les ${D.N - 1} écarts libres`, { 'text-anchor': 'middle', 'font-size': 26, 'font-weight': 600, class: 't-blue' });
+      m.eq = tx(svg, 960, 975, FM(`{b:~ν~ + 1} = ${D.N - 1} + 1 = ${D.N} = {b:~N~}`), { 'text-anchor': 'middle', 'font-size': 60, 'font-weight': 500 });
+      m.eq2 = tx(svg, 960, 1030, 'les ~ν~ + 1 gaussiennes du poly, ce sont tes ~N~ mesures', { 'text-anchor': 'middle', 'font-size': 30, class: 't-pop' });
+      return m;
+    },
+    pose(m, k) {
+      clean(m.svg);
+      vis([m.intro, m.chart, m.frac], k >= 0);
+      vis([m.numTag, m.numCap], k >= 1);
+      vis(m.fly, false);
+      m.low.forEach(o => { o.a.set(o.x0, o.x1, 820, 14); vis([o.a.g, o.lab], k >= 2); });
+      vis([m.denTag, m.lowCap], k >= 2);
+      const dl = m.rows[D.last]; if (k >= 2) dl.g.style.opacity = 0.2;
+      vis(m.denNu, k >= 3); vis([m.eq, m.eq2], k >= 3);
+    },
+    play(m, k, c) {
+      const X = m.X;
+      if (k === 0) {
+        fadeIn(c, m.intro, 0, 500);
+        fadeIn(c, m.chart, 300, 600);
+        fadeIn(c, m.frac, 900, 600);
+        return 1600;
+      }
+      if (k === 1) {
+        // le trait de mₑ quitte le graphique et monte au numérateur
+        m.fly.style.opacity = '';
+        tweenT(c, 1100, 0, t => setLine(m.fly, lerp(X(D.me), 1655, t), lerp(370, 530, t), lerp(X(D.me), 1655, t), lerp(PB, 590, t)));
+        c.at(1100, () => { m.fly.style.opacity = 0; });
+        popIn(c, m.numTag, 1100); fadeIn(c, m.numCap, 1300, 400);
+        return 1800;
+      }
+      if (k === 2) {
+        // les 4 écarts libres descendent sous la fraction ; le 5ᵉ reste : il est imposé
+        m.low.forEach((o, j) => {
+          const r = m.rows[o.i], d = j * 260;
+          vis([o.a.g, o.lab], true); o.lab.style.opacity = 0;
+          tweenT(c, 900, d, t => o.a.set(lerp(X(D.me), o.x0, t), lerp(X(r.v), o.x1, t), lerp(r.y, 820, t), 14));
+          fadeIn(c, o.lab, d + 800, 300);
+        });
+        c.anim(m.rows[D.last].g, { opacity: [1, 0.2], duration: T(500), delay: T(400), ease: 'out(2)' });
+        popIn(c, m.denTag, 1700); fadeIn(c, m.lowCap, 1900, 400);
+        return 2400;
+      }
+      fadeIn(c, m.denNu, 0, 400);
+      riseIn(c, m.eq, 400, 500); fadeIn(c, m.eq2, 900, 500);
+      return 1500;
+    }
+  });
+
+  /* ======================= ESSAI · deux groupes =======================
+     T1 10 + 10 tensions (fabriquées) · T2 m₁ = 132, m₂ = 140 : écart 8 mmHg
+     T3 chaque groupe perd 1 ddl : ν = n₁ + n₂ − 2 = 18 · T4 table de Student, ligne 18 : 2,10 ; t = 2,24 > 2,10 */
+  const EX = { x0: 300, x1: 1380, d0: 115, d1: 155 };  // 27 px par mmHg
+  const EBA = 470, EBB = 790, EHT = 110;
+  stepped('essai', {
+    labels: ['T1', 'T2', 'T3', 'T4'],
+    build(svg) {
+      const m = {}, X = m.X = geoX(EX);
+      tx(svg, 60, 90, 'Deux groupes : l\'essai sur l\'antihypertenseur', { class: 't-title' });
+      tx(svg, 60, 142, `Tensions individuelles fabriquées pour l'exemple ; moyennes et ~s~ = ${ESSAI.s} mmHg tirés du document`, { 'font-size': 24, class: 't-pop' });
+      m.base = S('g', {}, svg);
+      [[EBA, 'A', 'médicament'], [EBB, 'B', 'placebo']].forEach(([b, n, w]) => {
+        S('line', { class: 'rowbase', x1: X(EX.d0), x2: X(EX.d1), y1: b, y2: b }, m.base);
+        tx(m.base, 180, b - 44, n, { 'text-anchor': 'middle', 'font-size': 52, 'font-weight': 700 });
+        tx(m.base, 180, b - 8, w, { 'text-anchor': 'middle', 'font-size': 24, class: 't-pop' });
+      });
+      m.axis = makeAxis(m.base, range(115, 155, 1), v => v % 5 === 0, 'Tension artérielle (mmHg)');
+      m.axis.layout(X, 850, { ldy: 36, tdy: 80 });
+      const sticks = (vals, b) => vals.map(v => {
+        const g = S('g', {}, svg), f = S('rect', { class: 'sq grow' }, g), h = S('rect', { class: 'stick-h' }, g);
+        stickAt(f, X(v), b, EHT, 12); stickAt(h, X(v), b, EHT, 12); return { g, f, h };
+      });
+      m.sA = sticks(ESSAI.A, EBA); m.sB = sticks(ESSAI.B, EBB);
+      m.ext = S('g', {}, svg);
+      S('line', { class: 'mext', x1: X(ESSAI.m1), x2: X(ESSAI.m1), y1: EBA + 30, y2: 600 }, m.ext);
+      S('line', { class: 'mext', x1: X(ESSAI.m2), x2: X(ESSAI.m2), y1: 540, y2: EBB - EHT - 40 }, m.ext);
+      m.gap = dblArrow(m.ext, 'dbl', 'dbl-h'); m.gap.set(X(ESSAI.m1), X(ESSAI.m2), 570);
+      tx(m.ext, X((ESSAI.m1 + ESSAI.m2) / 2), 552, `${ESSAI.m2 - ESSAI.m1} mmHg`, { 'text-anchor': 'middle', 'font-size': 30, 'font-weight': 700 });
+      m.mA = meanMark(svg, `~m~_1 = ${ESSAI.m1}`, { anchor: 'start' }); m.mA.set(X(ESSAI.m1), EBA - EHT - 50, EBA, X(ESSAI.m1) + 12, EBA - EHT - 22);
+      m.mB = meanMark(svg, `~m~_2 = ${ESSAI.m2}`, { anchor: 'start' }); m.mB.set(X(ESSAI.m2), EBB - EHT - 50, EBB, X(ESSAI.m2) + 12, EBB - EHT - 22);
+      // right panel
+      const RC = 1690;
+      m.cnt = S('g', {}, svg);
+      tx(m.cnt, RC, 270, `(${ESSAI.n1} − 1) + (${ESSAI.n2} − 1)`, { 'text-anchor': 'middle', 'font-size': 38, 'font-weight': 500 });
+      tx(m.cnt, RC, 370, FM(`{b:~ν~ = ${ESSAI.nu}}`), { 'text-anchor': 'middle', 'font-size': 80 });
+      tx(m.cnt, RC, 425, '= ~n~_1 + ~n~_2 − 2', { 'text-anchor': 'middle', 'font-size': 34, 'font-weight': 500 });
+      m.tab = S('g', {}, svg);
+      m.tabHl = S('rect', { class: 'hl growx', x: 1500, width: 380, height: 46, rx: 8 }, m.tab);
+      tx(m.tab, 1590, 540, '~ν~', { 'text-anchor': 'middle', 'font-size': 28, 'font-weight': 600, class: 't-pop' });
+      tx(m.tab, 1780, 540, '~t~ (5 %)', { 'text-anchor': 'middle', 'font-size': 28, 'font-weight': 600, class: 't-pop' });
+      S('line', { class: 'basel', x1: 1500, x2: 1880, y1: 556, y2: 556 }, m.tab);
+      m.tRows = [16, 17, 18, 19, 20].map((nu, j) => {
+        const y = 600 + j * 50, g = S('g', {}, m.tab), on = nu === ESSAI.nu;
+        tx(g, 1590, y, String(nu), { 'text-anchor': 'middle', 'font-size': 32, 'font-weight': on ? 700 : 500 });
+        tx(g, 1780, y, TQ[nu].toFixed(3).replace('.', ','), { 'text-anchor': 'middle', 'font-size': 32, 'font-weight': on ? 700 : 500 });
+        if (on) m.tabHl.setAttribute('y', y - 33);
+        return g;
+      });
+      m.concl = S('g', {}, svg);
+      tx(m.concl, RC, 900, FM(`{b:~t~ = ${fr(ESSAI.t, 2)} > ${fr(TQ[18], 2)}}`), { 'text-anchor': 'middle', 'font-size': 46 });
+      tx(m.concl, RC, 950, FM(`{p:Gauss : ${fr(Z975, 2)}}`), { 'text-anchor': 'middle', 'font-size': 30 });
+      return m;
+    },
+    pose(m, k) {
+      clean(m.svg);
+      vis(m.base, k >= 0);
+      [[m.sA, ESSAI.hollowA], [m.sB, ESSAI.hollowB]].forEach(([arr, hi]) => arr.forEach((s, j) => {
+        vis(s.g, k >= 0); vis(s.f, !(k >= 2 && j === hi)); vis(s.h, k >= 2 && j === hi);
+      }));
+      vis([m.mA.g, m.mB.g, m.ext], k >= 1);
+      vis(m.cnt, k >= 2);
+      vis([m.tab, m.concl], k >= 3);
+    },
+    play(m, k, c) {
+      if (k === 0) {
+        fadeIn(c, m.base, 0, 500);
+        const all = [...m.sA, ...m.sB], r = seeded(5), ord = shuffle(all.map((_, i) => i), r);
+        all.forEach(s => { s.g.style.opacity = ''; utils.set(s.f, { scaleY: 0 }); });
+        ord.forEach((i, j) => c.anim(all[i].f, { scaleY: [0, 1], duration: T(450), delay: T(400 + j * 70), ease: 'out(3)' }));
+        return 400 + all.length * 70 + 500;
+      }
+      if (k === 1) {
+        meanGrow(c, m.mA, 0); meanGrow(c, m.mB, 250);
+        fadeIn(c, m.ext, 1000, 500);
+        return 1600;
+      }
+      if (k === 2) {
+        [[m.sA, ESSAI.hollowA], [m.sB, ESSAI.hollowB]].forEach(([arr, hi], g) => {
+          fadeOut(c, arr[hi].f, g * 400, 500); fadeIn(c, arr[hi].h, g * 400, 500);
+        });
+        const kids = [...m.cnt.children]; m.cnt.style.opacity = '';
+        kids.forEach((e, i) => riseIn(c, e, 900 + i * 350, 450));
+        return 900 + kids.length * 350 + 500;
+      }
+      m.tab.style.opacity = '';
+      const hdr = [...m.tab.children].filter(e => !m.tRows.includes(e) && e !== m.tabHl);
+      fadeIn(c, hdr, 0, 400);
+      m.tRows.forEach((g, j) => riseIn(c, g, 200 + j * 120, 400));
+      utils.set(m.tabHl, { scaleX: 0 }); c.anim(m.tabHl, { scaleX: [0, 1], duration: T(500), delay: T(1000), ease: 'out(3)' });
+      fadeIn(c, m.concl, 1700, 500);
+      return 2300;
+    }
+  });
+
+  /* ======================= COURBE · ν change le seuil =======================
+     C1 Gauss, seuil 1,96 · puis la courbe de Student se déforme : ν = 4 (les 5 mains), 9 (10 patients),
+     18 (l'essai), 29 (G1, N = 30), 198 (100 + 100) ; le seuil glisse de 2,78 à 1,97 */
+  function lgamma(x) {   // Lanczos, g = 7
+    const p = [0.99999999999980993, 676.5203681218851, -1259.1392167224028, 771.32342877765313, -176.61502916214059,
+      12.507343278686905, -0.13857109526572012, 9.9843695780195716e-6, 1.5056327351493116e-7];
+    if (x < 0.5) return Math.log(Math.PI / Math.sin(Math.PI * x)) - lgamma(1 - x);
+    x -= 1; let a = p[0]; const t = x + 7.5;
+    for (let i = 1; i < 9; i++) a += p[i] / (x + i);
+    return 0.5 * Math.log(2 * Math.PI) + (x + 0.5) * Math.log(t) - t + Math.log(a);
+  }
+  const dens = (x, nu) => nu === Infinity ? Math.exp(-x * x / 2) / Math.sqrt(2 * Math.PI)
+    : Math.exp(lgamma((nu + 1) / 2) - lgamma(nu / 2) - 0.5 * Math.log(nu * Math.PI) - (nu + 1) / 2 * Math.log(1 + x * x / nu));
+  const LAWS = [
+    { nu: Infinity, tc: Z975, a: 'Gauss', ex: '~σ~ connu' },
+    { nu: 4, tc: TQ[4], a: '4', ex: '5 mains' },
+    { nu: 9, tc: TQ[9], a: '9', ex: '10 patients' },
+    { nu: 18, tc: TQ[18], a: '18', ex: 'l\'essai' },
+    { nu: 29, tc: TQ[29], a: '29', ex: 'G1 (~N~ = 30)' },
+    { nu: 198, tc: TQ[198], a: '198', ex: '100 + 100 patients' },
+  ];
+  const PL = { x0: 140, x1: 1300, t0: -5, t1: 5, base: 820, H: 1300 };
+  stepped('courbe', {
+    labels: ['C1', 'C2', 'C3', 'C4', 'C5', 'C6'],
+    build(svg) {
+      const m = {}, X = m.X = x => PL.x0 + (x - PL.t0) / (PL.t1 - PL.t0) * (PL.x1 - PL.x0);
+      tx(svg, 60, 90, 'Pourquoi ~ν~ change le seuil', { class: 't-title' });
+      m.area = S('path', { class: 'ic-area-k' }, svg);
+      m.tl = S('path', { class: 'ic-tail' }, svg); m.tr = S('path', { class: 'ic-tail' }, svg);
+      m.ref = S('path', { class: 'gauss-ref' }, svg);
+      m.curve = S('path', { class: 'ic-curve-k' }, svg);
+      m.axis = S('g', {}, svg);
+      S('line', { class: 'axl', x1: X(PL.t0), x2: X(PL.t1), y1: PL.base, y2: PL.base }, m.axis);
+      range(-5, 5, 1).forEach(v => S('line', { class: 'axl', x1: X(v), x2: X(v), y1: PL.base, y2: PL.base + 8 }, m.axis));
+      tx(m.axis, X(0), PL.base + 40, '0', { 'text-anchor': 'middle', class: 't-tick' });
+      tx(m.axis, X(PL.t1) + 18, PL.base + 9, '~t~', { 'font-size': 30, 'font-weight': 600 });
+      m.refLab = tx(svg, X(0), PL.base - dens(0, Infinity) * PL.H - 16, 'Gauss', { 'text-anchor': 'middle', 'font-size': 26, 'font-weight': 600, class: 't-pop' });
+      m.th = [-1, 1].map(sg => {
+        const g = S('g', {}, svg), l = S('line', { class: 'vline' }, g);
+        const t = tx(g, 0, 0, '', { 'text-anchor': 'middle', 'font-size': 32, 'font-weight': 700 });
+        return { g, l, t, sg };
+      });
+      m.alpha = [-1, 1].map(sg => tx(svg, X(sg * 3.9), PL.base - 48, '~α~/2', { 'text-anchor': 'middle', 'font-size': 30, 'font-weight': 700, class: 't-red' }));
+      m.law = LAWS.map(L => tx(svg, 180, 250, L.nu === Infinity ? 'Gauss' : `~ν~ = ${L.a}`, { 'font-size': 60, 'font-weight': 700 }));
+      // table
+      m.tab = S('g', {}, svg);
+      m.hl = S('rect', { class: 'hl', x: 1392, width: 496, height: 56, rx: 8 }, m.tab);
+      tx(m.tab, 1412, 250, '~ν~', { 'font-size': 28, 'font-weight': 600, class: 't-pop' });
+      tx(m.tab, 1872, 250, 'seuil 5 %', { 'text-anchor': 'end', 'font-size': 28, 'font-weight': 600, class: 't-pop' });
+      S('line', { class: 'basel', x1: 1392, x2: 1888, y1: 268, y2: 268 }, m.tab);
+      m.rowY = j => 322 + j * 66;
+      m.rows = LAWS.map((L, j) => {
+        const g = S('g', {}, m.tab), y = m.rowY(j);
+        tx(g, 1412, y, L.a, { 'font-size': 34, 'font-weight': 700 });
+        tx(g, 1540, y, L.ex, { 'font-size': 24, class: 't-pop' });
+        tx(g, 1872, y, fr(L.tc, 2), { 'text-anchor': 'end', 'font-size': 34, 'font-weight': 700 });
+        return g;
+      });
+      m.msg = tx(svg, (PL.x0 + PL.x1) / 2, 975, FM('{b:~ν~ > 30 à 50} : Student ≈ Gauss'), { 'text-anchor': 'middle', 'font-size': 40 });
+      m.draw = (ka, kb, t, amp = 1) => {
+        const A = LAWS[ka], B = LAWS[kb], f = x => amp * lerp(dens(x, A.nu), dens(x, B.nu), t), tc = lerp(A.tc, B.tc, t);
+        const Y = x => PL.base - PL.H * f(x), pts = (a, b, n) => { let d = ''; for (let i = 0; i <= n; i++) { const x = a + (b - a) * i / n; d += (i ? 'L' : 'M') + X(x).toFixed(1) + ' ' + Y(x).toFixed(1); } return d; };
+        const full = pts(PL.t0, PL.t1, 240);
+        m.curve.setAttribute('d', full);
+        m.area.setAttribute('d', full + `L${X(PL.t1)} ${PL.base}L${X(PL.t0)} ${PL.base}Z`);
+        m.tr.setAttribute('d', pts(tc, PL.t1, 80) + `L${X(PL.t1)} ${PL.base}L${X(tc)} ${PL.base}Z`);
+        m.tl.setAttribute('d', pts(PL.t0, -tc, 80) + `L${X(-tc)} ${PL.base}L${X(PL.t0)} ${PL.base}Z`);
+        const lab = fr((t < 0.5 ? A : B).tc, 2);
+        m.th.forEach(h => { const x = X(h.sg * tc); setLine(h.l, x, PL.base - PL.H * f(tc) - 6, x, PL.base + 14); setXY(h.t, x, PL.base + 50); h.t.textContent = (h.sg < 0 ? '−' : '') + lab; });
+      };
+      // the Gauss reference stays put once Student appears
+      m.ref.setAttribute('d', (() => { let d = ''; for (let i = 0; i <= 240; i++) { const x = PL.t0 + (PL.t1 - PL.t0) * i / 240; d += (i ? 'L' : 'M') + X(x).toFixed(1) + ' ' + (PL.base - PL.H * dens(x, Infinity)).toFixed(1); } return d; })());
+      return m;
+    },
+    pose(m, k) {
+      clean(m.svg);
+      const kk = Math.max(0, k);
+      m.draw(kk, kk, 1);
+      vis([m.area, m.tl, m.tr, m.curve, m.axis, m.th.map(h => h.g), m.alpha, m.tab], k >= 0);
+      vis([m.ref, m.refLab], k >= 1);
+      m.law.forEach((t, j) => vis(t, j === k));
+      m.rows.forEach((g, j) => vis(g, j <= k));
+      m.hl.setAttribute('y', m.rowY(kk) - 38);
+      vis(m.hl, k >= 0);
+      vis(m.msg, k >= 5);
+    },
+    play(m, k, c) {
+      if (k === 0) {
+        [m.area, m.tl, m.tr, m.curve, m.axis].forEach(e => { e.style.opacity = ''; });
+        fadeIn(c, m.axis, 0, 400);
+        m.draw(0, 0, 1, 0);
+        tweenT(c, 1100, 300, t => m.draw(0, 0, 1, t), 'out(3)');   // la courbe monte depuis l'axe
+        fadeIn(c, [m.tl, m.tr], 300, 10);
+        fadeIn(c, m.th.map(h => h.g), 1300, 400); fadeIn(c, m.alpha, 1500, 400);
+        fadeIn(c, m.law[0], 600, 400);
+        m.tab.style.opacity = '';
+        fadeIn(c, [...m.tab.children].filter(e => !m.rows.includes(e)), 1700, 400);
+        riseIn(c, m.rows[0], 1900, 400);
+        return 2400;
+      }
+      if (k === 1) fadeIn(c, [m.ref, m.refLab], 0, 400);
+      fadeOut(c, m.law[k - 1], 0, 300); fadeIn(c, m.law[k], 300, 400);
+      tweenT(c, 1300, 200, t => m.draw(k - 1, k, t));
+      const y0 = m.rowY(k - 1) - 38, y1 = m.rowY(k) - 38;
+      tweenT(c, 500, 1200, t => m.hl.setAttribute('y', lerp(y0, y1, t)));
+      riseIn(c, m.rows[k], 1300, 400);
+      if (k === 5) fadeIn(c, m.msg, 1700, 500);
+      return k === 5 ? 2300 : 1800;
+    }
+  });
+
+  /* ======================= REGLE · compter les ddl =======================
+     Q1 la règle · Q2 le tableau, ligne par ligne (un seul clic) · Q3 ce qu'il faut retenir */
+  stepped('regle', {
+    labels: ['Q1', 'Q2', 'Q3'],
+    build(svg) {
+      const m = {};
+      tx(svg, 60, 90, 'Compter les ddl', { class: 't-title' });
+      m.rule = tx(svg, 960, 215, FM('{b:ddl} = nombre de valeurs − nombre de moyennes estimées'), { 'text-anchor': 'middle', 'font-size': 46 });
+      const C = [140, 960, 1250, 1580];
+      m.head = S('g', {}, svg);
+      ['Situation', 'Valeurs', 'Moyennes estimées', 'ddl'].forEach((h, j) =>
+        tx(m.head, C[j], 330, h, { 'text-anchor': j ? 'middle' : 'start', 'font-size': 28, 'font-weight': 600, class: 't-pop' }));
+      S('line', { class: 'basel', x1: 140, x2: 1800, y1: 350, y2: 350 }, m.head);
+      const ROWS = [
+        ['Un échantillon (~s~², Student, ~χ~²)', '~N~', '1', '~N~ − 1'],
+        ['Deux échantillons (Student)', '~n~_1 + ~n~_2', '2', '~n~_1 + ~n~_2 − 2'],
+        ['Deux variances (Snedecor)', '~n~_1 et ~n~_2', '1 et 1', '~n~_1 − 1 et ~n~_2 − 1'],
+        ['Si ~μ~ était connu', '~N~', '0', '~N~'],
+      ];
+      m.rows = ROWS.map((r, i) => {
+        const g = S('g', {}, svg), y = 425 + i * 88;
+        r.forEach((cell, j) => tx(g, C[j], y, cell, { 'text-anchor': j ? 'middle' : 'start', 'font-size': j ? 38 : 32, 'font-weight': j === 3 ? 700 : 500 }));
+        if (i < ROWS.length - 1) S('line', { class: 'gridl', x1: 140, x2: 1800, y1: y + 36, y2: y + 36 }, g);
+        return g;
+      });
+      m.keep = S('g', {}, svg);
+      [[835, 'Student à {b:~ν~ ddl} : ~ν~ + 1 = ~N~ mesures, 1 en haut, ~ν~ en bas'],
+       [895, 'Moins de ddl → seuil plus haut ; {b:~ν~ > 30 à 50} → Gauss'],
+       [955, '{p:~σ~} connu → Gauss : pas de ddl']].forEach(([y, s]) => {
+        const g = S('g', {}, m.keep); bullet(g, 166, y); tx(g, 166, y, FM(s), { 'font-size': 34, 'font-weight': 500 });
+      });
+      return m;
+    },
+    pose(m, k) {
+      clean(m.svg);
+      vis(m.rule, k >= 0);
+      vis([m.head, m.rows], k >= 1);
+      vis(m.keep, k >= 2);
+    },
+    play(m, k, c) {
+      if (k === 0) { riseIn(c, m.rule, 0, 600); return 800; }
+      if (k === 1) { fadeIn(c, m.head, 0, 400); m.rows.forEach((g, i) => riseIn(c, g, 300 + i * 450, 450)); return 300 + m.rows.length * 450 + 300; }
+      m.keep.style.opacity = '';
+      [...m.keep.children].forEach((g, i) => riseIn(c, g, i * 350, 450));
+      return 3 * 350 + 500;
+    }
+  });
+  /* ---------- input ---------- */
+  function next() { if (!busy && cur < stations.length - 1) goto(cur + 1); }
+  // From the last step, going back lands on the previous station's LAST step.
+  function prev() { if (!busy && cur > 0) goto(cur - 1, { fromEnd: true }); }
+  // ONE step dispatch for arrows AND swipes: a stepped scene consumes the click while it
+  // still has steps in that direction; past its ends, the camera flies to the next station.
+  function step(dir) {
+    const s = stations[cur], sc = sceneOf(s);
+    if (!busy && !overview && sc && sc.labels && s.mounted && (dir > 0 ? sc.forward(s.el) : sc.back(s.el))) return;
+    dir > 0 ? next() : prev();
+  }
+  function replay() {
+    const s = stations[cur], sc = sceneOf(s);
+    if (sc && sc.labels && s.mounted && !overview) sc.go(s.el, s.el._at || 0); else goto(cur);
+  }
+  stepHud = () => {
+    const s = stations[cur], sc = sceneOf(s), el = document.getElementById('stepl');
+    if (el) el.textContent = sc && sc.labels && s.mounted && !overview ? '  ·  étape ' + sc.labels[s.el._at || 0] : '';
+  };
+
+  function toggleFullscreen() {
+    const fsEl = document.fullscreenElement || document.webkitFullscreenElement;
+    if (!fsEl) {
+      const el = document.documentElement, req = el.requestFullscreen || el.webkitRequestFullscreen;
+      if (req) { try { const p = req.call(el); if (p && p.catch) p.catch(() => {}); } catch (e) {} }
+    } else {
+      const exit = document.exitFullscreen || document.webkitExitFullscreen;
+      if (exit) exit.call(document);
+    }
+  }
+  const fsbtn = document.getElementById('fsbtn');
+  fsbtn.addEventListener('click', () => { toggleFullscreen(); fsbtn.blur(); });
+  ['fullscreenchange', 'webkitfullscreenchange'].forEach(ev => document.addEventListener(ev, () => {
+    document.body.classList.toggle('is-fullscreen', !!(document.fullscreenElement || document.webkitFullscreenElement));
+  }));
+  if (!(document.documentElement.requestFullscreen || document.documentElement.webkitRequestFullscreen)) {
+    document.body.classList.add('no-fullscreen');
+    fsbtn.style.display = 'none';
+  }
+
+  window.addEventListener('keydown', e => {
+    if (e.target.closest && e.target.closest('input, textarea, select, [contenteditable="true"], [contenteditable=""]')) return;
+    if (e.key === 'ArrowRight' || e.key === ' ' || e.key === 'PageDown') { e.preventDefault(); step(1); }
+    else if (e.key === 'ArrowLeft' || e.key === 'PageUp') { e.preventDefault(); step(-1); }
+    else if (e.key === 'o' || e.key === 'O' || e.key === 'ArrowUp') { e.preventDefault(); if (!busy) toOverview(); }
+    else if (e.key === 'f' || e.key === 'F') { e.preventDefault(); toggleFullscreen(); }
+    else if (e.key === 'ArrowDown' || e.key === 'Escape') { e.preventDefault(); if (!busy) replay(); }
+  });
+
+  let swipeHint = null;
+  function removeSwipeHint() { if (swipeHint) { swipeHint.remove(); swipeHint = null; } }
+  if (TOUCH && !STILL) {
+    swipeHint = document.createElement('div');
+    swipeHint.id = 'swipehint'; swipeHint.textContent = 'Balayez pour avancer';
+    document.body.appendChild(swipeHint);
+    swipeHint.addEventListener('animationend', removeSwipeHint);
+  }
+  function requestDeckFullscreen(lockLandscape) {
+    const el = document.documentElement, req = el.requestFullscreen || el.webkitRequestFullscreen;
+    if (!req || document.fullscreenElement || document.webkitFullscreenElement) return;
+    try {
+      const p = req.call(el);
+      if (p && p.catch) p.catch(() => {});
+      if (lockLandscape && screen.orientation && screen.orientation.lock)
+        Promise.resolve(p).then(() => screen.orientation.lock('landscape')).catch(() => {});
+    } catch (e) {}
+  }
+  let fsAuto = false, touch = null;
+  window.addEventListener('touchstart', e => {
+    touch = e.touches.length === 1 ? { x: e.touches[0].clientX, y: e.touches[0].clientY } : null;
+  }, { passive: true });
+  window.addEventListener('touchcancel', () => { touch = null; }, { passive: true });
+  window.addEventListener('touchend', e => {
+    if (!touch || e.touches.length || document.body.classList.contains('editing')) { touch = null; return; }
+    const dx = e.changedTouches[0].clientX - touch.x, dy = e.changedTouches[0].clientY - touch.y;
+    touch = null;
+    if (window.visualViewport && window.visualViewport.scale > 1.05) return;
+    const ax = Math.abs(dx), ay = Math.abs(dy);
+    if (Math.max(ax, ay) < 48) return;
+    if (TOUCH && !fsAuto) { fsAuto = true; requestDeckFullscreen(false); }
+    removeSwipeHint();
+    step((ax >= ay ? dx : dy) < 0 ? 1 : -1);
+  }, { passive: true });
+  document.getElementById('rotatehint').addEventListener('click', () => {
+    fsAuto = true;
+    requestDeckFullscreen(true);
+    document.body.classList.add('rh-dismissed');
+  });
+
+  stations.forEach((s, i) => s.el.addEventListener('click', () => { if (overview && !busy) goto(i); }));
+
+  function refit() {
+    stations.forEach(s => { s.w = s.el.offsetWidth; s.h = s.el.offsetHeight; s.cx = s.x + s.w / 2; s.cy = s.y + s.h / 2; });
+    railWindow(cur);
+    if (overview) toOverview();
+    else { const s = stations[cur]; cam.x = s.cx; cam.y = s.cy; cam.zoom = fitZoom(s); render(); maskToStation(s); }
+  }
+  window.addEventListener('resize', refit);
+
+  /* ---------- control-layer hooks ---------- */
+  window.Deckadence = {
+    version: 1,
+    cam, stations, world, viewport: viewportEl,
+    current: () => cur, isBusy: () => busy, isOverview: () => overview, still: STILL,
+    goto, toOverview, render, fitZoom, primeStation, revealStation, splitLines, fitHeading, releaseClips,
+    mountStation, setLive, setSource, isLive: i => !!(stations[i] && stations[i].live), liveSpan: LIVE_SPAN,
+    setInset(px) { insetLeft = Math.max(0, +px || 0); refit(); },
+    // steps of the current station: labels, and jump to one (by label or index), posed at its final state
+    steps: () => { const sc = sceneOf(stations[cur]); return sc && sc.labels ? sc.labels.slice() : []; },
+    setStep(k) { const s = stations[cur], sc = sceneOf(s); if (!sc || !sc.labels) return false; const i = typeof k === 'number' ? k : sc.labels.indexOf(k); if (i < 0) return false; sc.set(s.el, i); return true; },
+    isPresenting: () => !!(document.fullscreenElement || document.webkitFullscreenElement),
+  };
+
+  let hashRetry = 0;
+  function followHash() {
+    clearTimeout(hashRetry);
+    const i = stationFromHash(location.hash);
+    if (i < 0 || (i === cur && !overview)) return;
+    if (busy) { hashRetry = setTimeout(followHash, 120); return; }
+    goto(i);
+  }
+  window.addEventListener('hashchange', followHash);
+
+  /* ---------- boot ---------- */
+  const hashIdx = stationFromHash(location.hash);
+  const start = hashIdx >= 0 ? hashIdx : 0;
+  if (hashIdx >= 0 && !STILL) syncHash(start);
+  cur = start;
+  stations.forEach((s, k) => { if (!liveAll && !near(k, start, LIVE_SPAN)) unmountStation(s); });
+  document.body.classList.add('deck-ready');
+  const bootMount = new Promise(r => document.readyState === 'loading'
+    ? document.addEventListener('DOMContentLoaded', () => r(mountStation(stations[start])), { once: true })
+    : r(mountStation(stations[start])));
+  cam.x = stations[start].cx; cam.y = stations[start].cy; cam.zoom = fitZoom(stations[start]);
+  render();
+  maskToStation(stations[start]);
+  setHud(start);
+  setTone(start);
+  updateCulling();
+  stations[start].el.style.visibility = 'hidden';
+  Promise.all([document.fonts.ready, new Promise(r => setTimeout(r, 240)), bootMount]).then(() => {
+    const st = stations[start];
+    updateCulling();
+    railWindow(cur);
+    if (cur !== start) { st.el.style.visibility = ''; return; }
+    primeStation(st);
+    st.el.style.visibility = '';
+    revealStation(st);
+    settleLive(start);
+  });
+})();
+</script>

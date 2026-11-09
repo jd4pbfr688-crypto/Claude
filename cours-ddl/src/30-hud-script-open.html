@@ -1,0 +1,51 @@
+<div id="hud">
+  <div class="counter"><span id="idx">01</span> / <span id="total">07</span><span id="stepl"></span></div>
+  <div id="rail"></div>
+  <div class="station-name"></div>
+  <button id="edbtn" type="button" aria-label="Mode édition" title="Éditer (E)"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20h4L19 9l-4-4L4 16v4zM14 6l4 4"/></svg></button>
+  <button id="fsbtn" type="button" aria-label="Plein écran" title="Plein écran (F)">
+    <svg class="ic-enter" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 8V3h5M21 8V3h-5M3 16v5h5M21 16v5h-5"/></svg>
+    <svg class="ic-exit" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 3v5H3M16 3v5h5M8 21v-5H3M16 21v-5h5"/></svg>
+  </button>
+</div>
+
+<div id="edbar" hidden role="toolbar" aria-label="Édition">
+  <span class="grp sel-only">
+    <button type="button" class="sw" data-color="#1F2937" title="Quasi-noir" style="background:#1F2937"></button>
+    <button type="button" class="sw" data-color="#3B82F6" title="Bleu individus" style="background:#3B82F6"></button>
+    <button type="button" class="sw" data-color="#1E40AF" title="Bleu foncé" style="background:#1E40AF"></button>
+    <button type="button" class="sw" data-color="#F28C28" title="Orange moyennes" style="background:#F28C28"></button>
+    <button type="button" class="sw" data-color="#C2410C" title="Orange foncé" style="background:#C2410C"></button>
+    <button type="button" class="sw" data-color="#4B5563" title="Gris population" style="background:#4B5563"></button>
+    <button type="button" class="sw" data-color="#16A34A" title="Vert estimation" style="background:#16A34A"></button>
+  </span>
+  <span class="grp sel-only text-only">
+    <button type="button" data-act="smaller" title="Texte plus petit">A−</button>
+    <button type="button" data-act="bigger" title="Texte plus grand">A+</button>
+  </span>
+  <span class="grp sel-only"><button type="button" data-act="hide" title="Masquer (Suppr)">Masquer</button></span>
+  <span class="grp">
+    <button type="button" data-act="undo" title="Annuler (Ctrl+Z)">Annuler</button>
+    <button type="button" data-act="reset" title="Retirer toutes les modifications de ce visuel">Réinitialiser ce visuel</button>
+    <button type="button" data-act="done" class="primary">Terminer</button>
+  </span>
+  <span class="hint">Clic : sélectionner · glisser : déplacer · Maj+glisser : tout le groupe · double-clic : modifier un texte · <b id="edstat"></b></span>
+</div>
+<div id="edsel" hidden></div>
+<input id="edtext" type="text" hidden aria-label="Modifier le texte" autocomplete="off" spellcheck="false">
+
+<div id="rotatehint" role="button" aria-label="Continuer en portrait">
+  <svg class="rh-phone" viewBox="0 0 48 48" aria-hidden="true">
+    <rect x="16" y="7" width="16" height="34" rx="3.5"/>
+    <line x1="21" y1="12" x2="27" y2="12"/>
+  </svg>
+  <div class="rh-title">Tournez<br>votre<br>téléphone</div>
+  <div class="rh-sub">
+    <span class="rh-fs">Présentation en 16:9 —<br>touchez pour le plein écran, puis balayez</span>
+    <span class="rh-nofs">Présentation en 16:9 — touchez, puis balayez.<br>Vrai plein écran : Partager → Sur l'écran d'accueil</span>
+  </div>
+</div>
+
+<!-- anime.js v4 UMD. Pin the version. VENDOR THIS FILE LOCALLY before presenting. -->
+<script src="https://cdn.jsdelivr.net/npm/animejs@4.4.1/dist/bundles/anime.umd.min.js"></script>
+<script>

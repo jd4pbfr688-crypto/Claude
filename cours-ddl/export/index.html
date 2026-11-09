@@ -1,0 +1,73 @@
+<title>Visuels degrés de liberté</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap">
+<style>
+  /* layout: a quiet contact sheet, one band per slide, thumbnails in a wrapping grid (same as the first course) */
+  :root { --bg: #FFFFFF; --fg: #1F2937; --muted: #6B7280; --rule: #E5E7EB; --accent: #16A34A;
+          --font: "Inter", system-ui, -apple-system, "Segoe UI", sans-serif; }
+  @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --bg: #111418; --fg: #E5E7EB; --muted: #9CA3AF; --rule: #2A2F36; --accent: #4ADE80; color-scheme: dark } }
+  :root[data-theme="dark"] { --bg: #111418; --fg: #E5E7EB; --muted: #9CA3AF; --rule: #2A2F36; --accent: #4ADE80; color-scheme: dark }
+  body { background: var(--bg); color: var(--fg); font-family: var(--font); }
+  main { max-width: 1280px; margin: 0 auto; padding-block: 32px 64px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); display: grid; gap: 40px; }
+  header { display: grid; gap: 8px; }
+  h1 { font-size: 28px; margin: 0; text-wrap: balance; }
+  header p { margin: 0; color: var(--muted); max-width: 65ch; line-height: 1.5; }
+  section { display: grid; gap: 12px; }
+  h2 { font-size: 17px; margin: 0; padding-bottom: 8px; border-bottom: 1px solid var(--rule); display: flex; gap: 10px; align-items: baseline; }
+  h2 .n { color: var(--accent); font-variant-numeric: tabular-nums; font-weight: 700; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 16px; }
+  figure { margin: 0; display: grid; gap: 6px; min-width: 0; }
+  figure img { width: 100%; max-width: 100%; height: auto; aspect-ratio: 16 / 9; border: 1px solid var(--rule); border-radius: 6px; background: #fff; display: block; }
+  figcaption { font-size: 13px; color: var(--muted); }
+  figcaption b { color: var(--fg); }
+  .dl { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; }
+  .dl button, .dl a { font: 600 15px/1 var(--font); padding: 12px 18px; border-radius: 8px; border: 1px solid var(--accent); cursor: pointer; text-decoration: none; }
+  .dl button { background: var(--accent); color: var(--bg); }
+  .dl a { background: transparent; color: var(--accent); }
+  .dl button:focus-visible, .dl a:focus-visible { outline: 3px solid var(--fg); outline-offset: 2px; }
+  #dlmsg { font-size: 14px; color: var(--muted); }
+</style>
+<main>
+  <header>
+    <h1>Visuels · Les degrés de liberté</h1>
+    <p>Une image 1920 × 1080 par étape du diaporama (33 au total). Le PDF les rassemble, une page par étape. Pour enregistrer une seule image : clic droit puis « Enregistrer l'image », ou appui long sur téléphone.</p>
+    <div class="dl">
+      <button type="button" id="dlpdf">Télécharger le PDF (33 pages, 3,7 Mo)</button>
+      <a href="degres_de_liberte.pdf" target="_blank" rel="noopener">Ouvrir le PDF</a>
+      <span id="dlmsg" role="status"></span>
+    </div>
+  </header>
+  <div id="sheet"></div>
+</main>
+<script>
+const btn = document.getElementById('dlpdf'), msg = document.getElementById('dlmsg');
+btn.addEventListener('click', async () => {
+  msg.textContent = 'Préparation du PDF…';
+  try {
+    const downloads = window.claude ? await window.claude.use('downloads') : null;
+    if (!downloads) { msg.textContent = 'Le téléchargement direct n\'est pas disponible ici : utilisez « Ouvrir le PDF ».'; return; }
+    const blob = await (await fetch('degres_de_liberte.pdf')).blob();
+    await downloads.save({ filename: 'degres_de_liberte.pdf', data: blob });
+    msg.textContent = 'PDF enregistré.';
+  } catch (e) {
+    msg.textContent = e && e.code === 'declined' ? 'Téléchargement annulé.' : 'Le téléchargement n\'a pas abouti : essayez « Ouvrir le PDF ».';
+  }
+});
+const G = [{"key": "TITRE", "name": "Titre", "items": [{"f": "01_TITRE_01_titre.png", "step": "titre"}]}, {"key": "RAPPEL", "name": "Vous l'avez déjà vu", "items": [{"f": "02_RAPPEL_01_R1.png", "step": "R1"}, {"f": "02_RAPPEL_02_R2.png", "step": "R2"}, {"f": "02_RAPPEL_03_R3.png", "step": "R3"}]}, {"key": "MAINS", "name": "Le jeu des 5 mains", "items": [{"f": "03_MAINS_01_M1.png", "step": "M1"}, {"f": "03_MAINS_02_M2.png", "step": "M2"}, {"f": "03_MAINS_03_M3.png", "step": "M3"}, {"f": "03_MAINS_04_M4.png", "step": "M4"}, {"f": "03_MAINS_05_M5.png", "step": "M5"}]}, {"key": "ECARTS", "name": "Les écarts à la moyenne", "items": [{"f": "04_ECARTS_01_E1.png", "step": "E1"}, {"f": "04_ECARTS_02_E2.png", "step": "E2"}, {"f": "04_ECARTS_03_E3.png", "step": "E3"}]}, {"key": "CARRES", "name": "D'où le N − 1 de s²", "items": [{"f": "05_CARRES_01_C1.png", "step": "C1"}, {"f": "05_CARRES_02_C2.png", "step": "C2"}, {"f": "05_CARRES_03_C3.png", "step": "C3"}, {"f": "05_CARRES_04_C4.png", "step": "C4"}]}, {"key": "PONT", "name": "Les ν + 1 gaussiennes du poly", "items": [{"f": "06_PONT_01_P1.png", "step": "P1"}, {"f": "06_PONT_02_P2.png", "step": "P2"}, {"f": "06_PONT_03_P3.png", "step": "P3"}, {"f": "06_PONT_04_P4.png", "step": "P4"}]}, {"key": "ESSAI", "name": "Deux groupes : l'essai", "items": [{"f": "07_ESSAI_01_T1.png", "step": "T1"}, {"f": "07_ESSAI_02_T2.png", "step": "T2"}, {"f": "07_ESSAI_03_T3.png", "step": "T3"}, {"f": "07_ESSAI_04_T4.png", "step": "T4"}]}, {"key": "COURBE", "name": "ν change le seuil", "items": [{"f": "08_COURBE_01_C1.png", "step": "C1"}, {"f": "08_COURBE_02_C2.png", "step": "C2"}, {"f": "08_COURBE_03_C3.png", "step": "C3"}, {"f": "08_COURBE_04_C4.png", "step": "C4"}, {"f": "08_COURBE_05_C5.png", "step": "C5"}, {"f": "08_COURBE_06_C6.png", "step": "C6"}]}, {"key": "REGLE", "name": "Compter les ddl", "items": [{"f": "09_REGLE_01_Q1.png", "step": "Q1"}, {"f": "09_REGLE_02_Q2.png", "step": "Q2"}, {"f": "09_REGLE_03_Q3.png", "step": "Q3"}]}];
+const sheet = document.getElementById('sheet');
+sheet.style.display = 'grid'; sheet.style.gap = '40px';
+G.forEach((g, i) => {
+  const s = document.createElement('section');
+  const h = document.createElement('h2');
+  h.innerHTML = '<span class="n">' + String(i + 1).padStart(2, '0') + '</span>';
+  h.append(document.createTextNode(g.name));
+  const grid = document.createElement('div'); grid.className = 'grid';
+  g.items.forEach(it => {
+    const fig = document.createElement('figure');
+    const img = document.createElement('img'); img.src = 'img/' + it.f; img.alt = g.name + ', étape ' + it.step; img.loading = 'lazy'; img.width = 1920; img.height = 1080;
+    const cap = document.createElement('figcaption'); cap.innerHTML = 'Étape <b></b>'; cap.querySelector('b').textContent = it.step;
+    fig.append(img, cap); grid.append(fig);
+  });
+  s.append(h, grid); sheet.append(s);
+});
+</script>
