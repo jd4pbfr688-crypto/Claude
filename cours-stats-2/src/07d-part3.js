@@ -28,11 +28,12 @@
       m.rows = CR_VARS.map(v => {
         const r = { v };
         ftx(svg, 60, v.base - 70, '{b:' + v.name + ' (' + v.unit + ')}', { 'font-size': 30 });
-        ftx(svg, 60, v.base - 32, v.sub, { 'font-size': 22, class: 't-pop' });
+        r.sub = ftx(svg, 60, v.base - 32, v.sub, { 'font-size': 22, class: 't-pop' });
         S('line', { x1: 300, x2: 1810, y1: v.base, y2: v.base, class: 'axl' }, svg);
         const g = S('g', { 'clip-path': 'url(#cr-clip)' }, svg);
         r.area = S('path', { class: 'ic-area-k' }, g); r.curve = S('path', { class: 'ic-curve-k' }, g);
         r.mu = S('line', { y1: v.base, y2: v.base - CR.H - 12, class: 'ic-musolid' }, g);
+        r.muT = tx(svg, 0, v.base - CR.H - 20, '', { 'text-anchor': 'end', 'font-size': 26, 'font-weight': 700, class: 't-pop halo' });
         r.raw = range(0, 3000, 500).map(x => ({ x, l: S('line', { y1: v.base, y2: v.base + 8, class: 'axl' }, g), t: tx(g, 0, v.base + 32, x ? fr(x, 0) : '0', { 'text-anchor': 'middle', class: 't-tick' }) }));
         r.cen = range(-1500, 1500, 500).map(x => ({ x, l: S('line', { y1: v.base, y2: v.base + 8, class: 'axl' }, g), t: tx(g, 0, v.base + 32, x < 0 ? '−' + (-x) : String(x), { 'text-anchor': 'middle', class: 't-tick' }) }));
         r.z = range(-3, 3, 1).map(x => ({ x, l: S('line', { y1: v.base, y2: v.base + 8, class: 'axl' }, g), t: tx(g, 0, v.base + 32, x < 0 ? '−' + (-x) : String(x), { 'text-anchor': 'middle', class: 't-tick' }) }));
@@ -58,6 +59,13 @@
           r.curve.setAttribute('d', d);
           r.area.setAttribute('d', d + `L${X(v.mu + 3.6 * v.sd).toFixed(1)} ${v.base}L${X(v.mu - 3.6 * v.sd).toFixed(1)} ${v.base}Z`);
           const xm = X(v.mu); r.mu.setAttribute('x1', xm); r.mu.setAttribute('x2', xm);
+          // μ slides to 0 while we centre, σ shrinks to 1 while we reduce (units disappear)
+          const big = v.mu >= 1000, num = (x, d) => { const t0 = fr(x, d); return big ? t0.replace(/\B(?=(\d{3})+(?!\d))/g, ' ') : t0; };
+          const muV = lerp(v.mu, 0, t), sdV = Math.exp(lerp(Math.log(v.sd), 0, s));
+          const muS = Math.abs(muV) < 0.05 ? '0' : num(muV, big ? 0 : 1).replace(/,0$/, ''), sdS = s > 0.999 ? '1' : num(sdV, s > 0 ? 2 : (v.sd % 1 ? 2 : 0));
+          const u = s > 0.001 ? '' : ' ' + v.unit;
+          rich(r.sub, FM('~μ~ = ' + muS + (muS === '0' ? '' : u) + ', ~σ~ = ' + sdS + u));
+          rich(r.muT, FM('~μ~ = ' + muS)); r.muT.setAttribute('x', xm - 10);
           const put = (ticks, px, op) => ticks.forEach(k => { const x = px(k.x); [k.l].forEach(l => { l.setAttribute('x1', x); l.setAttribute('x2', x); }); k.t.setAttribute('x', x); k.l.setAttribute('opacity', op); k.t.setAttribute('opacity', op); });
           put(r.raw, x => X(x), clamp01(1 - 2 * t).toFixed(3));
           put(r.cen, x => CR.cx + x * crK(v, s), (clamp01(2 * t - 1) * clamp01(1 - 2 * s)).toFixed(3));
