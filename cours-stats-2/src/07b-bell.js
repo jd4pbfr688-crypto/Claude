@@ -48,7 +48,7 @@
     m.mmTicks = range(67, 76, 1).map(v => ({ v, l: S('line', { class: 'axl' }, m.tmm), t: tx(m.tmm, 0, 0, String(v), { class: 't-tick', 'text-anchor': 'middle' }) }));
     m.tcz = S('g', {}, svg);
     m.czTicks = range(-5, 3, 1).map(v => ({ v, l: S('line', { class: 'axl' }, m.tcz), t: tx(m.tcz, 0, 0, v < 0 ? '−' + (-v) : String(v), { class: 't-tick', 'text-anchor': 'middle' }) }));
-    m.axT = ['~m~_e (mm)', '~m~_e − ~μ~ (mm)', '~ε~'].map(s => tx(svg, TA.x1 + 28, TA.base + 10, FM(s), { 'font-size': 30, 'font-weight': 600, class: 't-or' }));
+    m.axT = ['~m~_e (mm)', '~m~_e − ~μ~ (mm)', '~z~'].map(s => tx(svg, TA.x1 + 28, TA.base + 10, FM(s), { 'font-size': 30, 'font-weight': 600, class: 't-or' }));
     // the true mean (cours 1): dotted grey
     m.tmu = S('g', {}, svg);
     m.tmuL = S('line', { y1: TA.base, y2: 268, class: 'pop' }, m.tmu);
