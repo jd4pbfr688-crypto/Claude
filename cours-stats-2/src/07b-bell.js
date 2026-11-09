@@ -101,6 +101,9 @@
       m.czTicks.forEach(k => { const x = tX(MU0 + k.v * sc); k.l.setAttribute('x1', x); k.l.setAttribute('x2', x); k.l.setAttribute('y1', TA.base); k.l.setAttribute('y2', TA.base + 8); k.t.setAttribute('x', x); k.t.setAttribute('y', TA.base + 36); });
       m.tcz.setAttribute('opacity', clamp01(2 * a - 1).toFixed(3));
       m.axT.forEach((t, i) => t.setAttribute('opacity', clamp01(1 - 2 * Math.abs(a - i)).toFixed(3)));
+      // μ of H₀ follows the graduation: 72,5 mm, then 0 once centred (and still 0 once reduced)
+      const muV = MU0 * (1 - clamp01(a));
+      rich(m.muLab, FM('{P:~μ~ = ' + (muV < 0.05 ? '0' : fr(muV, 1)) + (a < 0.001 ? ' mm' : '') + '} {p:(H₀)}'));
       // interval and bounds
       const mode = Math.round(a), xl = tX(MU0 - zL * SEM), xr = tX(MU0 + zR * SEM), xrIP = tX(MU0 + Math.min(zR, ZMAX) * SEM);
       m.ipSeg.setAttribute('x1', xl); m.ipSeg.setAttribute('x2', xrIP);
