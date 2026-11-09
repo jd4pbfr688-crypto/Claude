@@ -41,7 +41,8 @@
       m.title = tx(svg, 960, 430, 'Statistiques probabilistes 2', { 'text-anchor': 'middle', 'font-size': 104, 'font-weight': 700, 'letter-spacing': '-2' });
       m.sub = tx(svg, 960, 535, 'Tests d\'hypothèses', { 'text-anchor': 'middle', 'font-size': 64, 'font-weight': 500 });
       // emblem: the bell of H₀, its two red tails and a mean fallen in one of them
-      const g = m.emb = S('g', {}, svg), X = z => 960 + z * 70, Y = z => 790 - 150 * Math.exp(-z * z / 2);
+      m.joke = tx(svg, 960, 612, '~Toujours pas un cours~', { 'text-anchor': 'middle', 'font-size': 38, class: 't-pop' });
+      const g = m.emb = S('g', { transform: 'translate(0 40)' }, svg), X = z => 960 + z * 70, Y = z => 790 - 150 * Math.exp(-z * z / 2);
       const P = (a, b) => { let d = ''; for (let i = 0; i <= 80; i++) { const z = a + (b - a) * i / 80; d += (i ? 'L' : 'M') + X(z).toFixed(1) + ' ' + Y(z).toFixed(1); } return d; };
       const A = (a, b) => P(a, b) + `L${X(b)} 790L${X(a)} 790Z`;
       S('path', { d: A(-3.2, 3.2), class: 'ic-area-k' }, g);
@@ -53,13 +54,14 @@
       m.foot = tx(svg, 960, 930, 'Tutorat PASS · UE4 Biostatistiques - Esteban Mora', { 'text-anchor': 'middle', 'font-size': 26, class: 't-pop' });
       return m;
     },
-    pose(m, k) { clean(m.svg); vis([m.title, m.sub, m.emb, m.foot], k >= 0); },
+    pose(m, k) { clean(m.svg); vis([m.title, m.sub, m.joke, m.emb, m.foot], k >= 0); },
     play(m, k, c) {
       c.anim(m.title, { opacity: [0, 1], translateY: [40, 0], duration: T(900), ease: 'out(3)' });
       fadeIn(c, m.sub, 500, 700);
-      fadeIn(c, m.emb, 900, 700);
-      fadeIn(c, m.foot, 1300, 600);
-      return 2000;
+      fadeIn(c, m.joke, 800, 700);
+      fadeIn(c, m.emb, 1100, 700);
+      fadeIn(c, m.foot, 1500, 600);
+      return 2200;
     }
   });
 
