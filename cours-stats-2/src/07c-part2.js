@@ -92,7 +92,7 @@
   }
 
   stepped('piece0', {
-    labels: ['H1', 'H2', 'H3', 'H4', 'H5'],
+    labels: ['H1', 'H2', 'H3', 'H4', 'H5', 'H6', 'H7'],
     build(svg) {
       const m = {};
       m.t = tx(svg, 960, 100, 'Je lance une pièce 10 fois. Est-ce qu\'elle est truquée ?', { 'text-anchor': 'middle', 'font-size': 52, 'font-weight': 700 });
@@ -120,32 +120,34 @@
         tx(g, 0, 9, fr(v, 1), { 'text-anchor': 'middle', 'font-size': 26, 'font-weight': 700, class: 't-or' });
       });
       // so: an interval of the bet
+      m.ipBox = card(svg, 160, 786, 1600, 262, 'box', 14);
+      m.cond = S('g', {}, svg);
+      ftx(m.cond, 960, 836, 'Comment faire ? On détermine un {b:intervalle de pari}. D\'abord, on vérifie les conditions :', { 'text-anchor': 'middle', 'font-size': 30 });
+      ftx(m.cond, 960, 880, '~N~{P:~ϕ~} = 10 × 0,5 = 5 et ~N~(1 − {P:~ϕ~}) = 5 : {b:juste à la limite} (le poly demande > 5). On fait comme si, pour l\'exemple.', { 'text-anchor': 'middle', 'font-size': 26, class: 't-pop' });
       m.ip = S('g', {}, svg);
-      card(m.ip, 160, 786, 1600, 262, 'box', 14);
       m.hl = S('g', {}, m.ip);
-      ftx(m.ip, 960, 840, 'Comment faire ? On détermine un {b:intervalle de pari}.', { 'text-anchor': 'middle', 'font-size': 32 });
-      ftx(m.ip, 960, 912, 'IP = {P:~ϕ~} ± {k:~ε~(~α~)}·√({p:~ϕ~(1 − ~ϕ~)}/~N~)', { 'text-anchor': 'middle', 'font-size': 40, 'font-weight': 600 });
-      ftx(m.ip, 960, 972, 'à ~α~ = 5 % : 0,5 ± {k:1,96} × √(0,5 × 0,5 / 10) = 0,5 ± 1,96 × 0,158 = {b:[0,19 ; 0,81]}', { 'text-anchor': 'middle', 'font-size': 30 });
-      ftx(m.ip, 960, 1020, '{p:Conditions : ~N~~ϕ~ = ~N~(1 − ~ϕ~) = 5, juste à la limite (le poly demande > 5) : on fait comme si, pour l\'exemple.}', { 'text-anchor': 'middle', 'font-size': 22 });
+      ftx(m.ip, 960, 952, 'IP = {P:~ϕ~} ± {k:~ε~(~α~)}·√({p:~ϕ~(1 − ~ϕ~)}/~N~)', { 'text-anchor': 'middle', 'font-size': 40, 'font-weight': 600 });
+      ftx(m.ip, 960, 1012, 'à ~α~ = 5 % : 0,5 ± {k:1,96} × √(0,5 × 0,5 / 10) = 0,5 ± 1,96 × 0,158 = {b:[0,19 ; 0,81]}', { 'text-anchor': 'middle', 'font-size': 30 });
       return m;
     },
+    // H1 title · H2 face = succès… · H3 H₀ · H4 the sample, fₑ · H5 « truquée ? non » · H6 conditions · H7 the IP
     pose(m, k) {
       clean(m.svg);
-      m.coins.forEach((o, i) => o.set(k >= 2 ? FACES[6][i] : null));
-      vis([m.t, m.h0], k >= 0); vis(m.def, k >= 1); vis([m.coins.map(o => o.g), m.fr], k >= 2); vis(m.q, k >= 3); vis(m.ip, k >= 4);
-      m.hl.replaceChildren(); if (k >= 4) markMult(m.ip, m.hl);
+      m.coins.forEach((o, i) => o.set(k >= 3 ? FACES[6][i] : null));
+      vis(m.t, k >= 0); vis(m.def, k >= 1); vis(m.h0, k >= 2); vis([m.coins.map(o => o.g), m.fr], k >= 3); vis(m.q, k >= 4); vis([m.ipBox, m.cond], k >= 5); vis(m.ip, k >= 6);
+      m.hl.replaceChildren(); if (k >= 6) markMult(m.ip, m.hl);
     },
     play(m, k, c) {
       switch (k) {
-        case 0: fadeIn(c, m.t, 0, 600); popIn(c, m.h0, 600, 600); return 1300;
+        case 0: fadeIn(c, m.t, 0, 600); return 700;
         case 1: return stagger(c, m.def, 0, 220, 450);
-        case 2: {
-          m.coins.forEach((o, i) => { o.set(null); popIn(c, o.g, i * 60, 350); });
-          const e = flipCoins(c, m.coins, FACES[6], 800, 80);
-          return stagger(c, m.fr, e, 500, 500);
-        }
-        case 3: return stagger(c, m.q, 0, 160, 450);
-        case 4: { const e = stagger(c, m.ip, 0, 350, 500); c.at(e - 300, () => markMult(m.ip, m.hl)); return e; }
+        case 2: popIn(c, m.h0, 0, 600); return 700;
+        case 3:
+          m.coins.forEach((o, i) => popIn(c, o.g, i * 40, 300));
+          return stagger(c, m.fr, 450, 300, 450);
+        case 4: return stagger(c, m.q, 0, 160, 450);
+        case 5: fadeIn(c, m.ipBox, 0, 400); return stagger(c, m.cond, 200, 400, 500);
+        case 6: { const e = stagger(c, m.ip, 0, 350, 500); c.at(e - 300, () => markMult(m.ip, m.hl)); return e; }
       }
     }
   });
@@ -165,7 +167,7 @@
       m.coins = range(0, 9, 1).map(i => makeCoin(svg, 960 + (i - 4.5) * 88, 180, 34));
       m.res = tx(svg, 960, 282, '', { 'text-anchor': 'middle', 'font-size': 44, 'font-weight': 700, class: 't-or' });
       m.say = [
-        ['Avec une pièce normale, 95 % des ~f~_e tombent dans l\'IP [0,19 ; 0,81].'],
+        ['Avant de lancer la pièce, on fixe {b:~α~ = 5 %}.', 'Avec une pièce normale, 95 % des ~f~_e tombent dans l\'IP [0,19 ; 0,81].'],
         ['Tout le monde dit non, c\'est normal.', '0,6 est dans l\'IP → on ne peut rien conclure.'],
         ['Tout le monde dit oui. Pourquoi ? Si la pièce était normale, ça n\'arriverait qu\'{b:une fois sur 1 000}.', '1 est hors de l\'IP → on {R:rejette H₀}.'],
         ['La salle hésite : 0,8 est juste dans l\'IP [0,19 ; 0,81].', '→ Où mettre la limite ? {b:C\'est le choix de ~α~.}'],
@@ -325,6 +327,38 @@
       popIn(c, m.q, 500);
       return 1200;
     }
+  });
+
+  /* ======================= LE TEST DE CONFORMITÉ (présenté avant d'en parler) =======================
+     K1 comparer un échantillon à une valeur de référence · K2 H₀ : « kₑ est conforme à κ »
+     K3 la pièce et les gants sont deux tests de conformité · K4 le principe (poly, III) */
+  stepped('conf', {
+    labels: ['K1', 'K2', 'K3', 'K4'],
+    build(svg) {
+      const m = {};
+      tx(svg, 60, 90, 'Un test de conformité', { class: 't-title' });
+      m.a = S('g', {}, svg);
+      card(m.a, 220, 170, 520, 170, 'box-or', 16);
+      ftx(m.a, 480, 240, '{b:Un échantillon}', { 'text-anchor': 'middle', 'font-size': 36 });
+      ftx(m.a, 480, 296, 'son indicateur {O:~k~_e}', { 'text-anchor': 'middle', 'font-size': 32 });
+      card(m.a, 1180, 170, 520, 170, 'popbox', 16);
+      ftx(m.a, 1440, 240, '{b:Une valeur de référence}', { 'text-anchor': 'middle', 'font-size': 36 });
+      ftx(m.a, 1440, 296, '{P:~κ~} (connue ou annoncée)', { 'text-anchor': 'middle', 'font-size': 32 });
+      tx(m.a, 960, 272, '↔  ?', { 'text-anchor': 'middle', 'font-size': 56, 'font-weight': 700 });
+      ftx(m.a, 960, 390, 'On compare {b:un} échantillon à {b:une valeur de référence} : est-il conforme ?', { 'text-anchor': 'middle', 'font-size': 32 });
+      m.h0 = noteBox(svg, 200, 430, 1520, ['{P:H₀} : « notre échantillon d\'indicateur {O:~k~_e} vient d\'une population où l\'indicateur est {P:~κ~} »', '= « {O:~k~_e} {b:est conforme à} {P:~κ~} »'], { size: 30, center: true, cls: 'box-pop' });
+      m.ex = S('g', {}, svg);
+      const ex = [[260, 'La pièce', '{O:~f~_e} = 0,6', '{P:~ϕ~} = 0,5'], [1000, 'Les gants du fabricant', '{O:~m~_e} = 70,4 mm', '{P:~μ~} = 72,5 mm']];
+      ex.forEach(([x, h, ke, k]) => {
+        card(m.ex, x, 590, 660, 150, 'card', 14);
+        ftx(m.ex, x + 330, 640, '{b:' + h + '}', { 'text-anchor': 'middle', 'font-size': 30 });
+        ftx(m.ex, x + 330, 700, ke + '   conforme à   ' + k + ' ?', { 'text-anchor': 'middle', 'font-size': 32 });
+      });
+      m.rule = noteBox(svg, 260, 790, 1400, ['{b:Le principe :} on fixe ~α~, le risque de 1ʳᵉ espèce, {b:avant} le test.', '• si {O:~k~_e} est {b:dans} l\'intervalle de pari au risque ~α~ : on accepte H₀', '• sinon on {R:rejette H₀} : {O:~k~_e} n\'est {b:pas conforme} à {P:~κ~}'], { size: 30 });
+      return m;
+    },
+    pose(m, k) { clean(m.svg); vis(m.a, k >= 0); vis(m.h0, k >= 1); vis(m.ex, k >= 2); vis(m.rule, k >= 3); },
+    play(m, k, c) { return stagger(c, [m.a, m.h0, m.ex, m.rule][k], 0, 200, 450); }
   });
 
   /* ======================= DIAPO 3 · H₀ ET H₁ ======================= */

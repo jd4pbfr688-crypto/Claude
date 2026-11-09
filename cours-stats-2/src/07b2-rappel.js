@@ -45,7 +45,7 @@
     ['Variance', '[(~N~−1){g:~s~²}/{k:~χ~²(~α~/2)} ; (~N~−1){g:~s~²}/{k:~χ~²(1−~α~/2)}]', '[{k:~χ~²(1−~α~/2)}·{p:~σ~²}/~N~ ; {k:~χ~²(~α~/2)}·{p:~σ~²}/~N~]'],
   ];
   stepped('rform', {
-    labels: ['F1', 'F2', 'F3', 'F4'],
+    labels: ['F1', 'F2', 'F3', 'F4', 'F5'],
     build(svg) {
       const m = {};
       tx(svg, 60, 90, 'Rappel du cours 1 : IC et IP', { class: 't-title' });
@@ -84,11 +84,13 @@
     },
     pose(m, k) {
       clean(m.svg);
-      vis([m.boxes, m.ic], k >= 0); vis(m.ip, k >= 1); vis(m.tab, k >= 2); vis([m.note, m.note2], k >= 3);
-      if (k >= 3) { markMult(m.tab, m.hl); markMult(m.note, m.hl2); } else { m.hl.replaceChildren(); m.hl2.replaceChildren(); }
+      vis(m.boxes, k >= 0); vis(m.ic, k >= 1); vis(m.ip, k >= 2); vis(m.tab, k >= 3); vis([m.note, m.note2], k >= 4);
+      if (k >= 4) { markMult(m.tab, m.hl); markMult(m.note, m.hl2); } else { m.hl.replaceChildren(); m.hl2.replaceChildren(); }
     },
     play(m, k, c) {
-      if (k === 0) { fadeIn(c, m.boxes, 0, 600); vis(m.ic, true); const ln = m.ic.firstChild; [...m.ic.children].forEach(e => { e.style.opacity = 0; }); c.at(600, () => { ln.style.opacity = ''; c.anim(ln, { scaleX: [0, 1], duration: T(700), ease: 'inOut(2)' }); }); fadeIn(c, [...m.ic.children].slice(1), 1200, 500); return 1800; }
+      if (k === 0) { fadeIn(c, m.boxes, 0, 600); return 800; }
+      k -= 1;
+      if (k === 0) { vis(m.ic, true); const ln = m.ic.firstChild; [...m.ic.children].forEach(e => { e.style.opacity = 0; }); c.at(600, () => { ln.style.opacity = ''; c.anim(ln, { scaleX: [0, 1], duration: T(700), ease: 'inOut(2)' }); }); fadeIn(c, [...m.ic.children].slice(1), 1200, 500); return 1800; }
       if (k === 1) { vis(m.ip, true); const ln = m.ip.firstChild; [...m.ip.children].forEach(e => { e.style.opacity = 0; }); c.at(0, () => { ln.style.opacity = ''; c.anim(ln, { scaleX: [0, 1], duration: T(700), ease: 'inOut(2)' }); }); fadeIn(c, [...m.ip.children].slice(1), 600, 500); return 1200; }
       if (k === 2) {
         vis(m.tab, true); [...m.tab.children].forEach(e => { e.style.opacity = 0; });
@@ -106,7 +108,7 @@
   /* ======================= RAPPEL 2 · ε(α) EST UN MULTIPLICATEUR ======================= */
   const MU = { cx: 960, base: 640, sx: 210, peak: 340 };
   stepped('mult', {
-    labels: ['X1', 'X2', 'X3'],
+    labels: ['X1', 'X2'],
     build(svg) {
       const m = { z: 1 };
       tx(svg, 60, 90, FM('~ε~(~α~) : un multiplicateur'), { class: 't-title' });
@@ -194,7 +196,7 @@
   const gtX = c => GT.x0 + GT.cw0 + c * GT.cw, gtY = r => GT.y0 + (r + 1) * GT.rh;
   const epsOf = a => a <= 0 ? '∞' : zOf(1 - a / 2).toFixed(3).replace('.', ',');
   stepped('table', {
-    labels: ['G1', 'G2', 'G3'],
+    labels: ['G1'],
     build(svg) {
       const m = {};
       tx(svg, 60, 90, FM('Lire ~ε~(~α~) dans la table de Gauss'), { class: 't-title' });
@@ -270,7 +272,7 @@
     ['10', '1,812', '2,228', '2,764', '3,169'], ['20', '1,725', '2,086', '2,528', '2,845'], ['29', '1,699', '2,045', '2,462', '2,756'], ['30', '1,697', '2,042', '2,457', '2,750'], ['∞', '1,645', '1,960', '2,326', '2,576']];
   const t4 = x => 0.375 * Math.pow(1 + x * x / 4, -2.5), g0 = x => Math.exp(-x * x / 2) / Math.sqrt(2 * Math.PI);
   stepped('student', {
-    labels: ['S1', 'S2', 'S3'],
+    labels: ['S1', 'S2'],
     build(svg) {
       const m = {};
       tx(svg, 60, 90, 'D\'autres lois, d\'autres tables', { class: 't-title' });
@@ -361,7 +363,7 @@
       down(m.fq, CX[0], 340, 380);
       node(m.fq, CX[0], 384, 520, ['~N~~f~ ≥ 5 et ~N~(1 − ~f~) ≥ 5 ?', '{p:(IP : ~N~~ϕ~ et ~N~(1 − ~ϕ~) > 5)}']);
       down(m.fq, CX[0], 492, 540, 'oui');
-      node(m.fq, CX[0], 544, 520, ['binomiale ≈ Gauss', '{k:~ε~(~α~)}'], 'box-green');
+      node(m.fq, CX[0], 544, 520, ['binomiale ≈ Gauss : {k:~ε~(~α~)}', 'IC : {G:~f~} ± {k:~ε~(~α~)}·√({g:~f~}(1 − {g:~f~})/~N~)'], 'box-green');
       ftx(m.fq, CX[0], 700, '{p:non : ~N~ trop petit, pas de Gauss}', { 'text-anchor': 'middle', 'font-size': 24 });
       ftx(m.fq, CX[0], 734, '{p:(il faut un ~N~ assez grand,}', { 'text-anchor': 'middle', 'font-size': 24 });
       ftx(m.fq, CX[0], 766, '{p:surtout pour une maladie rare)}', { 'text-anchor': 'middle', 'font-size': 24 });
@@ -372,12 +374,12 @@
       ftx(m.mo, CX[1], 520, '{p:non : tests non paramétriques}', { 'text-anchor': 'middle', 'font-size': 24 });
       down(m.mo, CX[1], 530, 572, 'oui');
       node(m.mo, CX[1], 576, 360, ['{p:~σ~} connu ?']);
-      S('path', { d: `M${CX[1] - 60} 644 C ${CX[1] - 60} 680, ${CX[1] - 140} 670, ${CX[1] - 140} 704`, class: 'tree-l' }, m.mo);
-      S('path', { d: `M${CX[1] + 60} 644 C ${CX[1] + 60} 680, ${CX[1] + 140} 670, ${CX[1] + 140} 704`, class: 'tree-l' }, m.mo);
+      S('path', { d: `M${CX[1] - 60} 644 C ${CX[1] - 60} 680, ${CX[1] - 150} 670, ${CX[1] - 150} 704`, class: 'tree-l' }, m.mo);
+      S('path', { d: `M${CX[1] + 60} 644 C ${CX[1] + 60} 680, ${CX[1] + 150} 670, ${CX[1] + 150} 704`, class: 'tree-l' }, m.mo);
       ftx(m.mo, CX[1] - 120, 676, 'oui', { 'text-anchor': 'end', 'font-size': 22, class: 't-pop' });
       ftx(m.mo, CX[1] + 120, 676, 'non', { 'font-size': 22, class: 't-pop' });
-      node(m.mo, CX[1] - 140, 708, 260, ['Gauss', '{k:~ε~(~α~)}·{p:~σ~}/√~N~'], 'box-green', 24);
-      node(m.mo, CX[1] + 140, 708, 260, ['Student, ~N~ − 1 ddl', '{k:~t~(~α~)}·{g:~s~}/√~N~'], 'box-green', 24);
+      node(m.mo, CX[1] - 150, 708, 290, ['Gauss', 'IC : {G:~m~} ± {k:~ε~(~α~)}·{p:~σ~}/√~N~'], 'box-green', 24);
+      node(m.mo, CX[1] + 150, 708, 290, ['Student, ~N~ − 1 ddl', 'IC : {G:~m~} ± {k:~t~(~α~)}·{g:~s~}/√~N~'], 'box-green', 24);
       ftx(m.mo, CX[1], 860, '{p:(~t~(~α~) → ~ε~(~α~) quand ~N~ grandit)}', { 'text-anchor': 'middle', 'font-size': 22 });
       // variance
       m.va = S('g', {}, svg);

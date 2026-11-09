@@ -23,6 +23,7 @@ STATIONS = [
     ('PIECE0', 'La pièce : on pose H₀', 'piece0', 1),
     ('PIECE', 'Tirages au sort', 'piece', 1),
     ('QUESTION', 'La question du fabricant', 'question', 1),
+    ('CONF', 'Un test de conformité', 'conf', 1),
     ('HYPO', 'H₀ et H₁', 'hypo', 1),
     ('RAISON', 'Le raisonnement', 'raison', 1),
     ('ALPHA', 'Le risque α', 'alpha', 1),
