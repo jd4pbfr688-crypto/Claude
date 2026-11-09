@@ -266,7 +266,7 @@
       const rows = [
         ['Poser H₀ et H₁ (bilatéral ou unilatéral)', 'H₀ : ~μ~ = 72,5 mm · H₁ : ~μ~ ≠ 72,5 mm'],
         ['Fixer ~α~, {b:avant} de regarder les données', '~α~ = 5 %'],
-        ['Vérifier les conditions, puis calculer l\'écart réduit', '~ε~ = |70,4 − 72,5| / 0,866 = 2,42'],
+        ['Vérifier les conditions, puis calculer l\'écart réduit', '~ε~ = {b:2,42}'],
         ['Lire le seuil dans la table, comparer, conclure', '~ε~(~α~) = 1,96 < 2,42 → {R:on rejette H₀}'],
       ];
       m.rows = rows.map(([a, ex], i) => {
@@ -309,10 +309,10 @@
       ftx(m.fe, 140, 900, '{g:~f~} = ~f~_e : la meilleure estimation', { 'font-size': 26, class: 't-pop' });
       m.h0 = noteBox(svg, 1000, 150, 860, ['{P:H₀ : ~ϕ~ = 0,20}', 'le fabricant ne prévoit que 20 % de gants L', 'Conditions : ~N~~ϕ~ = 6 > 5 ✓ et ~N~(1 − ~ϕ~) = 24 > 5 ✓', '→ on peut remplacer la binomiale par Gauss'], { size: 28, cls: 'box-pop' });
       m.f = S('g', {}, svg);
-      fracLine(m.f, 1250, 500, '~ε~ =', '|~f~ − ~ϕ~|', '√( ~ϕ~(1 − ~ϕ~) / ~N~ )', 330, '', 38);
-      ftx(m.f, 1040, 640, '= |0,367 − 0,20| / √(0,20 × 0,80 / 30)', { 'font-size': 30 });
-      ftx(m.f, 1040, 690, '= 0,167 / 0,0730 = {b:2,28}', { 'font-size': 30 });
-      ftx(m.f, 1040, 750, '2,28 > ~ε~(~α~) = 1,96 → on {R:rejette H₀}   (~p~ = 2,2 %)', { 'font-size': 30, 'font-weight': 600 });
+      fracLine(m.f, 1300, 520, '~ε~ =', '|~f~ − ~ϕ~|', '√( ~ϕ~(1 − ~ϕ~) / ~N~ )', 360, '', 42);
+      ftx(m.f, 1430, 690, '~ε~ = {b:2,28}', { 'text-anchor': 'middle', 'font-size': 52 });
+      ftx(m.f, 1430, 780, '2,28 > ~ε~(~α~) = 1,96 → on {R:rejette H₀}', { 'text-anchor': 'middle', 'font-size': 34, 'font-weight': 600 });
+      ftx(m.f, 1430, 830, '{p:(~p~ = 2,2 %)}', { 'text-anchor': 'middle', 'font-size': 28 });
       m.note = ftx(svg, 140, 990, 'Au dénominateur : le ~ϕ~ de H₀, pas ~f~ (c\'est l\'intervalle de pari, pas l\'IC).', { 'font-size': 26, class: 't-pop' });
       m.uni = noteBox(svg, 1000, 800, 860, ['Unilatéral droit (H₁ : ~ϕ~ > 0,20) : 2,28 > ~ε~(2~α~) = 1,645', '{b:et} ~f~_e > ~ϕ~ → rejet. Gauche : ~ε~ > ~ε~(2~α~) et ~f~_e < ~ϕ~.'], { size: 27 });
       return m;
@@ -464,7 +464,7 @@
       m.app = S('g', {}, svg);
       ftx(m.app, 120, 520, '{b:G1} : ~N~ = 30 (pas > 30) et les mains sont gaussiennes → {G:Student à 29 ddl}', { 'font-size': 30 });
       ftx(m.app, 120, 590, '~m~ = 70,4 mm · {g:~s~ = 4,26 mm} ({o:~S~_e = 4,19 mm})', { 'font-size': 30 });
-      ftx(m.app, 120, 660, '~δ~ = 2,1 / (4,26 / √30) = 2,1 / 0,778 = {b:2,70}', { 'font-size': 34, 'font-weight': 600 });
+      ftx(m.app, 120, 672, '~δ~ = {b:2,70}', { 'font-size': 48 });
       m.ver = S('g', {}, svg);
       noteBox(m.ver, 120, 730, 830, ['~α~ = 5 % : ~t~(~α~) = 2,045', '2,70 > 2,05 → on {R:rejette H₀}'], { size: 30, cls: 'box-red' });
       noteBox(m.ver, 970, 730, 830, ['~α~ = 1 % : ~t~(~α~) = 2,756', '2,70 < 2,76 → on {b:accepte} H₀'], { size: 30 });
@@ -532,7 +532,7 @@
       m.ptDot = S('circle', { cx: cX(CHI_G1), cy: CV.base, r: 12, class: 'ic-pt' }, m.pt);
       ftx(m.pt, cX(CHI_G1), CV.base - 70, '{O:G1 : ~χ~² = 23,4}', { 'text-anchor': 'middle', 'font-size': 32, class: 'halo' });
       m.res = S('g', {}, svg);
-      ftx(m.res, 1240, 200, '~χ~² = 30 × 17,57 / 22,5 = {b:23,4}', { 'font-size': 32 });
+      ftx(m.res, 1240, 200, '~χ~² = {b:23,4}', { 'font-size': 38 });
       ftx(m.res, 1240, 250, '16,05 < 23,4 < 45,72 → on {b:accepte} H₀', { 'font-size': 32, 'font-weight': 600 });
       ftx(m.res, 1240, 296, 'unilatéral droit : rejet si ~χ~² > ~χ~²(~α~)', { 'font-size': 26, class: 't-pop' });
       ftx(m.res, 1240, 334, 'unilatéral gauche : rejet si ~χ~² < ~χ~²(1 − ~α~)', { 'font-size': 26, class: 't-pop' });
