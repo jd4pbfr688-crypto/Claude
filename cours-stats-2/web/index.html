@@ -81,7 +81,7 @@
     <div class="actions">
       <a class="btn primary" href="https://claude.ai/artifact/PQHnn2GYkivW1xJsEyjm1H" target="_blank" rel="noopener">
         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 4l14 8-14 8z"/></svg>Ouvrir le diaporama</a>
-      <button class="btn ghost" id="dl" type="button">
+      <button class="btn ghost dl" id="dl" type="button" data-pdf="statistiques-probabilistes-2.pdf" data-name="Statistiques probabilistes 2 - Tests d'hypothèses.pdf" data-st="st">
         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4v11M7 10l5 5 5-5M5 20h14"/></svg>Télécharger le PDF</button>
       <span class="meta">une page par étape · 115 pages · 5,6 Mo</span>
     </div>
@@ -113,7 +113,11 @@
     <div class="actions">
       <a class="btn ghost" href="https://claude.ai/artifact/GiiBHYuyWCTXY3huaovfDD" target="_blank" rel="noopener">
         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 4l14 8-14 8z"/></svg>Ouvrir le diaporama</a>
+      <button class="btn ghost dl" type="button" data-pdf="statistiques-probabilistes-1.pdf" data-name="Statistiques probabilistes 1 - Estimation.pdf" data-st="st1">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4v11M7 10l5 5 5-5M5 20h14"/></svg>Télécharger le PDF</button>
+      <span class="meta">une page par étape · 81 pages · 5,4 Mo</span>
     </div>
+    <div class="status" id="st1" role="status" aria-live="polite"></div>
   </section>
 
   <footer>Document d'étudiants, non relu par les enseignants : il ne remplace pas le cours.</footer>
@@ -121,27 +125,28 @@
 
 <script>
 (() => {
-  const btn = document.getElementById('dl'), st = document.getElementById('st');
-  const say = (t, err) => { st.textContent = t; st.classList.toggle('err', !!err); };
   const ready = (window.claude && typeof window.claude.use === 'function') ? window.claude.use('downloads').catch(() => null) : Promise.resolve(null);
-  ready.then(d => { if (!d) { btn.hidden = true; say('Le téléchargement n\'est pas disponible dans cette vue : ouvre la page dans claude.ai.'); } });
-  btn.addEventListener('click', async () => {
-    const d = await ready;
-    if (!d) return;
-    btn.disabled = true; say('Préparation du PDF…');
-    try {
-      const r = await fetch('statistiques-probabilistes-2.pdf');
-      if (!r.ok) throw { code: 'fetch', message: r.status };
-      const blob = await r.blob();
-      await d.save({ filename: 'Statistiques probabilistes 2 - Tests d\'hypothèses.pdf', data: blob });
-      say('PDF enregistré.');
-    } catch (e) {
-      const code = e && e.code;
-      if (code === 'declined') say('');
-      else if (code === 'rate_limited') say('Une fenêtre d\'enregistrement est déjà ouverte.');
-      else say('Le PDF n\'a pas pu être téléchargé. Recharge la page et réessaie.', true);
-    }
-    btn.disabled = false;
+  document.querySelectorAll('button.dl').forEach(btn => {
+    const st = document.getElementById(btn.dataset.st);
+    const say = (t, err) => { st.textContent = t; st.classList.toggle('err', !!err); };
+    ready.then(d => { if (!d) { btn.hidden = true; say('Le téléchargement n\'est pas disponible dans cette vue : ouvre la page dans claude.ai.'); } });
+    btn.addEventListener('click', async () => {
+      const d = await ready;
+      if (!d) return;
+      btn.disabled = true; say('Préparation du PDF…');
+      try {
+        const r = await fetch(btn.dataset.pdf);
+        if (!r.ok) throw { code: 'fetch', message: r.status };
+        await d.save({ filename: btn.dataset.name, data: await r.blob() });
+        say('PDF enregistré.');
+      } catch (e) {
+        const code = e && e.code;
+        if (code === 'declined') say('');
+        else if (code === 'rate_limited') say('Une fenêtre d\'enregistrement est déjà ouverte.');
+        else say('Le PDF n\'a pas pu être téléchargé. Recharge la page et réessaie.', true);
+      }
+      btn.disabled = false;
+    });
   });
 })();
 </script>

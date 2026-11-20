@@ -6,7 +6,14 @@ const fs = require('fs'), path = require('path');
 const [deck, outDir, animePath, fontsDir, mode = 'all'] = process.argv.slice(2);
 fs.mkdirSync(path.join(outDir, 'etapes'), { recursive: true });
 
+// edits saved with the artifact (mode édition): EDITS_DIR = dossier de JSON {o: …} par diapo, LS_KEY = clé localStorage du deck
+const EDITS = {};
+if (process.env.EDITS_DIR) for (const f of fs.readdirSync(process.env.EDITS_DIR)) if (f.endsWith('.json')) {
+  const d = JSON.parse(fs.readFileSync(path.join(process.env.EDITS_DIR, f), 'utf8')); const v = d.data || d;
+  if (v && v.o) EDITS[f.replace(/\.json$/, '')] = v.o;
+}
 async function route(page) {
+  if (process.env.LS_KEY) await page.addInitScript(([k, v]) => { try { localStorage.setItem(k, v); } catch (e) {} }, [process.env.LS_KEY, JSON.stringify(EDITS)]);
   await page.route(/cdn\.jsdelivr\.net\/npm\/animejs/, r => r.fulfill({ path: animePath, contentType: 'application/javascript' }));
   await page.route(/fonts\.googleapis\.com/, r => {
     let css = fs.readFileSync(path.join(fontsDir, 'inter.css'), 'utf8');
@@ -49,10 +56,13 @@ async function still(browser) {
   fs.writeFileSync(path.join(outDir, 'etapes.json'), JSON.stringify(list, null, 1));
   // vector PDF: the same SVGs, one per page, with the deck's own styles and fonts
   const css = await page.evaluate(() => [...document.querySelectorAll('style')].map(s => s.textContent).join('\n'));
+  const wm = !css.includes('.pg::before') && css.match(/\.station::before\s*\{([^}]*)\}/);
+  const wmCss = wm ? `.pg::before {${wm[1]}}` : '';
   const html = `<!doctype html><html><head><meta charset="utf-8">
     <link href="https://fonts.googleapis.com/css2?family=Inter:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500&display=swap" rel="stylesheet">
     <style>${css}
     html, body { height: auto !important; overflow: visible !important; }
+    ${wmCss}
     @page { size: 1920px 1080px; margin: 0; }
     .pg { width: 1920px; height: 1080px; position: relative; overflow: hidden; page-break-after: always; break-after: page; background: #fff; }
     .pg:last-child { page-break-after: auto; break-after: auto; }
