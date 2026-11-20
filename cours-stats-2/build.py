@@ -81,11 +81,8 @@ def main():
     head = head[head.index('-->') + 3:]            # drop the course-1 header comment
     head = head.replace('</style>', '') if head.rstrip().endswith('</style>') else head
     extra_css = (SRC / '02-extra.css').read_text()
-    # logo du Tutorat Santé Brestois en filigrane derrière chaque diapo (et chaque page du PDF)
-    import base64
-    logo = base64.b64encode((HERE / 'assets' / 'logo-tsb-64.png').read_bytes()).decode()
-    extra_css += ('\n  .station::before, .pg::before { content: ""; position: absolute; inset: 0; pointer-events: none;'
-                  ' background: url("data:image/png;base64,' + logo + '") center / 860px no-repeat; opacity: .08; }\n')
+    # texte en filigrane derrière chaque diapo (et chaque page du PDF)
+    extra_css += '\n  .station::before, .pg::before { content: "Les prépas sont des organisations prédatoires qui s’enrichissent de la peur des étudiants"; position: absolute; inset: 0; pointer-events: none; display: flex; align-items: center; justify-content: center; text-align: center; padding: 0 170px; font: 700 104px/1.12 var(--font); letter-spacing: -.01em; color: var(--ink); opacity: .06; }\n'
     engine = (SRC / '04-engine.js').read_text()
     engine = engine.replace("'stats-proba-edits-v1'", "'stats-proba-2-edits-v1'")
     engine = engine.replace(
