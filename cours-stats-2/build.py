@@ -82,7 +82,7 @@ def main():
     head = head.replace('</style>', '') if head.rstrip().endswith('</style>') else head
     extra_css = (SRC / '02-extra.css').read_text()
     # texte en filigrane derrière chaque diapo (et chaque page du PDF)
-    extra_css += '\n  .station::before, .pg::before { content: "© MORA GONZÁLEZ Esteban – Tutorat de biostatistiques – usage personnel, reproduction et usage commercial interdits"; position: absolute; inset: 0; pointer-events: none; display: flex; align-items: center; justify-content: center; text-align: center; padding: 0 170px; font: 700 80px/1.15 var(--font); letter-spacing: -.01em; color: var(--ink); opacity: .06; }\n'
+    extra_css += '\n  .station::before, .pg::before { content: "© MORA GONZÁLEZ Esteban – Tutorat de biostatistiques – toute reproduction et usage commercial sont interdits"; position: absolute; inset: 0; pointer-events: none; display: flex; align-items: center; justify-content: center; text-align: center; padding: 0 170px; font: 700 80px/1.15 var(--font); letter-spacing: -.01em; color: var(--ink); opacity: .06; }\n'
     engine = (SRC / '04-engine.js').read_text()
     engine = engine.replace("'stats-proba-edits-v1'", "'stats-proba-2-edits-v1'")
     engine = engine.replace(
